@@ -1,0 +1,197 @@
+{
+  "name": "skiller",
+  "displayName": "Skiller",
+  "description": "Declarative, human-in-the-loop workflow runner for VS Code chat",
+  "version": "0.1.0",
+  "publisher": "tivaliy",
+  "icon": "resources/icon.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tivaliy/skiller.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tivaliy/skiller/issues"
+  },
+  "homepage": "https://github.com/tivaliy/skiller#readme",
+  "qna": "marketplace",
+  "engines": {
+    "vscode": "^1.93.0"
+  },
+  "categories": [
+    "AI",
+    "Chat"
+  ],
+  "keywords": [
+    "workflow",
+    "workflow runner",
+    "mcp",
+    "model context protocol",
+    "chat participant",
+    "yaml",
+    "playbook",
+    "automation",
+    "human-in-the-loop"
+  ],
+  "galleryBanner": {
+    "color": "#4338ca",
+    "theme": "dark"
+  },
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onChatParticipant:tivaliy.skiller",
+    "onLanguageModelTool:skiller_createFile",
+    "onLanguageModelTool:skiller_replaceInFile",
+    "workspaceContains:**/skill.yaml",
+    "workspaceContains:**/skills/**/*.yaml"
+  ],
+  "contributes": {
+    "chatParticipants": [
+      {
+        "id": "tivaliy.skiller",
+        "name": "skiller",
+        "fullName": "Skiller",
+        "description": "Run declarative workflows in chat",
+        "iconPath": "resources/icon.png",
+        "isSticky": true,
+        "commands": [
+          { "name": "help", "description": "Show available commands" },
+          { "name": "tools", "description": "Show available tools" },
+          { "name": "models", "description": "Show available language models for skill configuration" },
+          { "name": "reload", "description": "Reload tools and skills" },
+          { "name": "skills", "description": "List available skills" },
+          { "name": "skill", "description": "Run a skill" },
+          { "name": "cancel", "description": "Cancel the skill awaiting input or confirmation" },
+          { "name": "reset", "description": "Clear all Skiller state" },
+          { "name": "status", "description": "Show whether a skill is awaiting input or confirmation" }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "Skiller",
+      "properties": {
+        "skiller.skills.verboseMode": {
+          "type": "string",
+          "enum": ["off", "rendered", "raw"],
+          "enumDescriptions": [
+            "Don't show prompt/response during execution (default)",
+            "Show prompt (code block) and response (rendered markdown)",
+            "Show prompt and response as plain text (for debugging)"
+          ],
+          "default": "off",
+          "description": "Control verbose output during skill execution. Useful for debugging skills and understanding template variable substitution."
+        },
+        "skiller.skills.toolInvocationTimeout": {
+          "type": "number",
+          "default": 60000,
+          "minimum": 5000,
+          "maximum": 300000,
+          "description": "Timeout in milliseconds for MCP tool invocations within skill steps. Increase for slow MCP servers or complex operations. Default: 60000 (1 minute)."
+        },
+        "skiller.skills.maxToolIterations": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum LLM tool-use iterations per skill step. Prevents runaway agentic loops. Each iteration allows LLM to call tools and analyze results. Default: 10."
+        },
+        "skiller.skills.allowOutsideWorkspaceWrites": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow Skiller's file tools (createFile / replaceInFile) to write outside the workspace folder. When false (default), target paths that resolve outside the workspace are refused. Enable only if a skill legitimately needs to write to absolute paths beyond the workspace."
+        },
+        "skiller.llm.maxHistoryTurns": {
+          "type": "number",
+          "default": 20,
+          "minimum": 2,
+          "maximum": 100,
+          "description": "Maximum conversation turns sent to LLM for context. Each turn is one user message or assistant response. Higher values provide better context but increase token cost. Default: 20."
+        },
+        "skiller.llm.maxToolResponseLength": {
+          "type": "number",
+          "default": 4000,
+          "minimum": 500,
+          "maximum": 20000,
+          "description": "Maximum characters per tool response before truncation. Large responses are truncated to manage token usage. 4000 chars ≈ 1000 tokens. Default: 4000."
+        },
+        "skiller.llm.maxToolResponses": {
+          "type": "number",
+          "default": 10,
+          "minimum": 1,
+          "maximum": 50,
+          "description": "Maximum tool responses to include in follow-up context. Used for extracting IDs and data from previous queries. Default: 10."
+        }
+      }
+    },
+    "languageModelTools": [
+      {
+        "name": "skiller_createFile",
+        "tags": ["file", "skiller"],
+        "toolReferenceName": "createFile",
+        "displayName": "Create File",
+        "modelDescription": "Creates a file at the specified path with the given content. Use this instead of copilot_createFile which has internal context requirements.",
+        "userDescription": "Create a file with specified content",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(new-file)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "The path where the file should be created. Can be absolute or relative to the workspace." },
+            "content": { "type": "string", "description": "The content to write to the file." }
+          },
+          "required": ["filePath", "content"]
+        }
+      },
+      {
+        "name": "skiller_replaceInFile",
+        "tags": ["file", "skiller"],
+        "toolReferenceName": "replaceInFile",
+        "displayName": "Replace in File",
+        "modelDescription": "Replaces all occurrences of a search string with a replacement string inside an existing file. More efficient than reading and rewriting the full file when making targeted changes. Returns an error if the file does not exist or if the search string is not found.",
+        "userDescription": "Replace text within an existing file",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(replace)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "filePath": { "type": "string", "description": "The path to the file to modify. Can be absolute or relative to the workspace." },
+            "search": { "type": "string", "description": "The exact text to search for in the file." },
+            "replace": { "type": "string", "description": "The text to replace the search string with." }
+          },
+          "required": ["filePath", "search", "replace"]
+        }
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile:production",
+    "copy-assets": "node copy-assets.js",
+    "compile": "npm run copy-assets && node esbuild.js",
+    "compile:production": "npm run copy-assets && node esbuild.js --production",
+    "watch": "npm run copy-assets && node esbuild.js --watch",
+    "typecheck": "tsc -p ./ --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "package": "npm run compile:production && vsce package",
+    "install-local": "npm run package && code --install-extension *.vsix"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.93.0",
+    "@vitest/ui": "^3.2.0",
+    "@vscode/vsce": "^3.x",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.x",
+    "vitest": "^3.2.0"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1",
+    "liquidjs": "^10.24.0",
+    "mermaid": "^10.9.1",
+    "svg-pan-zoom": "^3.6.1",
+    "zod": "^3.24.0"
+  }
+}

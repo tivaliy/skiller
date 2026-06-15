@@ -1,0 +1,22 @@
+<!-- Skiller icon — original artwork (same MIT license as the project).
+     An "S" monogram drawn as a workflow: a start node (top) flows along the
+     S-curve into a human-in-the-loop decision (the diamond terminal). Edit
+     here and re-export resources/icon.png at 256x256 (transparent background). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="48" fill="url(#bg)"/>
+  <path d="M180 96
+           C180 66 138 60 114 78
+           C90 96 96 120 128 130
+           C160 140 166 164 142 182
+           C118 200 76 194 76 162"
+        fill="none" stroke="#ffffff" stroke-width="20"
+        stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="180" cy="96" r="18" fill="#FBBF24"/>
+  <path d="M76 142 L96 162 L76 182 L56 162 Z" fill="#c7d2fe"/>
+</svg>

@@ -1,0 +1,88 @@
+id: mind-reader
+name: Mind Reader
+description: Think of anything and the model guesses it through yes/no questions — a Twenty Questions game whose loops and branches light up the live execution graph.
+version: "1.0.0"
+
+# One value collected before the game starts. The enum offers a hint category;
+# the default lets the player just accept "anything".
+inputs:
+  - name: category
+    type: string
+    description: A hint about what kind of thing you're picturing
+    required: false
+    default: "something — an object, animal, person, or place"
+    enum:
+      - "something — an object, animal, person, or place"
+      - "an animal"
+      - "an object"
+      - "a famous person"
+      - "a place"
+    prompt: "Think of something and keep it secret. What kind of thing is it?"
+
+steps:
+  # 1. The model asks its next yes/no question. There is no automatic memory
+  #    between steps, so it carries everything it knows forward in `notes` and
+  #    reads the player's previous answer from outputs.reply.
+  - id: ask
+    type: llm
+    description: Ask the next yes/no question
+    file: steps/01-ask.md
+    output: turn
+
+  # 2. The player answers. Every answer loops back to `ask`; "guess now" jumps
+  #    ahead. The chosen label is stored as outputs.reply.selectedOption.
+  - id: answer
+    type: confirmation
+    description: Record the player's answer
+    message: |
+      ## 🔮 Twenty Questions
+
+      {{ outputs.turn.question }}
+    options:
+      - label: "Yes"
+        action: goto
+        goto_step: ask
+      - label: "No"
+        action: goto
+        goto_step: ask
+      - label: "Sometimes / Not sure"
+        action: goto
+        goto_step: ask
+      - label: "I'm ready — guess now!"
+        action: goto
+        goto_step: guess
+    output: reply
+
+  # 3. The model commits to a single guess based on its notes.
+  - id: guess
+    type: llm
+    description: Make a guess
+    file: steps/02-guess.md
+    output: final
+
+  # 4. Was it right? "Nope" loops back to keep asking; "Stop" ends the game.
+  - id: verdict
+    type: confirmation
+    description: Was the guess right?
+    message: |
+      ## 🔮 My guess
+
+      I think you're thinking of… **{{ outputs.final.guess }}**
+
+      _{{ outputs.final.why }}_
+
+      Did I get it?
+    options:
+      - label: "Yes! 🎉 You got it"
+        action: continue
+      - label: "Nope — keep asking"
+        action: goto
+        goto_step: ask
+      - label: "Stop here"
+        action: abort
+    output: result
+
+on_error: abort
+
+output:
+  summary: "🔮 I read your mind! Thanks for playing — run `/skill mind-reader` to play again."

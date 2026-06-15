@@ -1,0 +1,54 @@
+name: Release
+
+# Publishes to the VS Code Marketplace (and Open VSX) when a GitHub Release is published,
+# after verifying the tag matches package.json and the typecheck + test gate passes.
+# Requires repo secret VSCE_PAT (Azure DevOps PAT, scope: Marketplace > Manage); OVSX_PAT optional.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # upload the .vsix asset to the release
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      OVSX_PAT: ${{ secrets.OVSX_PAT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Verify package.json version matches the release tag
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$VERSION" != "$TAG" ]; then
+            echo "::error::package.json version ($VERSION) does not match release tag ($TAG)"
+            exit 1
+          fi
+
+      - name: Gate — typecheck + tests
+        run: |
+          npm run typecheck:test
+          npm test
+
+      - name: Package
+        run: npx @vscode/vsce package
+
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish --packagePath skiller-*.vsix
+
+      - name: Publish to Open VSX
+        if: ${{ env.OVSX_PAT != '' }}
+        run: npx ovsx publish skiller-*.vsix -p "$OVSX_PAT"
+
+      - name: Attach .vsix to the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${GITHUB_REF_NAME}" skiller-*.vsix --clobber

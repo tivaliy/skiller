@@ -1,0 +1,23 @@
+.vscode/**
+.github/**
+node_modules/**
+src/**
+test/**
+.gitignore
+tsconfig.json
+tsconfig.test.json
+esbuild.js
+copy-assets.js
+vitest.config.ts
+**/*.ts
+
+# Maintainer-only docs and dev scratch (keep them out of the .vsix)
+resources/*.svg
+.playwright-mcp/**
+**/*.b64
+*.vsix
+.DS_Store
+
+# Only include the esbuild bundle, not stale tsc output
+out/**
+!out/extension.js

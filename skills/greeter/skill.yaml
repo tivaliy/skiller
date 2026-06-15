@@ -1,0 +1,52 @@
+id: greeter
+name: Greeter
+description: A simple greeting workflow demonstrating multi-step skills with confirmation
+version: "1.1.0"
+
+inputs:
+  - name: name
+    type: string
+    description: Your name
+    required: true
+    prompt: "What is your name?"
+
+tools:
+  aliases: {}
+
+models:
+  default: gpt-4o
+
+steps:
+  - id: greet
+    description: Generate a personalized greeting
+    type: llm
+    file: steps/01-greet.md
+    output: greeting
+
+  - id: confirm
+    type: confirmation
+    description: Confirm before generating fun fact
+    message: |
+      ## Greeting Ready
+
+      {{outputs.greeting}}
+
+      Would you like me to also generate a fun fact?
+    options:
+      - label: "Yes, give me a fun fact"
+        action: continue
+      - label: "No thanks, just the greeting"
+        action: abort
+    output: user_choice
+
+  - id: fact
+    type: llm
+    description: Generate a fun fact
+    file: steps/02-fact.md
+    model: gpt-4.1
+    output: fun_fact
+
+on_error: abort
+
+output:
+  summary: "{{outputs.fun_fact}}"
