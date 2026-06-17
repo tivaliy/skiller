@@ -2,8 +2,9 @@
  * Tests for SkillExecutor resume behavior and execution-state generation guard.
  *
  * Covers:
- * - S-01: a backward `goto` / resume must not duplicate step results, must clear
- *   re-run outputs, and must reset graph status for the re-run window.
+ * - S-01: a backward `goto` / resume must not duplicate step results, must reset
+ *   graph status for the re-run window, and must PRESERVE loop-carried outputs so
+ *   a re-running step can read what it produced last iteration.
  * - S-08: the confirmation choice is recorded via the executor (recordOutput),
  *   not written by the command layer.
  * - S-12: a delayed completion animation must not fire onto a since-reset run.
@@ -202,12 +203,12 @@ describe('SkillExecutor resume', () => {
         expect(resetIds).not.toContain('a');
     });
 
-    it('clears stale outputs for steps in the re-run window before they re-run', async () => {
+    it('refreshes outputs for steps that re-run in the window (overwrite, not stale)', async () => {
         const skill = makeSkill(['a', 'b', 'c']);
         const first = await executor.execute(skill, makeOptions(executionState));
         expect(first.context.outputs).toMatchObject({ a: 'out-a', b: 'out-b', c: 'out-c' });
 
-        // Tamper with an output, then resume — the executor should clear & recompute it.
+        // Tamper with an output, then resume — the re-running step overwrites it.
         (first.context.outputs as Record<string, unknown>).c = 'STALE';
         const resumed = await executor.execute(skill, makeOptions(executionState), {
             startFromStep: 1,
@@ -216,6 +217,48 @@ describe('SkillExecutor resume', () => {
         });
 
         expect(resumed.context.outputs.c).toBe('out-c');
+    });
+
+    it('preserves loop-carried output so a re-run step reads its own prior value (backward goto)', async () => {
+        // Mirrors the mind-reader pattern: a looping step reads outputs.<self> from
+        // the previous iteration, then overwrites it. The re-run window must NOT
+        // wipe that value before the step re-renders, or the loop never progresses.
+        const observed: Array<string | undefined> = [];
+        const capturingHandler: StepHandler = {
+            category: 'execution',
+            handledStepTypes: ['llm'],
+            usesLLM: false,
+            canHandle: () => true,
+            handle: async (ctx: StepContext) => {
+                // The step's own output as seen at render time (before it overwrites).
+                observed.push(ctx.context.outputs[ctx.step.id] as string | undefined);
+                return {
+                    action: 'continue',
+                    statusUpdate: 'completed',
+                    contextUpdates: { output: `out-${ctx.step.id}`, stepTime: 1 },
+                    stepResult: { stepId: ctx.step.id, success: true, data: `out-${ctx.step.id}`, duration: 1 },
+                };
+            },
+        };
+        const registry = new StepHandlerRegistry();
+        registry.register(capturingHandler);
+        const ex = new SkillExecutor(registry, createModelResolver());
+        const es = new ExecutionStateEmitter();
+
+        const skill = makeSkill(['ask']); // a single self-looping step
+        const first = await ex.execute(skill, makeOptions(es));
+        expect(observed).toEqual([undefined]); // first pass: nothing carried yet
+        expect(first.context.outputs.ask).toBe('out-ask');
+
+        // Backward goto: resume from step 0 (re-run `ask`). Its prior output must survive.
+        await ex.execute(skill, makeOptions(es), {
+            startFromStep: 0,
+            existingContext: first.context,
+            existingStepResults: first.steps,
+        });
+
+        // On the re-run, `ask` observed its own prior output — not undefined.
+        expect(observed).toEqual([undefined, 'out-ask']);
     });
 });
 

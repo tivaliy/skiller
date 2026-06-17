@@ -212,8 +212,10 @@ export class SkillExecutor {
      * On resume (e.g. after a confirmation), steps from `startFromStep` onward
      * are re-run. To keep records correct and the graph honest, this:
      * - drops step results for steps that will re-run (avoids duplicates),
-     * - clears their accumulated outputs/timings,
-     * - resets their graph status to 'pending',
+     * - resets their timings and graph status to 'pending',
+     * - PRESERVES their accumulated outputs, so a looping step can read what it
+     *   produced last iteration (each re-running step overwrites its own output);
+     *   deleting them would wipe loop-carried state on every backward `goto`,
      * - records any pending output (e.g. the confirmation choice) as the single
      *   point of context mutation,
      * - marks the answered step (e.g. a confirmation) 'completed' when it sits
@@ -237,18 +239,20 @@ export class SkillExecutor {
             return idx === undefined || idx < startIdx;
         });
 
-        // Clear outputs/timings and reset graph status for the re-run window.
+        // Reset timings and graph status for the re-run window. Outputs are
+        // intentionally NOT deleted: each re-running step overwrites its own
+        // output, and preserving the prior values lets a looping step read what
+        // it produced last iteration (the documented "carry state forward in
+        // outputs" pattern). Wiping them here broke backward `goto` loops by
+        // clearing loop-carried state before the step re-rendered.
         for (let i = startIdx; i < skill.steps.length; i++) {
             const step = skill.steps[i];
-            if (step.output && step.output in context.outputs) {
-                delete context.outputs[step.output];
-            }
             delete context.stepTimes[step.id];
             executionState.setStepStatus(skill.id, step.id, 'pending');
         }
 
-        // Record any pending output (e.g. confirmation choice) AFTER clearing,
-        // so it survives even when its producing step is inside the re-run window.
+        // Record any pending output (e.g. the confirmation choice), overwriting
+        // the prior iteration's value so the re-run renders against the latest answer.
         if (resume.recordOutput) {
             context.outputs[resume.recordOutput.key] = resume.recordOutput.value;
         }
