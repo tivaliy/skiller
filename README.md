@@ -11,6 +11,8 @@ Write branching YAML playbooks that orchestrate your language model and MCP tool
 [![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-tivaliy.skiller-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=tivaliy.skiller)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+<img src="resources/demo.gif" alt="Skiller in action — a skill running with its live execution graph" width="900" />
+
 </div>
 
 ---
