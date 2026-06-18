@@ -33,7 +33,7 @@ jobs:
         uses: withastro/action@v6
         with:
           path: ./docs # the Astro project lives in a subdirectory
-          node-version: 20
+          node-version: 22
 
   deploy:
     needs: build
