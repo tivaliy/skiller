@@ -1,0 +1,15 @@
+/* Skiller brand accent — indigo (#4338ca), matching the Marketplace gallery banner.
+   Starlight exposes its accent palette as CSS custom properties; we override them
+   for both the default (dark) theme and the light theme. */
+
+:root {
+	--sl-color-accent-low: #1e1b4b;
+	--sl-color-accent: #6366f1;
+	--sl-color-accent-high: #c7d2fe;
+}
+
+:root[data-theme='light'] {
+	--sl-color-accent-low: #e0e7ff;
+	--sl-color-accent: #4338ca;
+	--sl-color-accent-high: #312e81;
+}
