@@ -1,0 +1,76 @@
+---
+title: Skiller
+description: Declarative, human-in-the-loop workflow runner for VS Code chat.
+template: splash
+hero:
+  title: Declarative workflows for VS Code chat
+  tagline: Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them right from the @skiller chat participant.
+  image:
+    alt: Skiller
+    file: ../../assets/icon.svg
+  actions:
+    - text: Get started
+      link: getting-started/introduction/
+      icon: right-arrow
+      variant: primary
+    - text: Install from Marketplace
+      link: https://marketplace.visualstudio.com/items?itemName=tivaliy.skiller
+      variant: secondary
+    - text: GitHub
+      link: https://github.com/tivaliy/skiller
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+import demo from '../../assets/demo.gif';
+
+<div style={{ textAlign: 'center', margin: '1rem 0 2.5rem' }}>
+	<img
+		src={demo.src}
+		alt="Skiller in action — a skill running with its live execution graph"
+		style={{ width: '100%', maxWidth: '760px', borderRadius: '0.5rem' }}
+	/>
+</div>
+
+## Predictable automation, not an autonomous agent
+
+Skiller runs **skills** — declarative, multi-step workflows defined in YAML and Markdown. Each
+skill is a playbook: a sequence of steps that call a language model, invoke your MCP tools, and
+pause for your input or approval exactly where you tell them to.
+
+<CardGrid>
+	<Card title="Declarative skills">
+		Author workflows as plain YAML + Liquid-templated Markdown. No code.
+	</Card>
+	<Card title="Human-in-the-loop">
+		`confirmation` steps pause for your choice and can branch or jump with `goto`.
+	</Card>
+	<Card title="MCP tool orchestration">
+		Call your configured MCP tools from `llm` and `tool` steps.
+	</Card>
+	<Card title="Live execution graph">
+		Watch a skill run as a Mermaid state diagram, with branches and loops lighting up as they fire.
+	</Card>
+	<Card title="Layered discovery">
+		Workspace, user, and built-in skills — with workspace winning.
+	</Card>
+	<Card title="Typed & validated">
+		Manifests are schema-checked (Zod) with helpful errors before they run.
+	</Card>
+</CardGrid>
+
+## Free-form agent vs. Skiller
+
+| | Free-form agent | **Skiller** |
+| --- | --- | --- |
+| Control flow | Model decides what to do next | **You** define the steps; the model fills them in |
+| Side effects | Can act on its own | Runs **only** the steps you wrote, pausing where you ask |
+| Reproducibility | Varies run to run | Same playbook, same shape every time |
+| Branching | Implicit | Explicit `confirmation` steps with `goto` jumps |
+
+If you want predictable, reviewable automation that still leverages an LLM — not an autonomous
+agent — Skiller is for you.
+
+<p style={{ marginTop: '2rem' }}>
+	<a href="getting-started/introduction/">Get started →</a>
+</p>

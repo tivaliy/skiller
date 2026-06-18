@@ -12,6 +12,7 @@ vitest.config.ts
 **/*.ts
 
 # Maintainer-only docs and dev scratch (keep them out of the .vsix)
+docs/**
 resources/*.svg
 resources/demo.gif
 .playwright-mcp/**
