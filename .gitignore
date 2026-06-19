@@ -4,3 +4,9 @@ out/
 media/
 .DS_Store
 .vscode-test/
+
+# Keep shared VS Code config; ignore personal files added later
+.vscode/*
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
