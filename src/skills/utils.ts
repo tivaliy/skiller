@@ -3,6 +3,26 @@
  */
 
 /**
+ * Format a duration in milliseconds as a short human-readable string.
+ * Invalid (non-finite or negative) inputs are clamped to 0.
+ */
+export function formatDuration(ms: number): string {
+    const safe = Number.isFinite(ms) && ms > 0 ? ms : 0;
+    if (safe < 1000) {
+        return `${Math.round(safe)}ms`;
+    }
+    return `${(safe / 1000).toFixed(1)}s`;
+}
+
+/**
+ * Wrap text in a fenced code block, neutralizing any inner triple-backticks so
+ * the content cannot break out of the block.
+ */
+export function fence(text: string): string {
+    return '```\n' + text.replace(/```/g, '` ` `') + '\n```';
+}
+
+/**
  * Calculate Levenshtein distance between two strings
  *
  * Used for typo detection and suggesting similar keys/values.

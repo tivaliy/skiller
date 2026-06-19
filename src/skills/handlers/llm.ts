@@ -40,6 +40,7 @@ export class LLMStepHandler implements StepHandler {
     readonly category: HandlerCategory = 'execution';
     readonly handledStepTypes: readonly StepType[] = ['llm'];
     readonly usesLLM: boolean = true;
+    readonly inspectionKind = 'llm' as const;
 
     constructor(private readonly toolResolver?: ToolResolver) {}
 

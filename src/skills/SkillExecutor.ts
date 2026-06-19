@@ -29,6 +29,7 @@ import type {
 import type { ProgressHooks } from './progress-hooks';
 import { loadSkillSteps } from './parser';
 import { interpolate, evaluateCondition } from './interpolation';
+import { buildStepInspection } from './step-inspection';
 import type { ExecutionStateManager } from './execution-state';
 import { createStreamProgressHooks } from './progress-hooks';
 import { SkillResultBuilder } from './result-builder';
@@ -392,6 +393,7 @@ export class SkillExecutor {
      * 4. Status update (single point of mutation)
      * 5. Context update (single point of mutation)
      * 6. Result collection
+     * 7. Debug-data capture (prompt/response) for prompt-bearing steps
      *
      * Each step type has its own handler with single responsibility.
      */
@@ -510,6 +512,18 @@ export class SkillExecutor {
             }
 
             ctx.stepResults.push(result.stepResult);
+
+            // Capture step I/O (interpolated prompt + response) for the graph
+            // inspector. The handler is the authority on whether its steps are
+            // inspectable (inspectionKind); the data is session-scoped and lives
+            // alongside execution status.
+            if (handler.inspectionKind) {
+                ctx.executionState.recordStepInspection(
+                    ctx.skill.id,
+                    step.id,
+                    buildStepInspection(result.stepResult, handler.inspectionKind)
+                );
+            }
 
             // Report completion via hook (unless handler opts out)
             if (result.reportCompletion !== false) {

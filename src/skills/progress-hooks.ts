@@ -8,6 +8,7 @@
 
 import type * as vscode from 'vscode';
 import type { VerboseMode, ConfirmationOption, StepModelInfo } from './types';
+import { formatDuration, fence } from './utils';
 
 // ============================================================================
 // Progress Hooks Interface
@@ -126,21 +127,6 @@ export interface ProgressHooks {
 }
 
 // ============================================================================
-// Utilities
-// ============================================================================
-
-/**
- * Format duration for human-readable display
- */
-function formatDuration(ms: number): string {
-    if (ms < 1000) {
-        return `${ms}ms`;
-    }
-    const seconds = (ms / 1000).toFixed(1);
-    return `${seconds}s`;
-}
-
-// ============================================================================
 // Factory
 // ============================================================================
 
@@ -234,10 +220,8 @@ export function createStreamProgressHooks(
             if (!stream || !isVerbose) return;
 
             if (isRaw) {
-                // Raw mode: code fence for plain text output
-                // Escape triple backticks to prevent breaking out of code block
-                const escaped = prompt.replace(/```/g, '` ` `');
-                stream.markdown(`\n> *Prompt:*\n\n\`\`\`\n${escaped}\n\`\`\`\n\n`);
+                // Raw mode: fenced code block (inner fences neutralized by fence()).
+                stream.markdown(`\n> *Prompt:*\n\n${fence(prompt)}\n\n`);
             } else {
                 // Rendered mode: show prompt as markdown
                 stream.markdown(`\n> *Prompt:*\n\n---\n\n${prompt}\n\n---\n\n`);

@@ -27,6 +27,7 @@ export class ConfirmationStepHandler implements StepHandler {
     readonly category: HandlerCategory = 'confirmation';
     readonly handledStepTypes: readonly StepType[] = ['confirmation'];
     readonly usesLLM: boolean = false;
+    readonly inspectionKind = 'confirmation' as const;
 
     canHandle(step: SkillStep): boolean {
         return step.type === 'confirmation';

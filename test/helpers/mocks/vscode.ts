@@ -53,6 +53,33 @@ export class CancellationTokenSource {
     dispose = vi.fn();
 }
 
+// EventEmitter mock (matches vscode.EventEmitter shape)
+export class EventEmitter<T> {
+    private listeners: Array<(e: T) => void> = [];
+
+    event = (listener: (e: T) => void): { dispose: () => void } => {
+        this.listeners.push(listener);
+        return {
+            dispose: () => {
+                const index = this.listeners.indexOf(listener);
+                if (index >= 0) {
+                    this.listeners.splice(index, 1);
+                }
+            }
+        };
+    };
+
+    fire(data: T): void {
+        for (const listener of this.listeners.slice()) {
+            listener(data);
+        }
+    }
+
+    dispose(): void {
+        this.listeners = [];
+    }
+}
+
 // FileType enum (matches vscode.FileType)
 export enum FileType {
     Unknown = 0,
@@ -121,6 +148,22 @@ export class Uri {
         return new Uri(base.scheme, base.authority, joined, base.query, base.fragment);
     }
 
+    static from(components: {
+        scheme: string;
+        authority?: string;
+        path?: string;
+        query?: string;
+        fragment?: string;
+    }): Uri {
+        return new Uri(
+            components.scheme,
+            components.authority ?? '',
+            components.path ?? '',
+            components.query ?? '',
+            components.fragment ?? ''
+        );
+    }
+
     with(change: { scheme?: string; authority?: string; path?: string; query?: string; fragment?: string }): Uri {
         return new Uri(
             change.scheme ?? this.scheme,
@@ -173,6 +216,7 @@ export default {
     LanguageModelChatToolMode,
     lm,
     CancellationTokenSource,
+    EventEmitter,
     FileType,
     FileSystemError,
     Uri,

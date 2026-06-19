@@ -102,6 +102,9 @@ export class ElkWebviewRenderer {
         </div>
     </div>
 
+    <!-- Hover inspector popover for executed nodes (positioned at runtime) -->
+    <div id="inspection-popover" class="node-popover is-hidden"></div>
+
     <!-- Off-screen container used to measure real card sizes before layout -->
     <div id="measure" aria-hidden="true"></div>
 
@@ -395,6 +398,67 @@ body {
 .legend-swatch.swatch-tool { border-color: var(--graph-tool); }
 .legend-swatch.swatch-llm { border-color: var(--graph-llm); }
 .legend-swatch.swatch-confirm { border-color: var(--graph-confirm); border-style: dashed; }
+
+/* ---- Inspection popover (hover an executed node to inspect prompt/response) ---- */
+.node-popover {
+    position: fixed;
+    z-index: 50;
+    width: 340px;
+    max-height: 360px;
+    display: flex;
+    flex-direction: column;
+    padding: 8px 10px;
+    border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border, #555));
+    border-radius: 6px;
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    font-size: 12px;
+    overflow: hidden;
+}
+.popover-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex: 0 0 auto;
+}
+.popover-meta { color: var(--vscode-descriptionForeground); font-size: 11px; }
+.popover-actions { display: flex; gap: 4px; flex: 0 0 auto; }
+.popover-btn {
+    font: inherit;
+    font-size: 11px;
+    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground);
+    border: none;
+    border-radius: 4px;
+    padding: 1px 8px;
+    cursor: pointer;
+}
+.popover-btn:hover { background: var(--vscode-button-secondaryHoverBackground); }
+.popover-section {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--vscode-descriptionForeground);
+    margin: 4px 0 2px;
+}
+.popover-pre {
+    margin: 0;
+    font-family: var(--vscode-editor-font-family, monospace);
+    font-size: 11px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    overflow-y: auto;
+    max-height: 120px;
+    color: var(--vscode-editor-foreground);
+    background: var(--vscode-textCodeBlock-background, rgba(127, 127, 127, 0.1));
+    padding: 6px 8px;
+    border-radius: 4px;
+}
+.popover-error { color: var(--vscode-errorForeground, var(--graph-error)); }
+.popover-empty { color: var(--vscode-descriptionForeground); font-size: 12px; padding: 2px 0; }
 `;
 
 // ============================================================================
@@ -424,6 +488,7 @@ const CLIENT = `
     var zoomLevelEl = document.getElementById('zoom-level');
     var followBtn = document.getElementById('follow-toggle');
     var dirBtn = document.getElementById('dir-toggle');
+    var popoverEl = document.getElementById('inspection-popover');
 
     var elk = new ELK();
     var panZoom = null;
@@ -432,6 +497,13 @@ const CLIENT = `
     var lastActiveStep = null;      // previously-active step, to infer the traversed edge
     var flowingPaths = [];          // the edge currently animated as "flowing"
     var currentPayload = INITIAL_PAYLOAD;
+    var hoverStepId = null;          // step currently hovered (intent)
+    var popoverPending = null;       // step we've requested data for (awaiting response)
+    var popoverAnchor = null;        // card element the popover is anchored to
+    var hoverShowTimer = null;
+    var hoverHideTimer = null;
+    var HOVER_SHOW_DELAY = 350;
+    var HOVER_HIDE_DELAY = 200;
     var followActive = !!savedState.follow;
     var warningsCollapsed = !!savedState.warningsCollapsed;
     if (followActive) { followBtn.classList.add('is-active'); }
@@ -635,6 +707,9 @@ const CLIENT = `
         card.addEventListener('click', function () {
             vscodeApi.postMessage({ type: 'navigate', stepId: node.id });
         });
+        // Hover-intent: peek at what this step saw/produced (if it has run).
+        card.addEventListener('mouseenter', function () { scheduleInspectionShow(node.id, card); });
+        card.addEventListener('mouseleave', scheduleInspectionHide);
     }
 
     function pointToward(from, to, dist) {
@@ -872,6 +947,114 @@ const CLIENT = `
         if (badge) { badge.textContent = '🧠 ' + model; }
     }
 
+    // ---- Inspection popover (hover an executed node to inspect prompt/response) ---
+
+    function formatMs(ms) {
+        return ms < 1000 ? (ms + 'ms') : ((ms / 1000).toFixed(1) + 's');
+    }
+
+    // Cap popover text; the full content is available via "Open ↗".
+    function clipText(text) {
+        var MAX = 4000;
+        return text.length > MAX ? (text.slice(0, MAX) + ' … [truncated — use Open ↗ for full text]') : text;
+    }
+
+    function inspectionMetaLine(data) {
+        var parts = [];
+        if (data.modelUsed) { parts.push('🧠 ' + escapeHtml(data.modelUsed)); }
+        parts.push('⏱ ' + formatMs(data.durationMs));
+        if (data.toolsUsed && data.toolsUsed.length) { parts.push('🔧 ' + escapeHtml(data.toolsUsed.join(', '))); }
+        parts.push(data.status === 'error' ? '⚠ error' : '✓ ' + escapeHtml(data.kind));
+        return parts.join('  ·  ');
+    }
+
+    // Anchor the popover to a card, preferring its right side; clamp to viewport.
+    function positionInspectionPopover(card) {
+        var rect = card.getBoundingClientRect();
+        var pw = popoverEl.offsetWidth || 340;
+        var ph = popoverEl.offsetHeight || 200;
+        var gap = 8;
+        var left = rect.right + gap;
+        if (left + pw > window.innerWidth - gap) { left = rect.left - pw - gap; }
+        if (left < gap) { left = gap; }
+        var top = rect.top;
+        if (top + ph > window.innerHeight - gap) { top = Math.max(gap, window.innerHeight - ph - gap); }
+        popoverEl.style.left = left + 'px';
+        popoverEl.style.top = top + 'px';
+    }
+
+    function showInspectionPopover(stepId, data, card) {
+        var html = '<div class="popover-head">';
+        html += '<span class="popover-meta">' + inspectionMetaLine(data) + '</span>';
+        html += '<span class="popover-actions">';
+        html += '<button class="popover-btn" data-act="open" title="Open as a read-only document">Open ↗</button>';
+        html += '<button class="popover-btn" data-act="copy" title="Copy the prompt to the clipboard">Copy</button>';
+        html += '</span></div>';
+        if (data.status === 'error') {
+            html += '<div class="popover-section">Error</div>';
+            html += '<pre class="popover-pre popover-error">' + (data.error ? escapeHtml(clipText(data.error)) : '(no error message)') + '</pre>';
+        }
+        html += '<div class="popover-section">Prompt</div>';
+        html += '<pre class="popover-pre">' + escapeHtml(clipText(data.prompt)) + '</pre>';
+        if (data.kind === 'llm') {
+            html += '<div class="popover-section">Response</div>';
+            html += '<pre class="popover-pre">' + (data.response ? escapeHtml(clipText(data.response)) : '(no response text)') + '</pre>';
+        }
+        popoverEl.innerHTML = html;
+        popoverEl.querySelector('[data-act="open"]').addEventListener('click', function () {
+            vscodeApi.postMessage({ type: 'openStepInspection', stepId: stepId });
+        });
+        popoverEl.querySelector('[data-act="copy"]').addEventListener('click', function () {
+            vscodeApi.postMessage({ type: 'copyStepInspection', stepId: stepId });
+        });
+        // Reveal before positioning so offset dimensions are measurable; both run
+        // synchronously before paint, so there's no visible reposition flicker.
+        popoverEl.classList.remove('is-hidden');
+        positionInspectionPopover(card);
+    }
+
+    function hideInspectionPopover() {
+        clearTimeout(hoverShowTimer);   // cancel a pending show so it can't fire after a hide
+        clearTimeout(hoverHideTimer);
+        popoverEl.classList.add('is-hidden');
+        popoverPending = null;
+        popoverAnchor = null;   // drop the (possibly detached after re-render) card ref
+    }
+
+    // Distinguish "executed but not inspectable" (e.g. a tool step) from "not run yet".
+    function nodeHasRun(stepId) {
+        var g = nodeEls[stepId];
+        return !!g && (g.classList.contains('node-completed') || g.classList.contains('node-error') || g.classList.contains('node-skipped'));
+    }
+
+    // Minimal popover for an executed node that has no captured prompt/response.
+    function showNoInspectionPopover(card) {
+        popoverEl.innerHTML = '<div class="popover-empty">No prompt or response captured for this step type.</div>';
+        popoverEl.classList.remove('is-hidden');
+        positionInspectionPopover(card);
+    }
+
+    // Hover-intent show: after a delay, lazily pull the step's captured I/O.
+    function scheduleInspectionShow(stepId, card) {
+        clearTimeout(hoverHideTimer);
+        clearTimeout(hoverShowTimer);
+        hoverStepId = stepId;
+        hoverShowTimer = setTimeout(function () {
+            if (hoverStepId !== stepId) { return; }
+            popoverPending = stepId;
+            popoverAnchor = card;
+            vscodeApi.postMessage({ type: 'requestStepInspection', stepId: stepId });
+        }, HOVER_SHOW_DELAY);
+    }
+
+    // Grace period before hiding, so the cursor can travel into the popover.
+    function scheduleInspectionHide() {
+        clearTimeout(hoverShowTimer);
+        hoverShowTimer = null;
+        hoverStepId = null;
+        hoverHideTimer = setTimeout(hideInspectionPopover, HOVER_HIDE_DELAY);
+    }
+
     // ---- Messages ----------------------------------------------------------
 
     window.addEventListener('message', function (event) {
@@ -879,15 +1062,29 @@ const CLIENT = `
         if (!msg || !msg.type) return;
         switch (msg.type) {
             case 'updateGraph':
+                // A re-render orphans the hovered card; drop any open popover.
+                hideInspectionPopover();
                 // Preserve the user's toolbar direction choice across live-reloads.
                 if (msg.payload) { msg.payload.direction = currentPayload.direction; }
                 layoutAndRender(msg.payload, false);
                 break;
             case 'highlightStep': setNodeStatus(msg.stepId, msg.status); break;
             case 'highlightTerminal': setTerminalStatus(msg.terminal, msg.status); break;
-            case 'resetHighlights': resetHighlights(); break;
+            case 'resetHighlights': resetHighlights(); hideInspectionPopover(); break;
             case 'setModelOverride': setModelOverride(msg.model); break;
             case 'updateStepModel': updateStepModel(msg.stepId, msg.model); break;
+            case 'stepInspection':
+                // Lazy-pull response: only act if the cursor is still on the node
+                // we requested for (guards rapid hover changes).
+                if (msg.stepId === popoverPending && hoverStepId === msg.stepId && popoverAnchor) {
+                    if (msg.data) { showInspectionPopover(msg.stepId, msg.data, popoverAnchor); }
+                    else if (nodeHasRun(msg.stepId)) { showNoInspectionPopover(popoverAnchor); }
+                    else { hideInspectionPopover(); }
+                }
+                // Only clear the slot for the request this response answers, so a
+                // late/out-of-order response can't drop a newer pending request.
+                if (msg.stepId === popoverPending) { popoverPending = null; }
+                break;
             case 'error':
                 errorEl.textContent = (msg.title ? msg.title + ': ' : '') + (msg.message || '');
                 show(errorEl);
@@ -921,6 +1118,12 @@ const CLIENT = `
         saveState();
         layoutAndRender(currentPayload, false);
     });
+
+    // Keep the popover open while the cursor is over it (so its buttons are
+    // clickable), and let Escape dismiss it.
+    popoverEl.addEventListener('mouseenter', function () { clearTimeout(hoverHideTimer); });
+    popoverEl.addEventListener('mouseleave', scheduleInspectionHide);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { hideInspectionPopover(); } });
 
     // ---- Boot --------------------------------------------------------------
 
