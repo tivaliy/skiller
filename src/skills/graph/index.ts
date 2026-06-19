@@ -14,10 +14,9 @@ import type {Skill, SkillSource} from '../types';
 import {parseSkillFromContent} from '../parser';
 import {validateSkill} from '../validators';
 import {SkillGraphBuilder} from './builder';
-import {StateRenderer} from './state-renderer';
-import {type WebviewOptions, WebviewRenderer} from './webview-renderer';
+import {getGraphRenderer} from './renderer';
 import {panelManager} from './panel-manager';
-import type {RenderOptions, SkillGraph, WebviewMessage} from './types';
+import type {GraphWebviewOptions, RenderOptions, SkillGraph, WebviewMessage} from './types';
 import type {ValidationIssue} from '../validators';
 
 // ============================================================================
@@ -77,14 +76,10 @@ export type {
     GraphEdge,
     NodeType,
     EdgeType,
-    GraphRenderer,
-    RenderOptions,
-    NodeMetadata
+    RenderOptions
 } from './types';
 
 export { SkillGraphBuilder } from './builder';
-export { StateRenderer, type RenderResult } from './state-renderer';
-export { WebviewRenderer } from './webview-renderer';
 export { panelManager, SkillGraphPanelManager } from './panel-manager';
 // enableLiveReload is exported from this file directly (see below)
 
@@ -92,7 +87,7 @@ export { panelManager, SkillGraphPanelManager } from './panel-manager';
  * Show a skill graph in a VSCode WebviewPanel
  *
  * This is the main entry point for displaying skill graphs.
- * It builds the graph, renders it to Mermaid syntax, and displays it.
+ * It builds the graph, serializes it to an ELK payload, and displays it.
  * Clicking on a node navigates to the corresponding step in skill.yaml.
  *
  * Features:
@@ -120,23 +115,19 @@ export async function showSkillGraph(
     extensionUri: vscode.Uri,
     options: {
         render?: RenderOptions;
-        webview?: WebviewOptions;
+        webview?: GraphWebviewOptions;
     } = {}
 ): Promise<vscode.WebviewPanel> {
     // Build intermediate graph representation
     const builder = new SkillGraphBuilder();
     const graph = builder.build(skill);
 
-    // Render to Mermaid state diagram syntax with ID mapping for navigation
-    const renderer = new StateRenderer(options.render);
-    const { mermaidCode, idMapping, nodeMetadata } = renderer.renderWithMapping(graph);
-
     // Check if panel already exists for this skill
     const existingPanel = panelManager.getPanel(skill.id);
     if (existingPanel) {
-        // Clear old messages, update content, reveal
+        // Reuse the open panel: clear stale messages, then live-update its content.
         panelManager.clearMessages(skill.id);
-        panelManager.updatePanel(skill.id, mermaidCode, idMapping, nodeMetadata);
+        panelManager.update(skill.id, graph, options.render);
         panelManager.revealPanel(skill.id);
 
         // Show validation issues (errors and warnings)
@@ -154,13 +145,8 @@ export async function showSkillGraph(
     const validationPromise = validateSkill(skill, { validateStepFiles: false });
     let validationShown = false;
 
-    // Create new panel with ID mapping for click-to-navigate
-    const webviewRenderer = new WebviewRenderer(extensionUri);
-    const panel = webviewRenderer.show(skill.name, mermaidCode, {
-        ...options.webview,
-        idMapping,
-        nodeMetadata
-    });
+    // Create new panel via the active graph engine (see renderer.ts contract)
+    const panel = getGraphRenderer().createPanel(skill, graph, extensionUri, options.webview ?? {}, options.render);
 
     // Message handler: navigation + one-time validation display on first 'ready'.
     // 'ready' fires on both render success and failure, so diagnostics are never
@@ -302,11 +288,9 @@ export async function refreshOpenPanels(
 
         const builder = new SkillGraphBuilder();
         const graph = builder.build(skill);
-        const renderer = new StateRenderer();
-        const { mermaidCode, idMapping, nodeMetadata } = renderer.renderWithMapping(graph);
 
         panelManager.clearMessages(skillId);
-        panelManager.updatePanel(skillId, mermaidCode, idMapping, nodeMetadata);
+        panelManager.update(skillId, graph);
 
         const validation = await validateSkill(skill, { validateStepFiles: false });
         showValidationErrors(skillId, validation.errors, '[Reload]');
@@ -326,24 +310,6 @@ export async function refreshOpenPanels(
 export function buildSkillGraph(skill: Skill): SkillGraph {
     const builder = new SkillGraphBuilder();
     return builder.build(skill);
-}
-
-/**
- * Generate Mermaid syntax from a Skill
- *
- * Use this when you need the Mermaid code without displaying it
- * (e.g., for embedding in documentation or tests).
- *
- * @param skill - The skill to generate Mermaid for
- * @param options - Rendering options
- * @returns Mermaid state diagram syntax
- */
-export function generateMermaid(skill: Skill, options?: RenderOptions): string {
-    const builder = new SkillGraphBuilder();
-    const graph = builder.build(skill);
-
-    const renderer = new StateRenderer(options);
-    return renderer.render(graph);
 }
 
 // ============================================================================
@@ -469,10 +435,6 @@ async function updateGraphFromContent(skillId: string, skillDir: string, content
     const builder = new SkillGraphBuilder();
     const graph = builder.build(result.skill);
 
-    // Render to Mermaid
-    const renderer = new StateRenderer();
-    const { mermaidCode, idMapping, nodeMetadata } = renderer.renderWithMapping(graph);
-
-    // Update panel
-    panelManager.updatePanel(skillId, mermaidCode, idMapping, nodeMetadata);
+    // Live-update the open panel with the rebuilt graph.
+    panelManager.update(skillId, graph);
 }

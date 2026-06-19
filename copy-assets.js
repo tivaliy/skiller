@@ -11,8 +11,11 @@ const mediaDir = path.join(__dirname, 'media');
 fs.mkdirSync(mediaDir, { recursive: true });
 
 const assets = [
-  'node_modules/mermaid/dist/mermaid.min.js',
-  'node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js'
+  'node_modules/svg-pan-zoom/dist/svg-pan-zoom.min.js',
+  // ELK layout engine for the SVG renderer. The *.bundled.js build runs ELK
+  // synchronously on the main thread (no real Web Worker, no eval/Function),
+  // which is required to load under the webview's strict CSP.
+  'node_modules/elkjs/lib/elk.bundled.js'
 ];
 
 for (const asset of assets) {
