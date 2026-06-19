@@ -33,7 +33,7 @@ describe('refreshOpenPanels', () => {
 
         await refreshOpenPanels(id => (id === 'present' ? skill : undefined));
 
-        expect(fp.messages.some(m => m.type === 'update')).toBe(true);
+        expect(fp.messages.some(m => m.type === 'updateGraph')).toBe(true);
         expect(panelManager.getOpenSkillIds()).toContain('present');
     });
 

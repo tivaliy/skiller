@@ -141,10 +141,7 @@ export {
 export {
     showSkillGraph,
     buildSkillGraph,
-    generateMermaid,
     SkillGraphBuilder,
-    StateRenderer,
-    WebviewRenderer,
     enableLiveReload,
     refreshOpenPanels,
     panelManager

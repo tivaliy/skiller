@@ -10,7 +10,8 @@
 
 import * as vscode from 'vscode';
 import type { Skill, ModelSource } from '../types';
-import type { ExtensionMessage, NodeMetadata, WebviewMessage } from './types';
+import type { ExtensionMessage, RenderOptions, SkillGraph, WebviewMessage } from './types';
+import { getGraphRenderer } from './renderer';
 import type { ExecutionStateManager, StepStatus, TerminalStatus } from '../execution-state';
 
 /**
@@ -37,7 +38,7 @@ interface ManagedPanel {
  *
  * Features:
  * - Panel reuse: reopening same skill reuses existing panel
- * - Live reload: updatePanel() pushes new content without recreating
+ * - Live reload: update() pushes new content without recreating
  * - Cleanup: proper disposal when panels close
  * - Execution state resync: restores highlights after tab switch
  */
@@ -111,29 +112,23 @@ export class SkillGraphPanelManager {
     }
 
     /**
-     * Update panel content (for live reload)
+     * Update panel content (for live reload).
      *
-     * Note: This method only updates the graph content. Call clearMessages()
-     * separately before showing new validation results to prevent stale messages.
+     * Note: This only updates the graph content. Call clearMessages() separately
+     * before showing new validation results to prevent stale messages.
      *
      * @param skillId - Skill to update
-     * @param mermaidCode - New Mermaid code to render
-     * @param idMapping - Optional escaped->original id mapping for click-to-navigate
-     * @param nodeMetadata - Optional node metadata for badge rendering
+     * @param graph - The rebuilt graph to render
+     * @param renderOptions - Optional render options (direction, showTools, ...)
      * @returns true if panel was updated, false if no panel exists
      */
-    updatePanel(
-        skillId: string,
-        mermaidCode: string,
-        idMapping?: Record<string, string>,
-        nodeMetadata?: Record<string, NodeMetadata>
-    ): boolean {
+    update(skillId: string, graph: SkillGraph, renderOptions?: RenderOptions): boolean {
         const entry = this.panels.get(skillId);
         if (!entry) {
             return false;
         }
 
-        const message: ExtensionMessage = { type: 'update', mermaidCode, idMapping, nodeMetadata };
+        const message = getGraphRenderer().buildUpdateMessage(graph, renderOptions);
         void entry.panel.webview.postMessage(message);
         return true;
     }

@@ -5,8 +5,20 @@
  * Designed for extensibility - new renderers can be added without changing core.
  */
 
+import type * as vscode from 'vscode';
+
 import type { StepStatus, TerminalStatus } from '../execution-state';
 import type { ModelSource } from '../types';
+
+/**
+ * Webview display options for a graph panel (engine-agnostic).
+ */
+export interface GraphWebviewOptions {
+    /** Column to show the panel in. */
+    column?: vscode.ViewColumn;
+    /** Keep focus on the current editor. */
+    preserveFocus?: boolean;
+}
 
 /**
  * Node types in the skill graph
@@ -76,18 +88,6 @@ export interface SkillGraph {
 }
 
 /**
- * Renders a SkillGraph to a specific format
- *
- * @template T - Output type (string for Mermaid/ASCII, SVGElement for SVG, etc.)
- */
-export interface GraphRenderer<T> {
-    /**
-     * Render the graph to the target format
-     */
-    render(graph: SkillGraph): T;
-}
-
-/**
  * Options for graph rendering
  */
 export interface RenderOptions {
@@ -105,6 +105,70 @@ export const DEFAULT_RENDER_OPTIONS: Required<RenderOptions> = {
     showTools: true
 };
 
+// ============================================================================
+// ELK (SVG) Renderer Payload
+// ============================================================================
+
+/**
+ * Kind of node in the ELK payload. `start`/`end` are explicit synthesized
+ * terminal nodes, so the webview never sniffs DOM geometry to find terminals.
+ */
+export type ElkNodeKind = 'llm' | 'tool' | 'confirmation' | 'start' | 'end';
+
+/**
+ * A node in the serialized graph payload sent to the ELK webview.
+ *
+ * IDs are kept RAW (no escaping) — the SVG renderer has no identifier syntax
+ * constraints, so no id-mapping table is needed.
+ */
+export interface ElkPayloadNode {
+    /** Raw node id (matches step id; or `__start__` / `__end__` for terminals) */
+    id: string;
+    /** Node kind — drives card styling and terminal rendering */
+    kind: ElkNodeKind;
+    /** Card header (step id) — omitted for terminals */
+    header?: string;
+    /** Card body (step description) — omitted for terminals */
+    body?: string;
+    /** Tool badges (deduplicated) */
+    tools?: string[];
+    /** Model badge id/alias */
+    model?: string;
+}
+
+/**
+ * An edge in the serialized graph payload sent to the ELK webview.
+ */
+export interface ElkPayloadEdge {
+    /** Stable unique edge id */
+    id: string;
+    /** Source node id */
+    from: string;
+    /** Target node id (a real node, or `__end__` for terminal-bound edges) */
+    to: string;
+    /** Optional edge label (verbatim — HTML-escaped at render time) */
+    label?: string;
+    /** Original edge type, or 'terminal' for edges into the synthesized end node */
+    kind: EdgeType | 'terminal';
+}
+
+/**
+ * Serialized skill graph consumed by the ELK (SVG) webview renderer.
+ *
+ * Layout (ELK) and the two-pass card measurement happen client-side in the
+ * webview, so the extension only ships this structural description.
+ */
+export interface ElkGraphPayload {
+    /** Skill name */
+    title: string;
+    /** Layout direction */
+    direction: 'TD' | 'LR';
+    /** All nodes including synthesized start/end terminals */
+    nodes: ElkPayloadNode[];
+    /** All edges including start and terminal edges */
+    edges: ElkPayloadEdge[];
+}
+
 /**
  * Messages sent from webview to extension
  */
@@ -113,28 +177,10 @@ export type WebviewMessage =
     | { type: 'ready' };
 
 /**
- * Metadata for a single node (for Card UI rendering in webview)
- */
-export interface NodeMetadata {
-    /** Node type for styling */
-    type: 'llm' | 'tool' | 'confirmation' | 'terminal';
-    /** Tools for this step (each gets a separate badge) */
-    tools?: string[];
-    /** Model ID or alias (for model badge) */
-    model?: string;
-    /** How the model was determined (from static YAML config) */
-    modelSource?: ConfigModelSource;
-    /** Step ID for card header */
-    stepId?: string;
-    /** Step description for card body */
-    description?: string;
-}
-
-/**
  * Messages sent from extension to webview
  */
 export type ExtensionMessage =
-    | { type: 'update'; mermaidCode: string; idMapping?: Record<string, string>; nodeMetadata?: Record<string, NodeMetadata> }
+    | { type: 'updateGraph'; payload: ElkGraphPayload }
     | { type: 'error'; title: string; message: string }
     | { type: 'warning'; title: string; message: string; count: number }
     | { type: 'clearError' }
