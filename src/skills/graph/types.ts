@@ -7,7 +7,7 @@
 
 import type * as vscode from 'vscode';
 
-import type { StepStatus, TerminalStatus } from '../execution-state';
+import type { StepStatus, TerminalStatus, StepInspection } from '../execution-state';
 import type { ModelSource } from '../types';
 
 /**
@@ -174,7 +174,13 @@ export interface ElkGraphPayload {
  */
 export type WebviewMessage =
     | { type: 'navigate'; stepId: string }
-    | { type: 'ready' };
+    | { type: 'ready' }
+    /** Hovered an executed node — request its captured prompt/response. */
+    | { type: 'requestStepInspection'; stepId: string }
+    /** Open the captured prompt/response for a step as a read-only document. */
+    | { type: 'openStepInspection'; stepId: string }
+    /** Copy the captured prompt for a step to the clipboard. */
+    | { type: 'copyStepInspection'; stepId: string };
 
 /**
  * Messages sent from extension to webview
@@ -188,4 +194,6 @@ export type ExtensionMessage =
     | { type: 'highlightTerminal'; terminal: 'start' | 'end'; status: TerminalStatus }
     | { type: 'resetHighlights' }
     | { type: 'setModelOverride'; model: string | null }
-    | { type: 'updateStepModel'; stepId: string; model: string; source: ModelSource };
+    | { type: 'updateStepModel'; stepId: string; model: string; source: ModelSource }
+    /** Response to requestStepInspection — the captured I/O for a step, or null if none. */
+    | { type: 'stepInspection'; stepId: string; data: StepInspection | null };

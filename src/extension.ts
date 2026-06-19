@@ -14,7 +14,9 @@ import {
     enableLiveReload,
     createExecutionState,
     ExecutionStateManager,
-    panelManager
+    panelManager,
+    StepInspectionDocumentProvider,
+    STEP_INSPECTION_SCHEME
 } from './skills';
 import type { SkillExecutor } from './skills';
 import { ToolCache } from './ToolCache';
@@ -116,6 +118,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     context.subscriptions.push({
         dispose: panelManager.connectExecutionState(executionState)
     });
+
+    // Read-only inspector documents for the graph "Open ↗" affordance: render a
+    // step's captured prompt/response on demand from execution state.
+    const stepInspectionProvider = new StepInspectionDocumentProvider(executionState);
+    context.subscriptions.push(
+        vscode.workspace.registerTextDocumentContentProvider(STEP_INSPECTION_SCHEME, stepInspectionProvider),
+        stepInspectionProvider
+    );
 
     registerTools(context);
     registerSkillCodeLens(context);

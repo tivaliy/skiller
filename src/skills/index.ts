@@ -59,6 +59,8 @@ export type { ProgressHooks } from './progress-hooks';
 export type {
     StepStatus,
     TerminalStatus,
+    StepInspection,
+    StepInspectionKind,
     ExecutionState,
     ExecutionEvent,
     ExecutionEventListener,
@@ -144,8 +146,12 @@ export {
     SkillGraphBuilder,
     enableLiveReload,
     refreshOpenPanels,
-    panelManager
+    panelManager,
+    StepInspectionDocumentProvider
 } from './graph';
+
+// Step inspector (read-only prompt/response document)
+export { STEP_INSPECTION_SCHEME } from './step-inspection';
 
 export { registerSkillCodeLens } from './graph/codelens-provider';
 

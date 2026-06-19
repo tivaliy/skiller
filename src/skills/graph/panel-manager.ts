@@ -12,7 +12,7 @@ import * as vscode from 'vscode';
 import type { Skill, ModelSource } from '../types';
 import type { ExtensionMessage, RenderOptions, SkillGraph, WebviewMessage } from './types';
 import { getGraphRenderer } from './renderer';
-import type { ExecutionStateManager, StepStatus, TerminalStatus } from '../execution-state';
+import type { ExecutionStateManager, StepStatus, TerminalStatus, StepInspection } from '../execution-state';
 
 /**
  * Callback for handling webview messages
@@ -338,6 +338,36 @@ export class SkillGraphPanelManager {
     }
 
     /**
+     * Serve captured step inspection data to the webview in response to a hover request.
+     *
+     * Posts a `stepInspection` message with the captured data, or null if nothing was
+     * captured (an un-run, skipped, or non-prompt step). Lazy-pull keeps large
+     * prompt/response payloads out of the webview until a node is actually hovered.
+     *
+     * @returns true if a message was sent, false if no panel exists
+     */
+    handleRequestStepInspection(skillId: string, stepId: string): boolean {
+        const entry = this.panels.get(skillId);
+        if (!entry) {
+            return false;
+        }
+
+        const data = this.getStepInspection(skillId, stepId) ?? null;
+        const message: ExtensionMessage = { type: 'stepInspection', stepId, data };
+        void entry.panel.webview.postMessage(message);
+        return true;
+    }
+
+    /**
+     * Read the captured inspection data for a step (used by the copy-to-clipboard path).
+     *
+     * @returns the captured data, or undefined if no state exists or nothing was captured
+     */
+    getStepInspection(skillId: string, stepId: string): StepInspection | undefined {
+        return this.executionState?.getState(skillId)?.stepInspections.get(stepId);
+    }
+
+    /**
      * Resync execution state to webview after tab switch
      *
      * Called when webview sends 'ready' message after being recreated.
@@ -427,6 +457,11 @@ export class SkillGraphPanelManager {
                 case 'execution:reset':
                     this.resetHighlights(event.skillId);
                     this.setModelOverride(event.skillId, null);
+                    break;
+                case 'step:inspection':
+                    // Deliberate no-op: hover inspection data is served lazily on demand
+                    // (requestStepInspection → stepInspection), not pushed. The doc provider
+                    // refreshes open inspector tabs via its own subscription.
                     break;
             }
         });

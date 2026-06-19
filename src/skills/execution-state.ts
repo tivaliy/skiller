@@ -51,6 +51,38 @@ export interface ModelOverride {
 }
 
 /**
+ * Kind of step whose I/O was captured for the inspector.
+ */
+export type StepInspectionKind = 'llm' | 'confirmation';
+
+/**
+ * Inspection snapshot of what a step saw and produced, captured at completion.
+ *
+ * Populated for prompt-bearing steps (llm/confirmation) so the graph panel can
+ * show, on hover of an executed node, the fully-interpolated prompt the step/LLM
+ * actually received plus its response. Session-scoped: lives only as long as the
+ * execution state and is cleared on reset (same lifetime as step status).
+ */
+export interface StepInspection {
+    /** Step kind ('llm' | 'confirmation') for display. */
+    kind: StepInspectionKind;
+    /** Fully-interpolated prompt the LLM saw, or the rendered confirmation message. */
+    prompt: string;
+    /** Response/output, stringified (LLM response; empty for confirmation). */
+    response: string;
+    /** Model id/alias used (LLM steps). */
+    modelUsed?: string;
+    /** Tools invoked during the step (LLM steps). */
+    toolsUsed?: string[];
+    /** Step duration in milliseconds. */
+    durationMs: number;
+    /** Whether the step produced its result without error (success vs. error). */
+    status: 'completed' | 'error';
+    /** Error message when the step failed (present only when status === 'error'). */
+    error?: string;
+}
+
+/**
  * Current execution state for a skill
  */
 export interface ExecutionState {
@@ -74,6 +106,8 @@ export interface ExecutionState {
     modelOverride?: ModelOverride;
     /** Model info per step (populated as steps execute) */
     stepModels: Map<string, StepModelInfo>;
+    /** Captured I/O per step for the inspector (populated as steps complete) */
+    stepInspections: Map<string, StepInspection>;
 }
 
 /**
@@ -84,6 +118,7 @@ export type ExecutionEvent =
     | { type: 'execution:reset'; skillId: string }
     | { type: 'execution:complete'; skillId: string; success: boolean }
     | { type: 'step:status'; skillId: string; stepId: string; status: StepStatus; previous?: StepStatus; model?: StepModelInfo }
+    | { type: 'step:inspection'; skillId: string; stepId: string }
     | { type: 'terminal:status'; skillId: string; terminal: 'start' | 'end'; status: TerminalStatus };
 
 /**
@@ -123,6 +158,9 @@ export interface ExecutionStateManager {
 
     /** Update step status */
     setStepStatus(skillId: string, stepId: string, status: StepStatus, options?: SetStepStatusOptions): void;
+
+    /** Record captured I/O (interpolated prompt + response) for a step, for the inspector */
+    recordStepInspection(skillId: string, stepId: string, data: StepInspection): void;
 
     /** Update terminal node status */
     setTerminalStatus(skillId: string, terminal: 'start' | 'end', status: TerminalStatus): void;
@@ -197,7 +235,8 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
             startedAt: Date.now(),
             generation: ++this.generationCounter,
             modelOverride: options?.modelOverride,
-            stepModels: new Map()
+            stepModels: new Map(),
+            stepInspections: new Map()
         };
         this.states.set(skillId, state);
         this.emitEvent({ type: 'execution:start', skillId, modelOverride: options?.modelOverride });
@@ -254,6 +293,21 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
     }
 
     /**
+     * Record captured I/O (interpolated prompt + response) for a step.
+     *
+     * Session-scoped and overwritten on re-run (a looping step keeps its latest
+     * iteration). No-op if the skill isn't being tracked. Emits a `step:inspection`
+     * event so an open inspector document can refresh.
+     */
+    recordStepInspection(skillId: string, stepId: string, data: StepInspection): void {
+        const state = this.states.get(skillId);
+        if (!state) return;
+
+        state.stepInspections.set(stepId, data);
+        this.emitEvent({ type: 'step:inspection', skillId, stepId });
+    }
+
+    /**
      * Update terminal node status
      *
      * @param skillId - Skill ID
@@ -283,6 +337,7 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
             state.generation = ++this.generationCounter;
             state.modelOverride = undefined;
             state.stepModels.clear();
+            state.stepInspections.clear();
         }
         this.emitEvent({ type: 'execution:reset', skillId });
     }

@@ -61,6 +61,7 @@ import type {
 } from '../types';
 import type { ParsedStep } from '../types';
 import type { ProgressHooks } from '../progress-hooks';
+import type { StepInspectionKind } from '../execution-state';
 
 /**
  * Handler category - how handlers classify themselves
@@ -261,6 +262,16 @@ export interface StepHandler {
      * declare their own requirements.
      */
     readonly usesLLM: boolean;
+
+    /**
+     * Inspection kind to capture for this handler's steps, or undefined when the
+     * step type has no inspectable prompt/response (e.g. tool, context).
+     *
+     * The executor records step I/O for the graph inspector based on this, so the
+     * handler is the single authority on whether its steps are inspectable
+     * (mirrors the `usesLLM` pattern — no parallel step-type table to keep in sync).
+     */
+    readonly inspectionKind?: StepInspectionKind;
 
     /**
      * Check if this handler can process the given step

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { ExecutionStateEmitter } from '../../../src/skills/execution-state';
-import type { ExecutionEvent } from '../../../src/skills/execution-state';
+import type { ExecutionEvent, StepInspection } from '../../../src/skills/execution-state';
 
 function collect(es: ExecutionStateEmitter): ExecutionEvent[] {
     const events: ExecutionEvent[] = [];
@@ -145,6 +145,66 @@ describe('ExecutionStateEmitter', () => {
             unsubscribe();
             es.setStepStatus('s', 'a', 'active');
             expect(listener.mock.calls.length).toBe(countAfterFirst);
+        });
+    });
+
+    describe('step inspection data', () => {
+        const sample = (over: Partial<StepInspection> = {}): StepInspection => ({
+            kind: 'llm',
+            prompt: 'the prompt',
+            response: 'the response',
+            modelUsed: 'gpt-4o',
+            toolsUsed: ['readFile'],
+            durationMs: 5,
+            status: 'completed',
+            ...over
+        });
+
+        it('records and retrieves step inspection data', () => {
+            const es = new ExecutionStateEmitter();
+            es.startExecution('s', ['a']);
+            es.recordStepInspection('s', 'a', sample());
+            expect(es.getState('s')!.stepInspections.get('a')).toEqual(sample());
+        });
+
+        it('overwrites inspection data on re-record (loop: latest wins)', () => {
+            const es = new ExecutionStateEmitter();
+            es.startExecution('s', ['a']);
+            es.recordStepInspection('s', 'a', sample({ prompt: 'first' }));
+            es.recordStepInspection('s', 'a', sample({ prompt: 'second' }));
+            expect(es.getState('s')!.stepInspections.get('a')!.prompt).toBe('second');
+        });
+
+        it('emits a step:inspection event for subscribers', () => {
+            const es = new ExecutionStateEmitter();
+            es.startExecution('s', ['a']);
+            const events = collect(es);
+            es.recordStepInspection('s', 'a', sample());
+            expect(
+                events.some(e => e.type === 'step:inspection' && e.skillId === 's' && e.stepId === 'a')
+            ).toBe(true);
+        });
+
+        it('clears inspection data on reset', () => {
+            const es = new ExecutionStateEmitter();
+            es.startExecution('s', ['a']);
+            es.recordStepInspection('s', 'a', sample());
+            es.reset('s');
+            expect(es.getState('s')!.stepInspections.size).toBe(0);
+        });
+
+        it('clears inspection data on resetAll', () => {
+            const es = new ExecutionStateEmitter();
+            es.startExecution('s1', ['a']);
+            es.recordStepInspection('s1', 'a', sample());
+            es.resetAll();
+            expect(es.getState('s1')!.stepInspections.size).toBe(0);
+        });
+
+        it('is a no-op for an unknown skill', () => {
+            const es = new ExecutionStateEmitter();
+            expect(() => es.recordStepInspection('missing', 'a', sample())).not.toThrow();
+            expect(es.hasState('missing')).toBe(false);
         });
     });
 });

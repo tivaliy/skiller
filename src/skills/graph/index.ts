@@ -16,6 +16,7 @@ import {validateSkill} from '../validators';
 import {SkillGraphBuilder} from './builder';
 import {getGraphRenderer} from './renderer';
 import {panelManager} from './panel-manager';
+import {buildStepInspectionUri} from '../step-inspection';
 import type {GraphWebviewOptions, RenderOptions, SkillGraph, WebviewMessage} from './types';
 import type {ValidationIssue} from '../validators';
 
@@ -81,6 +82,7 @@ export type {
 
 export { SkillGraphBuilder } from './builder';
 export { panelManager, SkillGraphPanelManager } from './panel-manager';
+export { StepInspectionDocumentProvider } from './step-inspection-provider';
 // enableLiveReload is exported from this file directly (see below)
 
 /**
@@ -151,14 +153,25 @@ export async function showSkillGraph(
     // Message handler: navigation + one-time validation display on first 'ready'.
     // 'ready' fires on both render success and failure, so diagnostics are never
     // silently dropped for an un-renderable diagram.
+    // Capture only the strings the handler needs, so this long-lived closure
+    // (kept by the panel's message subscription) doesn't retain the whole Skill
+    // object (parsed YAML + all steps) for the panel's lifetime.
+    const skillId = skill.id;
+    const skillPath = skill.source.path;
     const handleMessage = (message: WebviewMessage): void => {
         if (message.type === 'navigate') {
-            void navigateToStep(skill.source.path, message.stepId);
+            void navigateToStep(skillPath, message.stepId);
+        } else if (message.type === 'requestStepInspection') {
+            panelManager.handleRequestStepInspection(skillId, message.stepId);
+        } else if (message.type === 'openStepInspection') {
+            void openStepInspectionDocument(skillId, message.stepId);
+        } else if (message.type === 'copyStepInspection') {
+            void copyStepInspectionPrompt(skillId, message.stepId);
         } else if (message.type === 'ready' && !validationShown) {
             validationShown = true;
             void validationPromise.then(validation => {
-                showValidationErrors(skill.id, validation.errors);
-                showValidationWarnings(skill.id, validation.warnings);
+                showValidationErrors(skillId, validation.errors);
+                showValidationWarnings(skillId, validation.warnings);
             });
         }
     };
@@ -214,6 +227,44 @@ async function navigateToStep(skillDir: string, stepId: string): Promise<void> {
     const range = new vscode.Range(position, position);
     editor.selection = new vscode.Selection(position, position);
     editor.revealRange(range, vscode.TextEditorRevealType.InCenter);
+}
+
+/**
+ * Open the captured prompt/response for an executed step as a read-only Markdown
+ * document (served by StepInspectionDocumentProvider). The `.md` virtual document
+ * gives VS Code's native Markdown preview for free.
+ */
+async function openStepInspectionDocument(skillId: string, stepId: string): Promise<void> {
+    try {
+        const uri = buildStepInspectionUri(skillId, stepId);
+        const document = await vscode.workspace.openTextDocument(uri);
+        await vscode.window.showTextDocument(document, {
+            viewColumn: vscode.ViewColumn.One,
+            preserveFocus: false
+        });
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(`Skiller: could not open the step inspector — ${message}`);
+    }
+}
+
+/**
+ * Copy the captured (fully-interpolated) prompt for a step to the clipboard.
+ * Routed through the extension host so it works regardless of the webview CSP.
+ */
+async function copyStepInspectionPrompt(skillId: string, stepId: string): Promise<void> {
+    const data = panelManager.getStepInspection(skillId, stepId);
+    if (!data) {
+        void vscode.window.showWarningMessage('Skiller: no captured prompt for this step.');
+        return;
+    }
+    try {
+        await vscode.env.clipboard.writeText(data.prompt);
+        void vscode.window.setStatusBarMessage('Skiller: prompt copied to clipboard', 2000);
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        void vscode.window.showErrorMessage(`Skiller: could not copy the prompt — ${message}`);
+    }
 }
 
 /**
