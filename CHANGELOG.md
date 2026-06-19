@@ -5,6 +5,16 @@ All notable changes to the **Skiller** extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-06-19
+
+### Changed
+
+- The live execution graph is now drawn with the ELK layout engine and a hand-rolled SVG renderer, replacing the Mermaid state diagram. Dense, looping skills stay readable: orthogonal edge routing, node cards that arrows dock flush to, and legible loop-backs. During a run the active, awaiting-input, and error steps pulse, completed steps are checkmarked, and validation warnings and errors show inline.
+
+### Removed
+
+- The Mermaid renderer and the `mermaid` dependency; the graph webview now ships a smaller bundle (only the ELK and pan/zoom libraries).
+
 ## [0.1.1] - 2026-06-17
 
 ### Fixed
@@ -29,5 +39,6 @@ Initial release.
 - Commands: `/help`, `/skills`, `/skill`, `/tools`, `/models`, `/reload`.
 - Two bundled example skills: `greeter`, `mind-reader`.
 
+[0.2.0]: https://github.com/tivaliy/skiller/releases/tag/v0.2.0
 [0.1.1]: https://github.com/tivaliy/skiller/releases/tag/v0.1.1
 [0.1.0]: https://github.com/tivaliy/skiller/releases/tag/v0.1.0

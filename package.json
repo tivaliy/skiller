@@ -2,7 +2,7 @@
   "name": "skiller",
   "displayName": "Skiller",
   "description": "Declarative, human-in-the-loop workflow runner for VS Code chat",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "publisher": "tivaliy",
   "icon": "resources/icon.png",
   "license": "MIT",
@@ -55,15 +55,42 @@
         "iconPath": "resources/icon.png",
         "isSticky": true,
         "commands": [
-          { "name": "help", "description": "Show available commands" },
-          { "name": "tools", "description": "Show available tools" },
-          { "name": "models", "description": "Show available language models for skill configuration" },
-          { "name": "reload", "description": "Reload tools and skills" },
-          { "name": "skills", "description": "List available skills" },
-          { "name": "skill", "description": "Run a skill" },
-          { "name": "cancel", "description": "Cancel the skill awaiting input or confirmation" },
-          { "name": "reset", "description": "Clear all Skiller state" },
-          { "name": "status", "description": "Show whether a skill is awaiting input or confirmation" }
+          {
+            "name": "help",
+            "description": "Show available commands"
+          },
+          {
+            "name": "tools",
+            "description": "Show available tools"
+          },
+          {
+            "name": "models",
+            "description": "Show available language models for skill configuration"
+          },
+          {
+            "name": "reload",
+            "description": "Reload tools and skills"
+          },
+          {
+            "name": "skills",
+            "description": "List available skills"
+          },
+          {
+            "name": "skill",
+            "description": "Run a skill"
+          },
+          {
+            "name": "cancel",
+            "description": "Cancel the skill awaiting input or confirmation"
+          },
+          {
+            "name": "reset",
+            "description": "Clear all Skiller state"
+          },
+          {
+            "name": "status",
+            "description": "Show whether a skill is awaiting input or confirmation"
+          }
         ]
       }
     ],
@@ -72,7 +99,11 @@
       "properties": {
         "skiller.skills.verboseMode": {
           "type": "string",
-          "enum": ["off", "rendered", "raw"],
+          "enum": [
+            "off",
+            "rendered",
+            "raw"
+          ],
           "enumDescriptions": [
             "Don't show prompt/response during execution (default)",
             "Show prompt (code block) and response (rendered markdown)",
@@ -126,7 +157,10 @@
     "languageModelTools": [
       {
         "name": "skiller_createFile",
-        "tags": ["file", "skiller"],
+        "tags": [
+          "file",
+          "skiller"
+        ],
         "toolReferenceName": "createFile",
         "displayName": "Create File",
         "modelDescription": "Creates a file at the specified path with the given content. Use this instead of copilot_createFile which has internal context requirements.",
@@ -136,15 +170,27 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "filePath": { "type": "string", "description": "The path where the file should be created. Can be absolute or relative to the workspace." },
-            "content": { "type": "string", "description": "The content to write to the file." }
+            "filePath": {
+              "type": "string",
+              "description": "The path where the file should be created. Can be absolute or relative to the workspace."
+            },
+            "content": {
+              "type": "string",
+              "description": "The content to write to the file."
+            }
           },
-          "required": ["filePath", "content"]
+          "required": [
+            "filePath",
+            "content"
+          ]
         }
       },
       {
         "name": "skiller_replaceInFile",
-        "tags": ["file", "skiller"],
+        "tags": [
+          "file",
+          "skiller"
+        ],
         "toolReferenceName": "replaceInFile",
         "displayName": "Replace in File",
         "modelDescription": "Replaces all occurrences of a search string with a replacement string inside an existing file. More efficient than reading and rewriting the full file when making targeted changes. Returns an error if the file does not exist or if the search string is not found.",
@@ -154,11 +200,24 @@
         "inputSchema": {
           "type": "object",
           "properties": {
-            "filePath": { "type": "string", "description": "The path to the file to modify. Can be absolute or relative to the workspace." },
-            "search": { "type": "string", "description": "The exact text to search for in the file." },
-            "replace": { "type": "string", "description": "The text to replace the search string with." }
+            "filePath": {
+              "type": "string",
+              "description": "The path to the file to modify. Can be absolute or relative to the workspace."
+            },
+            "search": {
+              "type": "string",
+              "description": "The exact text to search for in the file."
+            },
+            "replace": {
+              "type": "string",
+              "description": "The text to replace the search string with."
+            }
           },
-          "required": ["filePath", "search", "replace"]
+          "required": [
+            "filePath",
+            "search",
+            "replace"
+          ]
         }
       }
     ]
