@@ -9,10 +9,11 @@ sidebar:
 
 - **VS Code 1.93+**
 - A **chat language model provider** — e.g. GitHub Copilot, or any provider that exposes VS Code's
-  Language Model API. Skiller runs your skills through whatever model VS Code chat offers — see
-  [Check a model is available](#check-a-model-is-available) below.
+  Language Model API. Skiller runs your skills through whatever model VS Code chat offers; it does
+  not ship a model of its own.
 - **MCP servers** configured in VS Code — optional, only needed for `tool` steps and tool-using
   `llm` steps.
+- **Node.js (LTS) + npm** — only if you install from source (below); not needed for the Marketplace install.
 
 ## From the Marketplace
 
@@ -35,16 +36,19 @@ code --install-extension skiller-*.vsix
 
 ## Check a model is available
 
-Skiller doesn't ship a model of its own — it uses the language models available to VS Code chat.
 After installing, open the Chat view and run:
 
 ```text
 @skiller /models
 ```
 
-If one or more models are listed, you're ready. If it's **empty**, set up a provider first — for
-example, sign in to GitHub Copilot — then run `/models` again. The model you select in the chat
-model dropdown is the one skills use; in **Auto** mode, a skill's own `models` config decides
-(details in the [`skill.yaml` reference](../../reference/skill-yaml/)).
+If one or more models are listed, you're ready to go. If it's **empty**, set up a provider first —
+for example, sign in to GitHub Copilot — then run `/models` again.
 
-Once a model shows up, [run a bundled skill](../first-skill/).
+The model you pick in the chat model dropdown is the one skills use. Skills can also declare their
+own model in `skill.yaml`; for how that interacts with your dropdown choice, see
+[Use & override models](../../guides/models/).
+
+## Next
+
+[Run a built-in skill →](../run-a-bundled-skill/)

@@ -12,7 +12,10 @@ export default defineConfig({
 	base: '/skiller/',
 	// Add an entry whenever a page's URL changes, so old links (README, Marketplace,
 	// search engines) keep working — GitHub Pages has no server-side redirects.
-	redirects: {},
+	// Destination must include the `base` — Astro does not prepend it to redirect targets.
+	redirects: {
+		'getting-started/first-skill/': '/skiller/getting-started/run-a-bundled-skill/',
+	},
 	integrations: [
 		// astro-mermaid must come BEFORE starlight so it can transform
 		// ```mermaid code blocks before Starlight's code highlighter.
@@ -30,6 +33,14 @@ export default defineConfig({
 			},
 			favicon: '/favicon.svg',
 			customCss: ['./src/styles/custom.css'],
+			// Social-share / Open Graph card. `og.png` (1200×630) lives in `public/`.
+			head: [
+				{ tag: 'meta', attrs: { property: 'og:image', content: 'https://tivaliy.github.io/skiller/og.png' } },
+				{ tag: 'meta', attrs: { property: 'og:image:width', content: '1200' } },
+				{ tag: 'meta', attrs: { property: 'og:image:height', content: '630' } },
+				{ tag: 'meta', attrs: { name: 'twitter:card', content: 'summary_large_image' } },
+				{ tag: 'meta', attrs: { name: 'twitter:image', content: 'https://tivaliy.github.io/skiller/og.png' } },
+			],
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/tivaliy/skiller' }],
 			editLink: {
 				baseUrl: 'https://github.com/tivaliy/skiller/edit/main/docs/',
@@ -37,7 +48,9 @@ export default defineConfig({
 			sidebar: [
 				{ label: 'Getting Started', items: [{ autogenerate: { directory: 'getting-started' } }] },
 				{ label: 'Concepts', items: [{ autogenerate: { directory: 'concepts' } }] },
+				{ label: 'Guides', items: [{ autogenerate: { directory: 'guides' } }] },
 				{ label: 'Reference', items: [{ autogenerate: { directory: 'reference' } }] },
+				{ label: 'Project', items: [{ slug: 'contributing' }] },
 			],
 			plugins: [starlightLlmsTxt()],
 		}),

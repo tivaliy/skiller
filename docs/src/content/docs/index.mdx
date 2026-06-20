@@ -6,7 +6,7 @@ hero:
   title: Declarative workflows for VS Code chat
   tagline: Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them right from the @skiller chat participant.
   image:
-    alt: Skiller
+    alt: Skiller logo
     file: ../../assets/icon.svg
   actions:
     - text: Get started
@@ -34,9 +34,10 @@ import demo from '../../assets/demo.gif';
 
 ## Predictable automation, not an autonomous agent
 
-Skiller runs **skills** — declarative, multi-step workflows defined in YAML and Markdown. Each
-skill is a playbook: a sequence of steps that call a language model, invoke your MCP tools, and
-pause for your input or approval exactly where you tell them to.
+Skiller runs **skills** — declarative, multi-step workflows defined in YAML and Markdown that call
+a language model, invoke your MCP tools, and pause for your input exactly where you tell them to.
+It is deliberately **not** a free-form agent and **not** an "Agent Skills" auto-loader — you write
+the steps; the model fills them in.
 
 <CardGrid>
 	<Card title="Declarative skills">
@@ -49,7 +50,7 @@ pause for your input or approval exactly where you tell them to.
 		Call your configured MCP tools from `llm` and `tool` steps.
 	</Card>
 	<Card title="Live execution graph">
-		Watch a skill run as a Mermaid state diagram, with branches and loops lighting up as they fire.
+		Watch a skill run as a live execution graph, with branches and loops lighting up as they fire.
 	</Card>
 	<Card title="Layered discovery">
 		Workspace, user, and built-in skills — with workspace winning.
