@@ -5,6 +5,12 @@ All notable changes to the **Skiller** extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-20
+
+### Added
+
+- **Hover inspection in the execution graph.** Hovering an executed `llm` or `confirmation` node reveals its fully-interpolated prompt and the model's response, with the model, duration, tools used, and status. "Open ↗" opens the captured prompt/response as a read-only document that refreshes in place when a step re-runs (so loops show their latest iteration), and "Copy" copies the prompt. Captured data is session-scoped and cleared on reset.
+
 ## [0.2.0] - 2026-06-19
 
 ### Changed
