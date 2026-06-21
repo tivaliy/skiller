@@ -318,6 +318,15 @@ export class SkillRegistry {
     }
 
     /**
+     * True for a directory, including a symlink that points at one. VS Code's
+     * FileType is a bitmask (a symlinked dir is `Directory | SymbolicLink`), so a
+     * strict `=== Directory` check would skip symlinked skills dirs.
+     */
+    private isDirectory(type: vscode.FileType): boolean {
+        return (type & vscode.FileType.Directory) !== 0;
+    }
+
+    /**
      * Scan a directory for skill definitions.
      *
      * Uses vscode.workspace.fs for remote/virtual filesystem compatibility.
@@ -333,7 +342,7 @@ export class SkillRegistry {
         // (readDirectory logs ENOENT errors internally before rejecting)
         try {
             const stat = await vscode.workspace.fs.stat(dirUri);
-            if (stat.type !== vscode.FileType.Directory) {
+            if (!this.isDirectory(stat.type)) {
                 return { skills: [], parseErrors: [] };
             }
         } catch {
@@ -348,7 +357,7 @@ export class SkillRegistry {
             // Filter to directories that might contain skills
             const skillDirs = entries
                 .filter(([name, fileType]) =>
-                    fileType === vscode.FileType.Directory &&
+                    this.isDirectory(fileType) &&
                     !name.startsWith('.') &&
                     name !== 'node_modules'
                 )
