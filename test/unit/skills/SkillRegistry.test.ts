@@ -22,7 +22,8 @@ vi.mock('vscode', () => ({
     },
     FileType: {
         Directory: 2,
-        File: 1
+        File: 1,
+        SymbolicLink: 64
     }
 }));
 
@@ -117,6 +118,50 @@ function createMockRegistry(
 describe('SkillRegistry', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    describe('scanSkillsDirectory — directory detection (symlink-aware)', () => {
+        // Drive the real scan with mocked fs + parser. FileType is a bitmask, so a
+        // symlinked directory reports `Directory | SymbolicLink` (66), not `Directory` (2).
+        const scan = (reg: SkillRegistry, dir: string) =>
+            (reg as unknown as {
+                scanSkillsDirectory(d: string, t: SkillSource['type']): Promise<{ skills: Skill[] }>;
+            }).scanSkillsDirectory(dir, 'user');
+
+        it('discovers a skill whose directory entry is a symlink', async () => {
+            (vscode.workspace.fs.stat as Mock).mockResolvedValue({ type: vscode.FileType.Directory });
+            (vscode.workspace.fs.readDirectory as Mock).mockResolvedValue([
+                ['linked-skill', vscode.FileType.Directory | vscode.FileType.SymbolicLink]
+            ]);
+            (parseSkill as Mock).mockResolvedValue({ success: true, skill: createMockSkill('linked-skill', 'user') });
+
+            const result = await scan(new SkillRegistry('/ext', '/ws'), '/user/skills');
+            expect(result.skills.map(s => s.id)).toEqual(['linked-skill']);
+        });
+
+        it('scans a skills root that is itself a symlinked directory', async () => {
+            (vscode.workspace.fs.stat as Mock).mockResolvedValue({
+                type: vscode.FileType.Directory | vscode.FileType.SymbolicLink
+            });
+            (vscode.workspace.fs.readDirectory as Mock).mockResolvedValue([
+                ['plain-skill', vscode.FileType.Directory]
+            ]);
+            (parseSkill as Mock).mockResolvedValue({ success: true, skill: createMockSkill('plain-skill', 'user') });
+
+            const result = await scan(new SkillRegistry('/ext', '/ws'), '/user/skills');
+            expect(result.skills.map(s => s.id)).toEqual(['plain-skill']);
+        });
+
+        it('still ignores non-directory entries (bitmask does not over-match)', async () => {
+            (vscode.workspace.fs.stat as Mock).mockResolvedValue({ type: vscode.FileType.Directory });
+            (vscode.workspace.fs.readDirectory as Mock).mockResolvedValue([
+                ['README.md', vscode.FileType.File]
+            ]);
+
+            const result = await scan(new SkillRegistry('/ext', '/ws'), '/user/skills');
+            expect(result.skills).toEqual([]);
+            expect(parseSkill as Mock).not.toHaveBeenCalled();
+        });
     });
 
     describe('refreshWithDiff', () => {
