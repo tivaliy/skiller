@@ -5,11 +5,12 @@ sidebar:
   order: 4
 ---
 
-Skiller contributes seven settings under the `skiller.*` namespace. Set them in your
+Skiller contributes eight settings under the `skiller.*` namespace. Set them in your
 User or Workspace `settings.json`, or through the Settings UI (search for "Skiller").
 
 | Setting | Default | Effect / when to change |
 | ------- | ------- | ----------------------- |
+| `skiller.skills.runSurface` | `"adaptive"` | `"adaptive"` or `"chat"`. How a skill launched from the editor enters chat — prefill and wait, or submit immediately. |
 | `skiller.skills.verboseMode` | `"off"` | `"off"`, `"rendered"`, or `"raw"`. Shows the prompt and response during execution. Turn on while debugging templates. |
 | `skiller.skills.toolInvocationTimeout` | `60000` | Milliseconds before a tool invocation in a step times out. Raise for slow MCP servers. |
 | `skiller.skills.maxToolIterations` | `10` | Maximum tool-use iterations per `llm` step. Caps runaway agentic loops. |
@@ -17,6 +18,18 @@ User or Workspace `settings.json`, or through the Settings UI (search for "Skill
 | `skiller.llm.maxHistoryTurns` | `20` | Maximum conversation turns sent to the model as context. Higher = more context, more tokens. |
 | `skiller.llm.maxToolResponseLength` | `4000` | Maximum characters per tool response before truncation (≈ 1000 tokens at 4000). |
 | `skiller.llm.maxToolResponses` | `10` | Maximum tool responses carried into follow-up context. |
+
+## `skiller.skills.runSurface`
+
+Controls the hand-off when you launch a skill **from the editor** (the Command Palette, the editor
+context menu, or a code action). Both values open chat; they differ in whether it submits for you:
+
+- `"adaptive"` (default) — open chat with `@skiller /skill <id>` **prefilled** and wait for you to
+  submit. A beat to review, add arguments, or change the skill before it runs.
+- `"chat"` — **submit immediately** and stream the run. No extra step.
+
+It has no effect on skills launched from chat directly (you've already typed the command there). See
+[Editor-native skills](../../concepts/editor-native-skills/) for the full launch model.
 
 ## `skiller.skills.verboseMode`
 

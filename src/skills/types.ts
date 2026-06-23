@@ -65,6 +65,8 @@ export interface SkillInput {
     pattern?: string;
     /** Allowed values (enum validation) */
     enum?: string[];
+    /** Editor-context binding (e.g. 'selection', 'activeFile.path'); resolved at launch. */
+    from?: string;
 }
 
 /**
@@ -309,6 +311,8 @@ export interface SkillStep {
 export interface SkillOutput {
     /** Summary template with {{variable}} interpolation */
     summary: string;
+    /** Output sink target (where the rendered summary is delivered); undefined = chat only. */
+    to?: string;
 }
 
 /**

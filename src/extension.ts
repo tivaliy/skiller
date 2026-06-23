@@ -6,8 +6,10 @@ import {
     handleInputResponse,
     checkPendingInputCollection
 } from './commands';
+import { registerTriggers } from './editor';
 import {
     PendingStateManager,
+    LaunchContextStore,
     SkillRegistry,
     createSkillExecutor,
     registerSkillCodeLens,
@@ -32,6 +34,7 @@ let pendingStateManager!: PendingStateManager;
 let skillRegistry!: SkillRegistry;
 let skillExecutor!: SkillExecutor;
 let executionState!: ExecutionStateManager;
+let launchContextStore!: LaunchContextStore;
 let extensionUri: vscode.Uri;
 
 /**
@@ -108,6 +111,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     pendingStateManager = new PendingStateManager();
 
+    launchContextStore = new LaunchContextStore();
+
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     skillRegistry = new SkillRegistry(context.extensionPath, workspacePath);
     await skillRegistry.refresh();
@@ -129,6 +134,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     registerTools(context);
     registerSkillCodeLens(context);
+    registerTriggers(context, skillRegistry, launchContextStore);
     context.subscriptions.push(enableLiveReload());
 
     const participant = vscode.chat.createChatParticipant(PARTICIPANT_ID, handleRequest);
@@ -164,7 +170,8 @@ async function handleRequest(
         skillRegistry,
         skillExecutor,
         executionState,
-        extensionUri
+        extensionUri,
+        launchContextStore
     };
 
     // Control commands (/cancel, /reset, /status) are dispatched BEFORE the

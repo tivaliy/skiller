@@ -130,8 +130,17 @@ export {
 // Progress hooks factory
 export { createStreamProgressHooks } from './progress-hooks';
 
+// Shared helpers
+export { hasValue } from './utils';
+
 // Pending state management - class for dependency injection
 export { PendingStateManager } from './PendingStateManager';
+
+// Launch-context hand-off - session state bridging an editor trigger to the
+// /skill handler + output sink (same kind of CommandContext collaborator as
+// PendingStateManager; vscode-free, lives here so the command layer depends on
+// it through the shared engine rather than reaching into the editor layer).
+export { LaunchContextStore } from './launch-context-store';
 
 // Execution state management - DI-friendly with factory
 export {
@@ -161,3 +170,9 @@ export type {
     GraphEdge,
     RenderOptions
 } from './graph';
+
+// Editor-context resolution - bind skill inputs to selection/file/diff/diagnostics
+export * from './context';
+
+// Editor output sinks - deliver a completed skill's summary to editor/file/diff
+export * from './output';

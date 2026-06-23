@@ -28,7 +28,7 @@ This page documents every field. For the YAML that goes at the top of a step's p
 | `models` | map | no | `default` + `aliases`; see [Models](#models) |
 | `tools` | map | no | `aliases`; see [Tools](#tools) |
 | `on_error` | enum | no | `abort` (default) or `continue` |
-| `output` | map | no | `summary` only |
+| `output` | map | no | `summary`, and an optional `to` [output sink](#output) |
 
 The `greeter` example skill uses most of them:
 
@@ -93,6 +93,7 @@ templates as `{{ inputs.<name> }}`.
 | `prompt` | string | Shown when the value is collected interactively |
 | `enum` | list of strings | Restrict to these values (≥1 entry) |
 | `pattern` | string | Regex the value must match (string inputs) |
+| `from` | string | Fill this input from editor context at launch instead of prompting; see [Binding inputs to editor context](#binding-inputs-to-editor-context) |
 
 ```yaml
 inputs:
@@ -115,6 +116,38 @@ inputs:
 
 Pass inputs when launching: `@skiller /skill <id> ticket=PROJ-12 "positional value"` — named values
 match by name; positional values fill the remaining inputs in declaration order.
+
+### Binding inputs to editor context
+
+`from` fills an input from the editor at launch instead of prompting — so a skill launched from the
+editor (a code action, the context menu, the Command Palette) picks up the selection, file, diff, or
+diagnostics it needs without asking. An explicit launch argument or a `default` always wins; the
+context only fills an input that would otherwise be empty.
+
+| `from` value | Resolves to |
+| ------------ | ----------- |
+| `selection` | The selected text in the active editor |
+| `activeFile` | The active file's full text (alias for `activeFile.content`) |
+| `activeFile.content` | The active file's full text |
+| `activeFile.path` | The active file's path |
+| `activeFile.language` | The active file's language id (e.g. `typescript`) |
+| `git.staged` | `git diff --staged` for the workspace |
+| `git.working` | `git diff` (unstaged working-tree changes) |
+| `diagnostics` | The active file's problems, one `‹line›: ‹message›` per line |
+
+```yaml
+inputs:
+  - name: code
+    type: string
+    from: selection          # filled from the highlighted code; prompts if nothing is selected
+  - name: language
+    type: string
+    from: activeFile.language
+```
+
+`from` is validated against the list above, so a typo is caught when the skill is parsed rather than
+silently resolving to nothing. For the full launch-and-deliver model see
+[Editor-native skills](../../concepts/editor-native-skills/).
 
 ## Models
 
@@ -295,13 +328,46 @@ Top-level. Controls what happens when a step fails.
 
 ## output
 
-Top-level. `output.summary` is a Liquid template rendered after the skill finishes — the closing
-message shown to the user.
+Top-level, optional. Two keys:
+
+| Key | Type | Notes |
+| --- | ---- | ----- |
+| `summary` | string | Liquid template rendered after the skill finishes — the closing message |
+| `to` | string | Optional **output sink**: where `summary` is delivered. Omit for chat only |
+
+`output.summary` is rendered and shown to the user when the skill completes:
 
 ```yaml
 output:
   summary: "✅ Saved to {{ outputs.saved.filePath }}."
 ```
+
+### Output sinks (`output.to`)
+
+When `to` is set, the rendered `summary` is delivered to that destination instead of (just) being
+shown in chat. The destination is captured at launch, so an editor sink writes back where the skill
+was started even after chat takes focus.
+
+| `to` value | Delivers to |
+| ---------- | ----------- |
+| `newDocument` | A new untitled document |
+| `file:‹path›` | A workspace file at `‹path›` (created/overwritten; workspace-confined like the file tools) |
+| `editor.replaceSelection` | Replaces the launch selection (inserts at the caret if there was none) |
+| `editor.insert` | Inserts at the launch caret |
+| `diff` | Opens a reviewable diff against the launch document — you Apply it |
+| `terminal` | Types the text into the terminal **without running it** — you review and press Enter |
+| `terminal.run` | Types the text into the terminal **and runs it** — pair with a confirmation step, since it executes on delivery |
+
+```yaml
+output:
+  summary: "{{ outputs.command }}"
+  to: terminal.run           # the shell-it skill: drafts a command, then runs it after you confirm
+```
+
+`to` may be templated (`file:notes/{{ inputs.name }}.md`). The write-back sinks
+(`editor.replaceSelection`, `editor.insert`, `diff`) never clobber: if the launch document changed
+since the skill started, the result opens in a new tab instead. For the full model and safety
+behaviour see [Editor-native skills](../../concepts/editor-native-skills/).
 
 :::note[Strict schema]
 Every level rejects unknown keys with a did-you-mean suggestion. Keys are `snake_case`
@@ -314,3 +380,4 @@ misspelled or misplaced key.
 - [Step-file frontmatter](../step-frontmatter/) — the YAML at the top of a step's prompt file.
 - [Templating with Liquid](../../concepts/templating/) — the `{{ ... }}` and `{% ... %}` syntax.
 - [Step types & state](../../concepts/step-types/) — how `llm`, `confirmation`, and `tool` steps run.
+- [Editor-native skills](../../concepts/editor-native-skills/) — `from:` context inputs and `output.to` sinks in full.

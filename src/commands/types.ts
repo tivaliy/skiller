@@ -6,7 +6,7 @@
 
 import * as vscode from 'vscode';
 import { ToolCache } from '../ToolCache';
-import { PendingStateManager, SkillRegistry, SkillExecutor, ExecutionStateManager } from '../skills';
+import { PendingStateManager, LaunchContextStore, SkillRegistry, SkillExecutor, ExecutionStateManager } from '../skills';
 
 /**
  * Context passed to command handlers
@@ -30,6 +30,8 @@ export interface CommandContext {
     executionState: ExecutionStateManager;
     /** Extension URI for resolving bundled assets */
     extensionUri: vscode.Uri;
+    /** Trigger-time editor snapshot store (present when launched from the editor). */
+    launchContextStore?: LaunchContextStore;
 }
 
 /**

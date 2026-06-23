@@ -35,6 +35,9 @@ import * as vscode from 'vscode';
  */
 export type VerboseMode = 'off' | 'rendered' | 'raw';
 
+/** Where a skill launched from the editor enters chat. */
+export type RunSurface = 'adaptive' | 'chat';
+
 /**
  * Skills-related settings
  */
@@ -46,6 +49,13 @@ export interface SkillsSettings {
      * - 'raw': Show prompt and response as plain text (for debugging)
      */
     verboseMode: VerboseMode;
+
+    /**
+     * How a skill launched from the editor (command/menu/code-action) enters chat.
+     * - 'adaptive': prefill the @skiller command and wait for you to submit (default)
+     * - 'chat': submit immediately and watch it run
+     */
+    runSurface: RunSurface;
 
     /**
      * Timeout (ms) for MCP tool invocations within skill steps.
@@ -121,6 +131,7 @@ export interface QASettings {
 const DEFAULTS: QASettings = {
     skills: {
         verboseMode: 'off',
+        runSurface: 'adaptive',
         toolInvocationTimeout: 60_000,
         maxToolIterations: 10,
         allowOutsideWorkspaceWrites: false,
@@ -161,6 +172,7 @@ export function getSettings(): QASettings {
     return {
         skills: {
             verboseMode: config.get<VerboseMode>('skills.verboseMode', DEFAULTS.skills.verboseMode),
+            runSurface: config.get<RunSurface>('skills.runSurface', DEFAULTS.skills.runSurface),
             toolInvocationTimeout: config.get<number>('skills.toolInvocationTimeout', DEFAULTS.skills.toolInvocationTimeout),
             maxToolIterations: config.get<number>('skills.maxToolIterations', DEFAULTS.skills.maxToolIterations),
             allowOutsideWorkspaceWrites: config.get<boolean>('skills.allowOutsideWorkspaceWrites', DEFAULTS.skills.allowOutsideWorkspaceWrites),
@@ -183,6 +195,7 @@ export function getSettings(): QASettings {
  */
 type SettingPath =
     | 'skills.verboseMode'
+    | 'skills.runSurface'
     | 'skills.toolInvocationTimeout'
     | 'skills.maxToolIterations'
     | 'skills.allowOutsideWorkspaceWrites'
@@ -195,6 +208,7 @@ type SettingPath =
  */
 type SettingType<P extends SettingPath> =
     P extends 'skills.verboseMode' ? VerboseMode :
+    P extends 'skills.runSurface' ? RunSurface :
     P extends 'skills.toolInvocationTimeout' ? number :
     P extends 'skills.maxToolIterations' ? number :
     P extends 'skills.allowOutsideWorkspaceWrites' ? boolean :
@@ -208,6 +222,7 @@ type SettingType<P extends SettingPath> =
  */
 const DEFAULT_BY_PATH: Record<SettingPath, unknown> = {
     'skills.verboseMode': DEFAULTS.skills.verboseMode,
+    'skills.runSurface': DEFAULTS.skills.runSurface,
     'skills.toolInvocationTimeout': DEFAULTS.skills.toolInvocationTimeout,
     'skills.maxToolIterations': DEFAULTS.skills.maxToolIterations,
     'skills.allowOutsideWorkspaceWrites': DEFAULTS.skills.allowOutsideWorkspaceWrites,

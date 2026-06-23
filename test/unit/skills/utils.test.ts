@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatDuration, fence } from '../../../src/skills/utils';
+import { formatDuration, fence, hasValue } from '../../../src/skills/utils';
 
 describe('formatDuration', () => {
     it('formats sub-second durations in milliseconds', () => {
@@ -30,5 +30,20 @@ describe('fence', () => {
 
     it('neutralizes inner code fences so content cannot break out', () => {
         expect(fence('a ``` b')).toBe('```\na ` ` ` b\n```');
+    });
+});
+
+describe('hasValue', () => {
+    it('is false for the three "absent" markers used across input resolution', () => {
+        expect(hasValue(undefined)).toBe(false);
+        expect(hasValue(null)).toBe(false);
+        expect(hasValue('')).toBe(false);
+    });
+
+    it('is true for present values, including falsy ones that are not blank', () => {
+        expect(hasValue('x')).toBe(true);
+        expect(hasValue(0)).toBe(true);
+        expect(hasValue(false)).toBe(true);
+        expect(hasValue([])).toBe(true);
     });
 });

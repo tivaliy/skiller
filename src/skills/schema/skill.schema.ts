@@ -13,6 +13,7 @@ import { inputDefinitionSchema, INPUT_TYPES } from './input.schema';
 import { stepDefinitionSchema, STEP_TYPES, TOOL_MODES, CONFIRMATION_ACTIONS } from './step.schema';
 import { toolsConfigSchema } from './tools.schema';
 import { modelsConfigSchema } from './models.schema';
+import { parseSink, KNOWN_SINK_TOKENS } from '../output/sinks';
 
 // Re-export constants for convenience
 export { INPUT_TYPES } from './input.schema';
@@ -33,7 +34,18 @@ export const outputConfigSchema = z.object({
      * Summary template with {{variable}} interpolation
      * Rendered after skill completion
      */
-    summary: z.string().optional()
+    summary: z.string().optional(),
+
+    /**
+     * Output sink: where the rendered summary is delivered when the skill completes.
+     * e.g. 'newDocument', 'file:<path>', 'editor.replaceSelection', 'editor.insert', 'diff'.
+     * Undefined = chat only (existing behavior).
+     */
+    to: z.string()
+        .refine(v => v.includes('{{') || parseSink(v) !== undefined, {
+            message: `output.to must be one of ${KNOWN_SINK_TOKENS.join(', ')}, file:<path>, or a {{template}}`
+        })
+        .optional()
 }).strict();
 
 /**

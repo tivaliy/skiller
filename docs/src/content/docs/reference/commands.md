@@ -5,10 +5,14 @@ sidebar:
   order: 3
 ---
 
-Skiller adds a single chat participant, `@skiller`, that runs declarative workflows.
-You drive it with slash commands: address `@skiller`, then type a command. A message that
-is neither a slash command nor a skill launch gets a short hint pointing you back to the
-commands below — `@skiller` does not do free-form chat.
+Skiller adds a chat participant, `@skiller`, that runs declarative workflows. You drive it
+with slash commands: address `@skiller`, then type a command. A message that is neither a
+slash command nor a skill launch gets a short hint pointing you back to the commands below
+— `@skiller` does not do free-form chat.
+
+You can also launch a skill **straight from the editor** — a code action, the editor context
+menu, or the Command Palette — without typing the command yourself. See
+[Launching from the editor](#launching-from-the-editor).
 
 ## All commands
 
@@ -40,6 +44,26 @@ You can pass launch arguments two ways, and mix them:
 ```
 
 Both forms set the `name` input to `Ada`. Quote a value that contains spaces.
+
+## Launching from the editor
+
+Skills don't have to be typed into chat. Skiller registers a VS Code command,
+`skiller.runSkill`, reachable three ways:
+
+| Surface | How |
+| ------- | --- |
+| **Command Palette** | `Skiller: Run Skill` → pick a skill from the list |
+| **Editor context menu** | Right-click in a file → **Run Skill** |
+| **Code action** | The lightbulb / quick-fix menu, for skills that match the current file or selection |
+
+Either way, Skiller captures the editor state at that moment — the selection, file, diff, or
+diagnostics — so a skill's [`from:` inputs](../skill-yaml/#binding-inputs-to-editor-context) are
+filled from where you launched, and an [`output.to` sink](../skill-yaml/#output-sinks-outputto)
+writes back there even after chat takes focus. It then opens chat to run the skill; the
+[`skiller.skills.runSurface`](../settings/#skillerskillsrunsurface) setting controls whether the
+command is prefilled for you to submit (`adaptive`, default) or submitted immediately (`chat`).
+
+See [Editor-native skills](../../concepts/editor-native-skills/) for the whole model.
 
 ## The `/reload` diff
 

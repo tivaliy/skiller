@@ -119,6 +119,7 @@ interface RawSkillYaml {
     on_error?: string;
     output?: {
         summary?: string;
+        to?: string;
     };
 }
 
@@ -141,6 +142,7 @@ interface RawInput {
     prompt?: string;
     pattern?: string;
     enum?: string[];
+    from?: string;
 }
 
 interface RawTools {
@@ -315,7 +317,7 @@ function normalizeSkill(raw: RawSkillYaml, skillDir: string, source: SkillSource
         models: normalizeModels(raw.models),
         steps: normalizeSteps(raw.steps || [], skillDir),
         onError: normalizeErrorStrategy(raw.on_error),
-        output: raw.output ? { summary: raw.output.summary || '' } : undefined,
+        output: raw.output ? { summary: raw.output.summary || '', to: raw.output.to } : undefined,
         source
     };
 }
@@ -351,7 +353,8 @@ function normalizeInputs(raw?: RawInput[]): SkillInput[] {
             default: input.default,
             prompt: input.prompt,
             pattern: input.pattern,
-            enum: input.enum
+            enum: input.enum,
+            from: input.from
         };
     });
 }
