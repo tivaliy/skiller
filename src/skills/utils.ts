@@ -3,6 +3,17 @@
  */
 
 /**
+ * Whether an input value is present (not one of the three "absent" markers used
+ * throughout input resolution: `undefined`, `null`, or the empty string). Note a
+ * falsy-but-present value (`0`, `false`, `[]`) counts as present. Shared so the
+ * resolver, the prompt-vs-skip decision, and code-action matching agree on what
+ * "empty" means instead of each spelling out a slightly different check.
+ */
+export function hasValue(value: unknown): boolean {
+    return value !== undefined && value !== null && value !== '';
+}
+
+/**
  * Format a duration in milliseconds as a short human-readable string.
  * Invalid (non-finite or negative) inputs are clamped to 0.
  */

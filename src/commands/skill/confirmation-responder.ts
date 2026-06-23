@@ -14,6 +14,7 @@ import {
     parseConfirmationResponse
 } from '../../skills';
 import { createExecutionOptions } from './execution-options';
+import { finalizeSkillRun } from './finalize';
 import * as presenter from './presenter';
 
 /**
@@ -148,8 +149,8 @@ export async function handleConfirmationResponse(ctx: CommandContext): Promise<C
             };
         }
 
-        // Skill completed - highlight end node with animation
-        executionState.finishExecution(pending.skillId, result.success);
+        // Skill completed - deliver output to its sink, then finish the run (graph end-node)
+        await finalizeSkillRun(ctx, pending.skill, result);
 
         return {
             handled: true,

@@ -282,9 +282,12 @@ export class SkillExecutor {
             summary = interpolate(ctx.skill.output.summary, ctx.context);
         }
 
-        // Notify via hook (UI rendering delegated to hooks)
+        // Notify via hook (UI rendering delegated to hooks). When output is routed
+        // to a sink, suppress the raw chat echo — the sink delivery reports its own
+        // confirmation; chat-only skills (no output.to) still echo the summary.
         const duration = Date.now() - ctx.context.startTime;
-        ctx.hooks.onSkillComplete?.(duration, summary);
+        const echoSummary = ctx.skill.output?.to ? undefined : summary;
+        ctx.hooks.onSkillComplete?.(duration, echoSummary);
 
         return ctx.resultBuilder.success(ctx.stepResults, ctx.context, summary);
     }

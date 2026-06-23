@@ -94,6 +94,21 @@
         ]
       }
     ],
+    "commands": [
+      {
+        "command": "skiller.runSkill",
+        "title": "Run Skill…",
+        "category": "Skiller"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        { "command": "skiller.runSkill" }
+      ],
+      "editor/context": [
+        { "command": "skiller.runSkill", "when": "editorTextFocus", "group": "skiller@1" }
+      ]
+    },
     "configuration": {
       "title": "Skiller",
       "properties": {
@@ -130,6 +145,16 @@
           "type": "boolean",
           "default": false,
           "description": "Allow Skiller's file tools (createFile / replaceInFile) to write outside the workspace folder. When false (default), target paths that resolve outside the workspace are refused. Enable only if a skill legitimately needs to write to absolute paths beyond the workspace."
+        },
+        "skiller.skills.runSurface": {
+          "type": "string",
+          "enum": ["adaptive", "chat"],
+          "enumDescriptions": [
+            "Open chat with the @skiller command prefilled and wait for you to submit (default)",
+            "Submit immediately and watch the run stream"
+          ],
+          "default": "adaptive",
+          "description": "How a skill launched from the editor (Command Palette, context menu, or code action) enters chat. 'adaptive' prefills the command so you can review and launch it; 'chat' runs immediately."
         },
         "skiller.llm.maxHistoryTurns": {
           "type": "number",

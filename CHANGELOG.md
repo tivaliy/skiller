@@ -5,6 +5,14 @@ All notable changes to the **Skiller** extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Inputs can bind to editor context with `from:` (`selection`, `activeFile[.path|.content|.language]`, `git.staged`, `git.working`, `diagnostics`); bound inputs are pre-filled at launch instead of prompted, falling back to prompting when the context is empty.
+- Run skills from the editor: a "Skiller: Run Skill…" command (Command Palette, editor context menu) and contextual "Run <skill>" code actions for skills whose `from:` inputs match the current selection/file/diagnostics. Editor context is captured at trigger time. The `skiller.skills.runSurface` setting chooses prefill-and-launch (`adaptive`, default) vs run-and-watch (`chat`).
+- Deliver a completed skill's output back to the workspace with `output.to:` — `newDocument`, `file:<path>` (workspace-guarded), `editor.replaceSelection`, `editor.insert`, `diff` (preview the result against the launch document and apply on accept), `terminal` (type a command without running it), or `terminal.run` (type and run it — pair with a confirmation step). Omitting `to:` keeps the existing chat-only behavior.
+
 ## [0.3.0] - 2026-06-20
 
 ### Added

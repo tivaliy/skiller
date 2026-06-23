@@ -1,0 +1,64 @@
+id: smell-refactor
+name: Smell & Refactor
+description: Detect code smells in the selected code, review them, then refactor the selection in place.
+version: "1.1.0"
+
+inputs:
+  # Context-bound inputs carry NO `prompt`: the handler would re-prompt for any
+  # input that has a `prompt` and wasn't passed as an arg, even when `from:`
+  # already filled it. `description` is the fallback label when nothing is selected.
+  - name: code
+    type: string
+    description: The selected code to refactor
+    required: true
+    from: selection
+  - name: language
+    type: string
+    description: Language id of the active file
+    required: false
+    from: activeFile.language
+
+tools:
+  aliases: {}
+
+models:
+  default: gpt-4o
+
+steps:
+  - id: detect
+    type: llm
+    description: Identify the code smells in the selection
+    file: steps/01-detect.md
+    output: smells
+
+  # Interactivity: show what was found and let the user decide before any edit.
+  - id: confirm
+    type: confirmation
+    description: Review the smells before changing anything
+    message: |
+      ## Smells found in your selection
+
+      {{ outputs.smells }}
+
+      Refactor the selection to fix these?
+    options:
+      - label: "Yes — refactor the selection"
+        action: continue
+      - label: "No — just keep the explanation"
+        action: abort
+    output: decision
+
+  - id: refactor
+    type: llm
+    description: Rewrite the selection, fixing only the smells
+    file: steps/02-refactor.md
+    output: refactored
+
+on_error: abort
+
+# `summary` is delivered to the sink; for replaceSelection it must be raw code,
+# so it renders to the refactored selection verbatim (the refactor prompt is
+# hardened to emit no markdown fences).
+output:
+  summary: "{{ outputs.refactored }}"
+  to: editor.replaceSelection

@@ -1,0 +1,90 @@
+id: change-map
+name: Change Map
+description: Map the modules and architectural boundaries your working-tree changes touch, and render them as a Mermaid graph.
+version: "1.0.0"
+
+inputs:
+  # Context-bound: the working-tree diff is read from git at launch, no prompt needed.
+  # If the working tree is clean — or the only changes are *untracked* files, which VS
+  # Code's working diff omits (stage them, or use git.staged, to include brand-new
+  # files) — this required input is empty and falls back to a prompt that names the
+  # source it couldn't auto-fill from.
+  - name: diff
+    type: string
+    description: Working-tree diff to map
+    required: true
+    from: git.working
+
+steps:
+  # 1. Read the diff and name what it reshaped: the modules/dirs touched (inferred
+  #    from the changed paths), the layer each belongs to, and the boundary edges
+  #    the change crosses. No diagram yet — just the structured scope.
+  - id: scope
+    type: llm
+    description: Identify the modules and boundaries the diff touches
+    file: steps/01-scope.md
+    output: scope
+
+  # Interactivity + the first branch: choose how deep to map before drawing.
+  - id: confirm-depth
+    type: confirmation
+    description: Choose mapping depth
+    message: |
+      ## Changes touch these boundaries
+
+      {{ outputs.scope }}
+
+      How deep should the map go?
+    options:
+      - label: "Quick map — just the boundaries"
+        action: goto
+        goto_step: diagram
+      - label: "Drill into the most-affected boundary first"
+        action: goto
+        goto_step: focus
+      - label: "Cancel"
+        action: abort
+    output: depth
+
+  # 2. (drill path only) Zoom into the single most significant boundary and detail
+  #    its dependency edges and direction. Flows into `diagram` next.
+  - id: focus
+    type: llm
+    description: Drill into the most-affected boundary
+    file: steps/02-focus.md
+    output: focus
+
+  # 3. Render the Markdown report with a Mermaid graph of modules + boundary edges.
+  #    Reached directly (quick map) or after `focus` (drill); on the review loop it
+  #    deepens the map it drew last time.
+  - id: diagram
+    type: llm
+    description: Draw the boundary map
+    file: steps/03-diagram.md
+    output: map
+
+  # The refine loop: open the map, or send it back to `diagram` for another layer.
+  - id: review
+    type: confirmation
+    description: Open the map or expand it
+    message: |
+      ## Map ready
+
+      Open it as a document, or expand it with another layer of detail?
+    options:
+      - label: "Open the map"
+        action: continue
+      - label: "Go deeper — add another layer"
+        action: goto
+        goto_step: diagram
+      - label: "Cancel"
+        action: abort
+    output: review
+
+on_error: abort
+
+# Deliver the rendered map to a new document. The summary is the diagram step's
+# Markdown (prose + an inner ```mermaid block), so it renders in VS Code's preview.
+output:
+  summary: "{{ outputs.map }}"
+  to: newDocument

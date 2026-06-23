@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { KNOWN_CONTEXT_SOURCES } from '../context/sources';
 
 /**
  * Valid input types for skill parameters
@@ -74,6 +75,18 @@ export const inputDefinitionSchema = z.object({
      */
     enum: z.array(z.string())
         .min(1, 'Enum must have at least one value')
+        .optional(),
+
+    /**
+     * Editor-context binding: resolve this input from editor state at launch
+     * instead of prompting. e.g. 'selection', 'activeFile.path', 'git.staged'.
+     * Validated against the known context sources so a typo is caught at parse
+     * time instead of silently resolving to undefined.
+     */
+    from: z.string()
+        .refine(v => KNOWN_CONTEXT_SOURCES.has(v), {
+            message: 'input.from must be a known context source (e.g. selection, activeFile, activeFile.path, activeFile.content, activeFile.language, git.staged, git.working, diagnostics)'
+        })
         .optional()
 }).strict();
 

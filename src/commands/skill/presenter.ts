@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import { SkillInput, ConfirmationOption, ExecutionReadiness, ReadinessIssue } from '../../skills';
+import { SkillInput, ConfirmationOption, ExecutionReadiness, ReadinessIssue, OutputSink, describeSink } from '../../skills';
 
 // ============================================================================
 // Helpers
@@ -28,10 +28,25 @@ export function formatValue(value: unknown): string {
 // ============================================================================
 
 /**
+ * The prompt shown when the skill author supplied no `input.prompt`. A
+ * context-bound (`from:`) input only ever reaches this fallback when its source
+ * resolved empty — a filled from:-input is never prompted — so it names the source
+ * the value should have come from, rather than a bare "provide X" that hides the
+ * fact skiller tried (and failed) to auto-fill it from the editor/git. A custom
+ * `input.prompt` overrides this entirely.
+ */
+export function defaultInputPrompt(input: SkillInput): string {
+    if (input.from) {
+        return `Couldn't auto-fill **${input.name}** from \`${input.from}\` — provide it (${input.type}) below, or type \`cancel\`:`;
+    }
+    return `Please provide **${input.name}** (${input.type}):`;
+}
+
+/**
  * Show prompt for a specific input
  */
 export function showInputPrompt(stream: vscode.ChatResponseStream, input: SkillInput): void {
-    const promptText = input.prompt || `Please provide **${input.name}** (${input.type}):`;
+    const promptText = input.prompt || defaultInputPrompt(input);
     stream.markdown(`${promptText}\n\n`);
 
     // Show description as hint (only if no custom prompt)
@@ -57,6 +72,35 @@ export function showInputPrompt(stream: vscode.ChatResponseStream, input: SkillI
     } else if (!input.required) {
         stream.markdown(`_Press **Enter** to skip (optional)_\n`);
     }
+}
+
+// ============================================================================
+// Output delivery UI
+// ============================================================================
+
+/** Confirm where a completed skill's output was delivered. */
+export function showOutputDelivered(stream: vscode.ChatResponseStream, sink: OutputSink): void {
+    stream.markdown(`\n✓ Output ${describeSink(sink)}.\n`);
+}
+
+/** The run completed but its `output.to` didn't match a known sink. */
+export function showUnknownSink(stream: vscode.ChatResponseStream, to: string): void {
+    stream.markdown(`\n⚠️ Skill completed, but \`output.to: ${to}\` is not a recognized sink — output was not delivered.\n`);
+}
+
+/** The run completed but routing its output to the sink failed. */
+export function showOutputDeliveryFailed(stream: vscode.ChatResponseStream, message: string): void {
+    stream.markdown(`\n⚠️ Skill completed, but delivering its output failed: ${message}\n`);
+}
+
+/**
+ * Echo the rendered summary in chat as a recovery fallback. The engine suppresses
+ * the normal chat echo whenever `output.to` is set (the sink reports its own
+ * confirmation); when delivery then fails or the sink is unknown, this re-surfaces
+ * the content so an expensive run's output isn't silently lost.
+ */
+export function showOutputFallback(stream: vscode.ChatResponseStream, summary: string): void {
+    stream.markdown(`\n${summary}\n`);
 }
 
 /**

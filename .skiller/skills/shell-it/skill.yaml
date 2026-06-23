@@ -1,0 +1,53 @@
+id: shell-it
+name: Shell It
+description: Describe a task, review the exact shell command in chat, and run it in your terminal on confirm.
+version: "1.0.0"
+
+inputs:
+  # A plain prompted input — NOT a `from:` binding. This is the user's intent,
+  # typed in chat or passed as an arg; it has no editor-context source.
+  - name: request
+    type: string
+    description: What you want to do in the shell
+    required: true
+    prompt: "What do you want to do in the shell? (e.g. \"compress this folder to tar.gz\", \"kill what's on port 3000\")"
+
+steps:
+  # Draft a single-line command. The prompt is hardened to emit only the command
+  # (no prose, no fences) so it delivers verbatim to the terminal.
+  - id: draft
+    type: llm
+    description: Draft a single-line shell command
+    file: steps/01-draft.md
+    output: command
+
+  # Review gate: show the command in chat BEFORE it runs. This confirmation is the
+  # human-in-the-loop check — on confirm the command runs, so the user has already
+  # seen the exact command here.
+  - id: confirm
+    type: confirmation
+    description: Review the command before it runs
+    message: |
+      ## Proposed command
+
+      ```
+      {{ outputs.command }}
+      ```
+
+      Run this in your terminal? It runs as soon as you confirm.
+    options:
+      - label: "Run it"
+        action: continue
+      - label: "Cancel"
+        action: abort
+    output: decision
+
+on_error: abort
+
+# Deliver to the terminal.run sink, which types the command AND runs it. Safe here
+# because the confirmation step above already showed the exact command for review.
+# summary must be the raw command (the draft prompt emits no fences), since the
+# terminal receives it verbatim.
+output:
+  summary: "{{ outputs.command }}"
+  to: terminal.run
