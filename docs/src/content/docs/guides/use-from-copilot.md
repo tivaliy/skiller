@@ -18,8 +18,9 @@ Skill…**: inputs, confirmations, and tool approvals are still yours to answer.
 - **Just ask** — the plugin's description lets Copilot pick it up on its own when you mention Skiller
   skills or workflows. You can also reference the tools directly with `#listSkills` and `#runSkill`.
 
-Copilot calls tools in agent mode, so use agent mode for both. `/skiller` needs a VS Code release
-that supports agent plugins; on an older one, ask Copilot directly or reference `#runSkill`.
+Copilot calls tools in agent mode, so use agent mode for both. `/skiller` requires a VS Code version
+with agent-plugin support (verified on VS Code 1.145); on older versions Skiller works but `/skiller`
+doesn't appear, so ask Copilot directly or reference `#runSkill`.
 
 :::note[Not Copilot's `/skills`]
 Copilot has its own `/skills` commands (add, info, list, reload, remove). They manage Copilot's
@@ -32,7 +33,7 @@ Skiller contributes two language-model tools that Copilot (or any agent) can cal
 
 | Tool | What it does |
 | ---- | ------------ |
-| `skiller_listSkills` (`#listSkills`) | Lists the workflows available in this window: each one's id, name, description, inputs (with which are filled from the editor), and whether it writes its result back into the editor. Skills that could not run from here — workspace or user skills that use built-in-only or chat-only tools — are left out. |
+| `skiller_listSkills` (`#listSkills`) | Lists the workflows available in this window: each one's id, name, description, inputs (with which are filled from the editor), and whether it writes its result back into the editor. Skills that could not run from here are left out: any skill, built-ins included, that uses a chat-only tool or `skiller_runSkill` / `skiller_listSkills` (which can't be used inside a Skiller run), and workspace or user skills that use a built-in-only tool. |
 | `skiller_runSkill` (`#runSkill`) | Runs a workflow by id, with optional input values, and returns its result summary. |
 
 ## What happens when Copilot runs a skill

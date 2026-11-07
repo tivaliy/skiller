@@ -151,6 +151,11 @@ JSON). The run itself is a normal native run in VS Code. The tool waits up to 10
 it returns *"The run continues in VS Code; see the graph panel for the result."* and the run keeps
 going.
 
+Both are for agents outside a Skiller run. Skiller runs one skill at a time, so a skill can't use
+them: referencing either in `skill.yaml` fails the readiness check (*"Tool 'skiller_runSkill' can't be
+used inside a Skiller run."*), and a step that offers one anyway — for example through step-file
+frontmatter — fails when it runs. The same runtime check applies to chat-only tools.
+
 ## Related
 
 - [Build a tool/MCP skill](../../guides/tool-mcp-skill/) — a full, copyable skill that drafts text
