@@ -45,6 +45,8 @@ import * as vscode from 'vscode';
 import { CreateFileTool } from './create-file';
 import { ReplaceInFileTool } from './replace-in-file';
 import { WriteSkillTool, type WriteSkillDeps } from './write-skill';
+import { ListSkillsTool, type ListSkillsDeps } from './list-skills';
+import { RunSkillTool, type RunSkillDeps } from './run-skill';
 
 // Re-export utilities for potential external use
 export { resolvePath } from './utils';
@@ -79,10 +81,12 @@ const TOOLS: ToolRegistration[] = [
  * @param context - VS Code extension context for subscription management
  * @param deps - Dependencies for tools that need extension state
  */
-export function registerTools(context: vscode.ExtensionContext, deps: { writeSkill: WriteSkillDeps }): void {
+export function registerTools(context: vscode.ExtensionContext, deps: { writeSkill: WriteSkillDeps; listSkills: ListSkillsDeps; runSkill: RunSkillDeps }): void {
     const tools: ToolRegistration[] = [
         ...TOOLS,
-        { name: 'skiller_writeSkill', tool: new WriteSkillTool(deps.writeSkill) }
+        { name: 'skiller_writeSkill', tool: new WriteSkillTool(deps.writeSkill) },
+        { name: 'skiller_listSkills', tool: new ListSkillsTool(deps.listSkills) },
+        { name: 'skiller_runSkill', tool: new RunSkillTool(deps.runSkill) }
     ];
     for (const { name, tool } of tools) {
         context.subscriptions.push(

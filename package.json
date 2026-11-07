@@ -43,6 +43,8 @@
     "onLanguageModelTool:skiller_createFile",
     "onLanguageModelTool:skiller_replaceInFile",
     "onLanguageModelTool:skiller_writeSkill",
+    "onLanguageModelTool:skiller_listSkills",
+    "onLanguageModelTool:skiller_runSkill",
     "workspaceContains:**/skill.yaml",
     "workspaceContains:**/skills/**/*.yaml"
   ],
@@ -320,6 +322,51 @@
           "required": [
             "id",
             "files"
+          ]
+        }
+      },
+      {
+        "name": "skiller_listSkills",
+        "tags": [
+          "skiller"
+        ],
+        "toolReferenceName": "listSkills",
+        "displayName": "List Skiller Skills",
+        "modelDescription": "Lists the Skiller workflows (skills) available in this VS Code window, with each one's id, description, inputs and whether it writes its result back into the editor. Use this to discover which Skiller workflow fits the user's request before calling skiller_runSkill.",
+        "userDescription": "List the available Skiller workflows",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(list-unordered)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      {
+        "name": "skiller_runSkill",
+        "tags": [
+          "skiller"
+        ],
+        "toolReferenceName": "runSkill",
+        "displayName": "Run Skiller Skill",
+        "modelDescription": "Runs a Skiller workflow (skill) by id and returns its result summary. Use when the user asks to run a Skiller skill or workflow; call skiller_listSkills first to find the id and inputs. Inputs that are bound to the editor (editorBound) are filled from the active editor when omitted; other missing required inputs are asked from the user in VS Code. The run shows its own progress in VS Code, and may take minutes; if it is still going after 10 minutes the tool returns and the run continues there.",
+        "userDescription": "Run a Skiller workflow",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(play)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The skill id, as returned by skiller_listSkills."
+            },
+            "inputs": {
+              "type": "object",
+              "description": "Input values by input name. Optional; omitted inputs are taken from the editor, defaults, or asked from the user.",
+              "additionalProperties": true
+            }
+          },
+          "required": [
+            "id"
           ]
         }
       }

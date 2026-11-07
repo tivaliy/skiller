@@ -14,6 +14,8 @@ import {
     SkillRegistry,
     createSkillExecutor,
     registerSkillCodeLens,
+    outputNeedsTarget,
+    captureDeliveryTarget,
     enableLiveReload,
     createExecutionState,
     ExecutionStateManager,
@@ -107,10 +109,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         stepInspectionProvider
     );
 
-    registerTools(context, {
-        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri })),
-    });
-    registerSkillCodeLens(context);
 
     const showGraph = (skill: Skill): Promise<void> =>
         showSkillGraph(skill, context.extensionUri, { webview: { preserveFocus: true } }).then(() => undefined);
@@ -119,6 +117,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         set: names => context.workspaceState.update(ALWAYS_ALLOWED_TOOLS_KEY, names),
     });
     const controller = createRunController(context, toolApprovals, showGraph);
+
+    registerTools(context, {
+        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri })),
+        listSkills: { skills: () => skillRegistry.getAll() },
+        runSkill: {
+            find: id => skillRegistry.getById(id),
+            ids: () => skillRegistry.getAll().map(s => s.id),
+            run: req => controller.run(req),
+            captureTarget: skill => outputNeedsTarget(skill.output?.to)
+                ? captureDeliveryTarget({ excludeDir: skill.source.path })
+                : undefined,
+            waitCapMs: 600_000,
+        },
+    });
+    registerSkillCodeLens(context);
 
     registerTriggers(context, {
         controller,
