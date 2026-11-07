@@ -55,7 +55,10 @@ export function buildCsp(
         // The SVG cards set inline style attributes (foreignObject sizing), which
         // need 'unsafe-inline' — a nonce does not cover inline style attributes.
         `style-src ${webview.cspSource} 'unsafe-inline'`,
-        `img-src ${webview.cspSource} data:`
+        `img-src ${webview.cspSource} data:`,
+        // Not covered by default-src: block form submission and <base> rewriting.
+        `form-action 'none'`,
+        `base-uri 'none'`
     ];
     if (options.fontSrc) {
         directives.push(`font-src ${webview.cspSource}`);

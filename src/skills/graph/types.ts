@@ -187,7 +187,8 @@ export type WebviewMessage =
 /**
  * An interactive card docked at the bottom of the graph panel
  * (confirmation, tool approval, run result). `html` is host-rendered markdown
- * inserted as-is; the webview CSP blocks any script in it.
+ * and untrusted: the webview sanitizes it to an allow-listed, attribute-free
+ * subset before insertion (the CSP alone does not stop forms/links/overlays).
  */
 export interface GraphCard {
     cardId: string;

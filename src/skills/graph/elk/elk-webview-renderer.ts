@@ -18,6 +18,7 @@
 import * as vscode from 'vscode';
 
 import type { ElkGraphPayload, GraphWebviewOptions } from '../types';
+import { sanitizeCardHtml } from './card-sanitizer';
 import { buildCsp, getMediaUri, getNonce, toWebviewScriptJson } from '../webview-util';
 
 /**
@@ -116,6 +117,7 @@ export class ElkWebviewRenderer {
     <script nonce="${nonce}">
         var INITIAL_PAYLOAD = ${payloadJson};
     </script>
+    <script nonce="${nonce}">var sanitizeCardHtml = ${sanitizeCardHtml.toString()};</script>
     <script nonce="${nonce}">${CLIENT}</script>
 </body>
 </html>`;
@@ -150,6 +152,8 @@ body {
 
 .card-dock {
     flex: 0 0 auto;
+    position: relative;
+    contain: paint;
     max-height: 45%;
     overflow: auto;
     padding: 10px 14px;
@@ -157,11 +161,11 @@ body {
     background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
     color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground));
 }
-.card-title { font-weight: 600; margin-bottom: 6px; }
-.card-body { margin-bottom: 8px; }
-.card-body pre { overflow: auto; }
-.card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.card-actions button {
+.card-dock .card-dock-title { font-weight: 600; margin-bottom: 6px; }
+.card-dock .card-dock-body { margin-bottom: 8px; font-size: 13px; line-height: 1.4; }
+.card-dock .card-dock-body pre { overflow: auto; }
+.card-dock .card-dock-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.card-dock .card-dock-actions button {
     font: inherit;
     padding: 4px 12px;
     border: none;
@@ -170,11 +174,11 @@ body {
     color: var(--vscode-button-secondaryForeground);
     background: var(--vscode-button-secondaryBackground);
 }
-.card-actions button.primary {
+.card-dock .card-dock-actions button.primary {
     color: var(--vscode-button-foreground);
     background: var(--vscode-button-background);
 }
-.card-actions button:disabled { opacity: 0.5; cursor: default; }
+.card-dock .card-dock-actions button:disabled { opacity: 0.5; cursor: default; }
 
 .toolbar {
     display: flex;
@@ -1101,14 +1105,21 @@ const CLIENT = `
         clearCard();
         currentCardId = card.cardId;
         var title = document.createElement('div');
-        title.className = 'card-title';
+        title.className = 'card-dock-title';
         title.textContent = card.title || '';
         var body = document.createElement('div');
-        body.className = 'card-body';
-        // Host-rendered markdown; the nonce CSP prevents any script in it from running.
-        body.innerHTML = card.html || '';
+        body.className = 'card-dock-body';
+        // Card HTML is untrusted (rendered from skill/model text with raw HTML
+        // enabled). The CSP blocks scripts, but not forms, links or styled
+        // overlays, so only an allow-listed, attribute-free subset is inserted.
+        body.appendChild(sanitizeCardHtml(card.html || '', {
+            parse: function (h) { return new DOMParser().parseFromString(h, 'text/html'); },
+            createFragment: function () { return document.createDocumentFragment(); },
+            createElement: function (t) { return document.createElement(t); },
+            createText: function (t) { return document.createTextNode(t); }
+        }));
         var actions = document.createElement('div');
-        actions.className = 'card-actions';
+        actions.className = 'card-dock-actions';
         (card.actions || []).forEach(function (action) {
             var button = document.createElement('button');
             button.textContent = action.label;
