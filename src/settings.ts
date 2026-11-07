@@ -113,10 +113,23 @@ export interface LLMSettings {
 }
 
 /**
+ * Model settings
+ */
+export interface ModelSettings {
+    /**
+     * Fallback model id for native runs, used only when a skill and its steps
+     * don't name a model. Empty means ask once and remember.
+     * @default ''
+     */
+    default: string;
+}
+
+/**
  * Complete settings structure
  */
 export interface QASettings {
     skills: SkillsSettings;
+    model: ModelSettings;
     llm: LLMSettings;
 }
 
@@ -135,6 +148,9 @@ const DEFAULTS: QASettings = {
         toolInvocationTimeout: 60_000,
         maxToolIterations: 10,
         allowOutsideWorkspaceWrites: false,
+    },
+    model: {
+        default: '',
     },
     llm: {
         maxHistoryTurns: 20,
@@ -177,6 +193,9 @@ export function getSettings(): QASettings {
             maxToolIterations: config.get<number>('skills.maxToolIterations', DEFAULTS.skills.maxToolIterations),
             allowOutsideWorkspaceWrites: config.get<boolean>('skills.allowOutsideWorkspaceWrites', DEFAULTS.skills.allowOutsideWorkspaceWrites),
         },
+        model: {
+            default: config.get<string>('model.default', DEFAULTS.model.default),
+        },
         llm: {
             maxHistoryTurns: config.get<number>('llm.maxHistoryTurns', DEFAULTS.llm.maxHistoryTurns),
             maxToolResponseLength: config.get<number>('llm.maxToolResponseLength', DEFAULTS.llm.maxToolResponseLength),
@@ -199,6 +218,7 @@ type SettingPath =
     | 'skills.toolInvocationTimeout'
     | 'skills.maxToolIterations'
     | 'skills.allowOutsideWorkspaceWrites'
+    | 'model.default'
     | 'llm.maxHistoryTurns'
     | 'llm.maxToolResponseLength'
     | 'llm.maxToolResponses';
@@ -212,6 +232,7 @@ type SettingType<P extends SettingPath> =
     P extends 'skills.toolInvocationTimeout' ? number :
     P extends 'skills.maxToolIterations' ? number :
     P extends 'skills.allowOutsideWorkspaceWrites' ? boolean :
+    P extends 'model.default' ? string :
     P extends 'llm.maxHistoryTurns' ? number :
     P extends 'llm.maxToolResponseLength' ? number :
     P extends 'llm.maxToolResponses' ? number :
@@ -226,6 +247,7 @@ const DEFAULT_BY_PATH: Record<SettingPath, unknown> = {
     'skills.toolInvocationTimeout': DEFAULTS.skills.toolInvocationTimeout,
     'skills.maxToolIterations': DEFAULTS.skills.maxToolIterations,
     'skills.allowOutsideWorkspaceWrites': DEFAULTS.skills.allowOutsideWorkspaceWrites,
+    'model.default': DEFAULTS.model.default,
     'llm.maxHistoryTurns': DEFAULTS.llm.maxHistoryTurns,
     'llm.maxToolResponseLength': DEFAULTS.llm.maxToolResponseLength,
     'llm.maxToolResponses': DEFAULTS.llm.maxToolResponses,

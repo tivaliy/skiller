@@ -173,6 +173,11 @@
           "default": "adaptive",
           "description": "How a skill launched from the editor (Command Palette, context menu, or code action) enters chat. 'adaptive' prefills the command so you can review and launch it; 'chat' runs immediately."
         },
+        "skiller.model.default": {
+          "type": "string",
+          "default": "",
+          "description": "Fallback language model id for native runs. Used only when a skill and its steps don't name a model. Leave empty to be asked once and remember your choice."
+        },
         "skiller.llm.maxHistoryTurns": {
           "type": "number",
           "default": 20,
