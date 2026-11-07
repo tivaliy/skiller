@@ -375,24 +375,6 @@ export class SkillGraphPanelManager {
     }
 
     /**
-     * Set or clear model override banner
-     *
-     * @param skillId - Skill to update
-     * @param model - Model display name, or null to clear
-     * @returns true if message was sent, false if no panel exists
-     */
-    setModelOverride(skillId: string, model: string | null): boolean {
-        const entry = this.panels.get(skillId);
-        if (!entry) {
-            return false;
-        }
-
-        const message: ExtensionMessage = { type: 'setModelOverride', model };
-        void entry.panel.webview.postMessage(message);
-        return true;
-    }
-
-    /**
      * Update a step's model badge with runtime information
      *
      * @param skillId - Skill to update
@@ -460,11 +442,6 @@ export class SkillGraphPanelManager {
         const entry = this.panels.get(skillId);
         if (!entry) return false;
 
-        // Resync model override banner
-        if (state.modelOverride) {
-            this.setModelOverride(skillId, state.modelOverride.displayName);
-        }
-
         // Resync terminal states
         if (state.terminals.start !== 'idle') {
             this.highlightTerminal(skillId, 'start', state.terminals.start);
@@ -512,12 +489,6 @@ export class SkillGraphPanelManager {
             switch (event.type) {
                 case 'execution:start':
                     this.resetHighlights(event.skillId);
-                    // Show model override banner if user selected specific model
-                    if (event.modelOverride) {
-                        this.setModelOverride(event.skillId, event.modelOverride.displayName);
-                    } else {
-                        this.setModelOverride(event.skillId, null);
-                    }
                     break;
                 case 'step:status':
                     this.highlightStep(event.skillId, event.stepId, event.status);
@@ -531,7 +502,6 @@ export class SkillGraphPanelManager {
                     break;
                 case 'execution:reset':
                     this.resetHighlights(event.skillId);
-                    this.setModelOverride(event.skillId, null);
                     break;
                 case 'step:inspection':
                     // Deliberate no-op: hover inspection data is served lazily on demand

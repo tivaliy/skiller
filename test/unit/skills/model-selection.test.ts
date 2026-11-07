@@ -19,19 +19,19 @@ describe('resolveNativeModel', () => {
 
     it('uses the setting when it matches', async () => {
         const d = deps({ settingId: () => 'b', rememberedId: () => 'a' });
-        expect(await resolveNativeModel(d)).toEqual({ model: b, isAutoMode: true });
+        expect(await resolveNativeModel(d)).toBe(b);
         expect(d.pick).not.toHaveBeenCalled();
     });
 
     it('falls back to the remembered model', async () => {
         const d = deps({ settingId: () => 'missing', rememberedId: () => 'b' });
-        expect(await resolveNativeModel(d)).toEqual({ model: b, isAutoMode: true });
+        expect(await resolveNativeModel(d)).toBe(b);
         expect(d.pick).not.toHaveBeenCalled();
     });
 
     it('asks once and remembers the pick', async () => {
         const d = deps({ pick: vi.fn(async () => b) });
-        expect(await resolveNativeModel(d)).toEqual({ model: b, isAutoMode: true });
+        expect(await resolveNativeModel(d)).toBe(b);
         expect(d.pick).toHaveBeenCalledTimes(1);
         expect(d.pick).toHaveBeenCalledWith([a, b]);
         expect(d.remember).toHaveBeenCalledWith('b');

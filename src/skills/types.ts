@@ -169,12 +169,11 @@ export interface SkillModels {
 /**
  * Source of model selection - explains why a particular model was chosen
  *
- * - 'user-override': User selected specific model in dropdown (not Auto)
- * - 'skill-step': Step has `model: X` and Auto mode enabled
+ * - 'skill-step': Step has `model: X`
  * - 'skill-default': No step model, using skill's default
- * - 'auto': No configuration, VS Code auto-resolved
+ * - 'auto': No configuration, the run's model
  */
-export type ModelSource = 'user-override' | 'skill-step' | 'skill-default' | 'auto';
+export type ModelSource = 'skill-step' | 'skill-default' | 'auto';
 
 /**
  * Result of model resolution for a step
@@ -291,10 +290,7 @@ export interface SkillStep {
      * - A model alias defined in `models.aliases` (e.g., 'fast', 'smart')
      * - A direct model ID (e.g., 'gpt-4o-mini')
      *
-     * If not specified, uses `models.default` or VS Code's auto-resolved model.
-     *
-     * Note: Only applies when user's dropdown is set to "Auto".
-     * When user selects a specific model, their choice takes precedence.
+     * If not specified, uses `models.default` or the run's model.
      *
      * @example
      * ```yaml
@@ -541,14 +537,8 @@ export type ToolApprover = (call: ToolCallRequest) => Promise<boolean>;
 export interface ExecutionOptions {
     /** Input parameters for the skill */
     inputs: Record<string, unknown>;
-    /** VS Code language model for LLM calls */
+    /** The run's language model: used by LLM steps when neither the step nor the skill names one */
     model: vscode.LanguageModelChat;
-    /**
-     * Whether user selected "Auto" in the model dropdown.
-     * When true, skills control model selection (respects step.model and models.default).
-     * When false, user's dropdown choice overrides all skill model configuration.
-     */
-    isAutoMode: boolean;
     /** Cancellation token */
     token: vscode.CancellationToken;
     /** Progress UI for this run, supplied by the run surface */

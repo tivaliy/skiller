@@ -85,4 +85,4 @@ steps:
 on_error: abort
 
 output:
-  summary: "🔮 I read your mind! Thanks for playing — run `/skill mind-reader` to play again."
+  summary: "🔮 I read your mind! Thanks for playing — run **Skiller: Run Skill…** to play again."

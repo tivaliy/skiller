@@ -12,11 +12,10 @@
  * RunSurface port, and references vscode as types only.
  */
 
-import type { CancellationToken } from 'vscode';
+import type { CancellationToken, LanguageModelChat } from 'vscode';
 import type { Skill, SkillInput, ExecutionOptions, VerboseMode } from '../types';
 import type { SkillExecutor } from '../SkillExecutor';
 import type { ExecutionStateManager } from '../execution-state';
-import type { ResolvedRunModel } from '../model-selection';
 import type { LaunchContextStore } from '../launch-context-store';
 import type { ToolApprovalPolicy } from './tool-approvals';
 import { deliverSkillOutput } from '../output/deliver-skill-output';
@@ -39,7 +38,8 @@ export interface RunControllerDeps {
     executor: SkillExecutor;
     executionState: ExecutionStateManager;
     surface: RunSurface;
-    resolveModel(skill: Skill): Promise<ResolvedRunModel>;
+    /** The run's fallback model (step and skill models take precedence). */
+    resolveModel(skill: Skill): Promise<LanguageModelChat>;
     launchStore: LaunchContextStore;
     /** Decides when a tool call needs the user's approval. */
     toolApprovals: ToolApprovalPolicy;
@@ -178,8 +178,7 @@ class RunSession {
         try {
             const options: ExecutionOptions = {
                 inputs,
-                model: model.model,
-                isAutoMode: model.isAutoMode,
+                model,
                 token: this.token,
                 hooks: progress,
                 availableMcps: this.deps.availableMcps(),

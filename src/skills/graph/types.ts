@@ -210,7 +210,6 @@ export type ExtensionMessage =
     | { type: 'highlightStep'; stepId: string; status: StepStatus }
     | { type: 'highlightTerminal'; terminal: 'start' | 'end'; status: TerminalStatus }
     | { type: 'resetHighlights' }
-    | { type: 'setModelOverride'; model: string | null }
     | { type: 'updateStepModel'; stepId: string; model: string; source: ModelSource }
     /** Response to requestStepInspection — the captured I/O for a step, or null if none. */
     | { type: 'stepInspection'; stepId: string; data: StepInspection | null }

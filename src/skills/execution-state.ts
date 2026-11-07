@@ -41,16 +41,6 @@ export type StepStatus = 'pending' | 'active' | 'awaiting-input' | 'completed' |
 export type TerminalStatus = 'idle' | 'active' | 'completed';
 
 /**
- * Model override information when user selects specific model (non-Auto)
- */
-export interface ModelOverride {
-    /** Display name of the model (e.g., "Claude Sonnet 4") */
-    displayName: string;
-    /** The model ID */
-    modelId: string;
-}
-
-/**
  * Kind of step whose I/O was captured for the inspector.
  */
 export type StepInspectionKind = 'llm' | 'confirmation';
@@ -102,8 +92,6 @@ export interface ExecutionState {
      * scheduled against a since-reset or since-restarted run.
      */
     generation: number;
-    /** Model override when user selects specific model (non-Auto mode) */
-    modelOverride?: ModelOverride;
     /** Model info per step (populated as steps execute) */
     stepModels: Map<string, StepModelInfo>;
     /** Captured I/O per step for the inspector (populated as steps complete) */
@@ -114,7 +102,7 @@ export interface ExecutionState {
  * Events emitted by ExecutionStateEmitter
  */
 export type ExecutionEvent =
-    | { type: 'execution:start'; skillId: string; modelOverride?: ModelOverride }
+    | { type: 'execution:start'; skillId: string }
     | { type: 'execution:reset'; skillId: string }
     | { type: 'execution:complete'; skillId: string; success: boolean }
     | { type: 'step:status'; skillId: string; stepId: string; status: StepStatus; previous?: StepStatus; model?: StepModelInfo }
@@ -129,14 +117,6 @@ export type ExecutionEventListener = (event: ExecutionEvent) => void;
 // ============================================================================
 // ExecutionStateManager Interface
 // ============================================================================
-
-/**
- * Options for starting execution
- */
-export interface StartExecutionOptions {
-    /** Model override when user selects specific model (non-Auto mode) */
-    modelOverride?: ModelOverride;
-}
 
 /**
  * Options for setting step status
@@ -154,7 +134,7 @@ export interface SetStepStatusOptions {
  */
 export interface ExecutionStateManager {
     /** Start tracking a new execution */
-    startExecution(skillId: string, stepIds: string[], options?: StartExecutionOptions): void;
+    startExecution(skillId: string, stepIds: string[]): void;
 
     /** Update step status */
     setStepStatus(skillId: string, stepId: string, status: StepStatus, options?: SetStepStatusOptions): void;
@@ -167,9 +147,6 @@ export interface ExecutionStateManager {
 
     /** Reset all state for a skill */
     reset(skillId: string): void;
-
-    /** Reset all tracked execution states */
-    resetAll(): void;
 
     /**
      * Finish execution with success animation
@@ -224,9 +201,8 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
      *
      * @param skillId - Skill ID
      * @param stepIds - All step IDs in execution order
-     * @param options - Optional execution options (model override, etc.)
      */
-    startExecution(skillId: string, stepIds: string[], options?: StartExecutionOptions): void {
+    startExecution(skillId: string, stepIds: string[]): void {
         const state: ExecutionState = {
             skillId,
             steps: new Map(stepIds.map(id => [id, 'pending' as StepStatus])),
@@ -234,12 +210,11 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
             currentStepId: null,
             startedAt: Date.now(),
             generation: ++this.generationCounter,
-            modelOverride: options?.modelOverride,
             stepModels: new Map(),
             stepInspections: new Map()
         };
         this.states.set(skillId, state);
-        this.emitEvent({ type: 'execution:start', skillId, modelOverride: options?.modelOverride });
+        this.emitEvent({ type: 'execution:start', skillId });
     }
 
     /**
@@ -335,22 +310,10 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
             state.currentStepId = null;
             // New generation: invalidates any delayed work from the prior run.
             state.generation = ++this.generationCounter;
-            state.modelOverride = undefined;
             state.stepModels.clear();
             state.stepInspections.clear();
         }
         this.emitEvent({ type: 'execution:reset', skillId });
-    }
-
-    /**
-     * Reset all tracked execution states
-     *
-     * Emits reset events for each tracked skill so graph panels update.
-     */
-    resetAll(): void {
-        for (const skillId of this.states.keys()) {
-            this.reset(skillId);
-        }
     }
 
     /**

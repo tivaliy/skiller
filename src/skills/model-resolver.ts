@@ -2,13 +2,8 @@
  * Model Resolver
  *
  * Resolves model specifications to VS Code LanguageModelChat objects.
- * Handles alias resolution, Auto mode detection, and fallback behavior.
- *
- * Key semantics:
- * - Auto mode: Skill controls model selection (respects step.model and models.default)
- * - Specific mode: User's dropdown choice overrides all skill configuration
- *
- * Detection: `request.model.id.includes('auto')` reliably identifies Auto mode.
+ * Handles alias resolution and fallback behavior. The skill controls model
+ * selection: step model, then the skill's default, then the run's model.
  */
 
 import * as vscode from 'vscode';
@@ -24,34 +19,23 @@ export interface ModelResolver {
      * Resolve model for a skill step
      *
      * Resolution priority:
-     * 1. If not Auto mode → user's selection wins
-     * 2. Resolve step model spec (alias or direct ID)
-     * 3. Fall back to skill default
-     * 4. Fall back to request model (VS Code auto-resolved)
+     * 1. Resolve step model spec (alias or direct ID)
+     * 2. Fall back to skill default
+     * 3. Fall back to the run's model
+     * A requested model that isn't installed also falls back to the run's model.
      *
      * @param stepModelSpec - Model specification from step definition (alias or ID)
      * @param skillAliases - Alias mapping from skill's models.aliases
      * @param skillDefault - Default model from skill's models.default
-     * @param requestModel - The run's fallback model (see resolveNativeModel)
-     * @param isAutoMode - Whether user has "Auto" selected in dropdown
+     * @param runModel - The run's fallback model (see resolveNativeModel)
      * @returns Resolved model with metadata
      */
     resolve(
         stepModelSpec: string | undefined,
         skillAliases: ModelAliases | undefined,
         skillDefault: string | undefined,
-        requestModel: vscode.LanguageModelChat,
-        isAutoMode: boolean
+        runModel: vscode.LanguageModelChat
     ): Promise<ResolvedModel>;
-
-    /**
-     * List all available language models
-     *
-     * Used by /models command for discovery.
-     *
-     * @returns Array of available chat models
-     */
-    listModels(): Promise<vscode.LanguageModelChat[]>;
 
     /**
      * Extract display name from model ID
@@ -80,20 +64,8 @@ export class VSCodeModelResolver implements ModelResolver {
         stepModelSpec: string | undefined,
         skillAliases: ModelAliases | undefined,
         skillDefault: string | undefined,
-        requestModel: vscode.LanguageModelChat,
-        isAutoMode: boolean
+        runModel: vscode.LanguageModelChat
     ): Promise<ResolvedModel> {
-        // User override: specific model selected in dropdown → USER WINS
-        if (!isAutoMode) {
-            return {
-                model: requestModel,
-                displayName: this.extractDisplayName(requestModel.id),
-                source: 'user-override',
-                usedFallback: false
-            };
-        }
-
-        // Auto mode: skill controls model selection
         // Resolve alias: aliases[spec] ?? spec
         const resolvedSpec = stepModelSpec
             ? (skillAliases?.[stepModelSpec] ?? stepModelSpec)
@@ -118,25 +90,21 @@ export class VSCodeModelResolver implements ModelResolver {
 
             // Model not found → fallback with warning
             return {
-                model: requestModel,
-                displayName: this.extractDisplayName(requestModel.id),
+                model: runModel,
+                displayName: this.extractDisplayName(runModel.id),
                 source: resolvedSpec ? 'skill-step' : 'skill-default',
                 usedFallback: true,
                 requestedModel: targetModelId
             };
         }
 
-        // No model configuration → use VS Code's auto-resolved model
+        // No model configuration → use the run's model
         return {
-            model: requestModel,
-            displayName: this.extractDisplayName(requestModel.id),
+            model: runModel,
+            displayName: this.extractDisplayName(runModel.id),
             source: 'auto',
             usedFallback: false
         };
-    }
-
-    async listModels(): Promise<vscode.LanguageModelChat[]> {
-        return await this.getModels();
     }
 
     /**
@@ -205,18 +173,4 @@ export class VSCodeModelResolver implements ModelResolver {
  */
 export function createModelResolver(): ModelResolver {
     return new VSCodeModelResolver();
-}
-
-/**
- * Detect if a model is VS Code's "Auto" placeholder
- *
- * When user selects "Auto" in the model dropdown, VS Code's
- * auto-resolved model ID contains 'auto'. This is a reliable
- * detection method based on VS Code's behavior.
- *
- * @param requestModel - The model to inspect
- * @returns true if Auto mode is detected
- */
-export function isAutoMode(requestModel: vscode.LanguageModelChat): boolean {
-    return requestModel.id.toLowerCase().includes('auto');
 }

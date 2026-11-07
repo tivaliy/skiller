@@ -43,7 +43,7 @@ describe('ToolCache', () => {
 
     describe('constructor and refresh', () => {
         it('creates empty cache initially', () => {
-            expect(toolCache.getAllTools()).toEqual([]);
+            expect(toolCache.hasTools()).toBe(false);
         });
 
         it('populates cache on refresh', () => {
@@ -53,36 +53,19 @@ describe('ToolCache', () => {
 
             toolCache.refresh();
 
-            expect(toolCache.getAllTools()).toHaveLength(1);
+            expect(toolCache.getToolByName('mcp_mcp-acme_item_search')?.description).toBe('Search Acme items');
         });
 
         it('clears previous tools on refresh', () => {
             mockTools = [createMockTool('tool1')];
             toolCache.refresh();
-            expect(toolCache.getAllTools()).toHaveLength(1);
+            expect(toolCache.getToolByName('tool1')).toBeDefined();
 
             mockTools = [createMockTool('tool2'), createMockTool('tool3')];
             toolCache.refresh();
-            expect(toolCache.getAllTools()).toHaveLength(2);
-            expect(toolCache.getAllTools().find(t => t.name === 'tool1')).toBeUndefined();
-        });
-    });
-
-    describe('getAllTools', () => {
-        it('returns empty array when no tools', () => {
-            toolCache.refresh();
-            expect(toolCache.getAllTools()).toEqual([]);
-        });
-
-        it('returns all cached tools', () => {
-            mockTools = [
-                createMockTool('mcp_mcp-acme_item_search'),
-                createMockTool('mcp__github__get_file'),
-                createMockTool('mcp_jenkins_get_build')
-            ];
-            toolCache.refresh();
-
-            expect(toolCache.getAllTools()).toHaveLength(3);
+            expect(toolCache.getToolByName('tool2')).toBeDefined();
+            expect(toolCache.getToolByName('tool3')).toBeDefined();
+            expect(toolCache.getToolByName('tool1')).toBeUndefined();
         });
     });
 
@@ -142,7 +125,7 @@ describe('ToolCache', () => {
         const shortNameOf = (fullName: string): string => {
             mockTools = [createMockTool(fullName)];
             toolCache.refresh();
-            return toolCache.getAllTools()[0].shortName;
+            return toolCache.getToolByName(fullName)!.shortName;
         };
 
         it('strips the nested mcp_mcp-<server>_ prefix to the action', () => {
@@ -221,65 +204,6 @@ describe('ToolCache', () => {
 
         it('returns false for non-existent category', () => {
             expect(toolCache.hasCategory('slack')).toBe(false);
-        });
-    });
-
-    describe('getStatus', () => {
-        it('returns not available when no tools', () => {
-            toolCache.refresh();
-            const status = toolCache.getStatus();
-
-            expect(status.available).toBe(false);
-            expect(status.categories).toEqual([]);
-        });
-
-        it('returns available when tools exist', () => {
-            mockTools = [
-                // mcp_mcp-<server>_ → 'acme'; mcp__<cat>__ → 'github'
-                createMockTool('mcp_mcp-acme_item_search'),
-                createMockTool('mcp__github__get_file')
-            ];
-            toolCache.refresh();
-
-            const status = toolCache.getStatus();
-
-            expect(status.available).toBe(true);
-            expect(status.categories).toContain('acme');
-            expect(status.categories).toContain('github');
-        });
-    });
-
-    describe('forceRefreshWithDiff', () => {
-        it('detects added tools', () => {
-            mockTools = [createMockTool('mcp_mcp-acme_item_search')];
-            toolCache.refresh();
-
-            mockTools = [
-                createMockTool('mcp_mcp-acme_item_search'),
-                createMockTool('mcp__github__get_file')
-            ];
-
-            const result = toolCache.forceRefreshWithDiff();
-
-            expect(result.beforeCount).toBe(1);
-            expect(result.afterCount).toBe(2);
-            expect(result.added).toContain('github_get_file');
-        });
-
-        it('detects removed tools', () => {
-            mockTools = [
-                createMockTool('mcp_mcp-acme_item_search'),
-                createMockTool('mcp__github__get_file')
-            ];
-            toolCache.refresh();
-
-            mockTools = [createMockTool('mcp_mcp-acme_item_search')];
-
-            const result = toolCache.forceRefreshWithDiff();
-
-            expect(result.beforeCount).toBe(2);
-            expect(result.afterCount).toBe(1);
-            expect(result.removed).toContain('github_get_file');
         });
     });
 });

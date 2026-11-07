@@ -50,7 +50,6 @@ function fakeResolver(model: vscode.LanguageModelChat): ModelResolver {
     };
     return {
         resolve: async () => resolved,
-        listModels: async () => [],
         extractDisplayName: () => 'fake-model',
     } as unknown as ModelResolver;
 }
@@ -59,7 +58,6 @@ function makeOptions(executionState: ExecutionStateEmitter): ExecutionOptions {
     return {
         inputs: { category: 'something — an object, animal, person, or place' },
         model: { id: 'fake-model' } as unknown as ExecutionOptions['model'],
-        isAutoMode: true,
         token: { isCancellationRequested: false } as unknown as ExecutionOptions['token'],
         hooks: {},
         availableMcps: [],

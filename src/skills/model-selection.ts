@@ -5,12 +5,6 @@
 
 import type * as vscode from 'vscode';
 
-/** The model a run uses, and whether the user left model choice to the skill ("Auto"). */
-export interface ResolvedRunModel {
-    model: vscode.LanguageModelChat;
-    isAutoMode: boolean;
-}
-
 const NO_MODELS_MESSAGE =
     'No language models available. Please ensure a language model provider (e.g. GitHub Copilot) is installed and signed in.';
 
@@ -29,11 +23,10 @@ export interface NativeModelDeps {
 }
 
 /**
- * Choose the fallback model for a native run, which has no chat request to supply one.
- * Setting -> remembered pick -> ask (and remember). Always auto mode, so step and
- * skill models still take precedence inside the model resolver.
+ * Choose the run's fallback model: setting -> remembered pick -> ask (and remember).
+ * Step and skill models still take precedence inside the model resolver.
  */
-export async function resolveNativeModel(deps: NativeModelDeps): Promise<ResolvedRunModel> {
+export async function resolveNativeModel(deps: NativeModelDeps): Promise<vscode.LanguageModelChat> {
     const models = await deps.select();
     if (models.length === 0) {
         throw new Error(NO_MODELS_MESSAGE);
@@ -42,7 +35,7 @@ export async function resolveNativeModel(deps: NativeModelDeps): Promise<Resolve
     for (const id of [deps.settingId(), deps.rememberedId()]) {
         const match = id ? models.find((m) => m.id === id) : undefined;
         if (match) {
-            return { model: match, isAutoMode: true };
+            return match;
         }
     }
 
@@ -51,5 +44,5 @@ export async function resolveNativeModel(deps: NativeModelDeps): Promise<Resolve
         throw new Error('No language model selected.');
     }
     await deps.remember(picked.id);
-    return { model: picked, isAutoMode: true };
+    return picked;
 }

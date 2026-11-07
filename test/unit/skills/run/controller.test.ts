@@ -256,10 +256,7 @@ describe('RunController', () => {
             executor,
             executionState,
             surface,
-            resolveModel: async () => ({
-                model: { id: 'test-model' } as unknown as ExecutionOptions['model'],
-                isAutoMode: true,
-            }),
+            resolveModel: async () => ({ id: 'test-model' }) as unknown as ExecutionOptions['model'],
             launchStore,
             toolApprovals: new ToolApprovalPolicy({ get: () => [], set: async () => {} }),
             availableMcps: () => [],

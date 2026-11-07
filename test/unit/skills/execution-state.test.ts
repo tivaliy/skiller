@@ -107,7 +107,7 @@ describe('ExecutionStateEmitter', () => {
         });
     });
 
-    describe('reset / resetAll', () => {
+    describe('reset', () => {
         it('reset returns all steps to pending and terminals to idle', () => {
             const es = new ExecutionStateEmitter();
             es.startExecution('s', ['a', 'b']);
@@ -119,17 +119,6 @@ describe('ExecutionStateEmitter', () => {
             expect(state.steps.get('a')).toBe('pending');
             expect(state.terminals).toEqual({ start: 'idle', end: 'idle' });
             expect(state.currentStepId).toBeNull();
-        });
-
-        it('resetAll resets every tracked skill', () => {
-            const es = new ExecutionStateEmitter();
-            es.startExecution('s1', ['a']);
-            es.startExecution('s2', ['b']);
-            es.setStepStatus('s1', 'a', 'completed');
-            es.setStepStatus('s2', 'b', 'completed');
-            es.resetAll();
-            expect(es.getState('s1')!.steps.get('a')).toBe('pending');
-            expect(es.getState('s2')!.steps.get('b')).toBe('pending');
         });
     });
 
@@ -191,14 +180,6 @@ describe('ExecutionStateEmitter', () => {
             es.recordStepInspection('s', 'a', sample());
             es.reset('s');
             expect(es.getState('s')!.stepInspections.size).toBe(0);
-        });
-
-        it('clears inspection data on resetAll', () => {
-            const es = new ExecutionStateEmitter();
-            es.startExecution('s1', ['a']);
-            es.recordStepInspection('s1', 'a', sample());
-            es.resetAll();
-            expect(es.getState('s1')!.stepInspections.size).toBe(0);
         });
 
         it('is a no-op for an unknown skill', () => {

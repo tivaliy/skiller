@@ -47,7 +47,6 @@ function makeOptions(executionState: ExecutionStateEmitter, hooks: ProgressHooks
     return {
         inputs: {},
         model: { id: 'test-model' } as unknown as ExecutionOptions['model'],
-        isAutoMode: true,
         token: { isCancellationRequested: false } as unknown as ExecutionOptions['token'],
         hooks,
         availableMcps: [],

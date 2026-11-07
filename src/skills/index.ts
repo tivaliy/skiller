@@ -176,4 +176,3 @@ export * from './output';
 
 // Run model selection
 export { resolveNativeModel } from './model-selection';
-export type { ResolvedRunModel } from './model-selection';

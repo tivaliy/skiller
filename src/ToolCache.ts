@@ -130,14 +130,6 @@ export class ToolCache {
     }
 
     /**
-     * Get all cached tools.
-     */
-    getAllTools(): CachedTool[] {
-        this.ensureFresh();
-        return this.allTools;
-    }
-
-    /**
      * Get a specific tool by full name or short name.
      */
     getToolByName(name: string): CachedTool | undefined {
@@ -173,70 +165,6 @@ export class ToolCache {
     hasCategory(category: ToolCategory): boolean {
         this.ensureFresh();
         return this.toolsByCategory.has(category);
-    }
-
-    /**
-     * Get status summary of available tools.
-     */
-    getStatus(): {
-        available: boolean;
-        categories: ToolCategory[];
-        summary: Map<ToolCategory, number>;
-    } {
-        const categories = this.getDiscoveredCategories();
-        const summary = this.getToolCounts();
-
-        let totalTools = 0;
-        for (const count of summary.values()) {
-            totalTools += count;
-        }
-
-        return {
-            available: totalTools > 0,
-            categories,
-            summary
-        };
-    }
-
-    /**
-     * Force refresh and return diff of what changed.
-     */
-    forceRefreshWithDiff(): {
-        beforeCount: number;
-        afterCount: number;
-        added: string[];
-        removed: string[];
-        categories: ToolCategory[];
-    } {
-        // Capture before state
-        const beforeTools = this.getAllTools();
-        const beforeNames = new Set(beforeTools.map(t => t.name));
-        const beforeCount = beforeTools.length;
-
-        // Force refresh
-        this.refresh();
-
-        // Capture after state
-        const afterTools = this.getAllTools();
-        const afterNames = new Set(afterTools.map(t => t.name));
-        const afterCount = afterTools.length;
-
-        // Compute diff
-        const added = afterTools
-            .filter(t => !beforeNames.has(t.name))
-            .map(t => t.shortName);
-
-        const removed = beforeTools
-            .filter(t => !afterNames.has(t.name))
-            .map(t => t.shortName);
-
-        return {
-            beforeCount,
-            afterCount,
-            added,
-            removed,
-            categories: this.getDiscoveredCategories()
-        };
     }
 
     /**

@@ -75,8 +75,6 @@ interface StepProcessingContext {
     executionState: ExecutionStateManager;
     /** Model resolver for per-step model selection */
     modelResolver: ModelResolver;
-    /** Whether user's dropdown is set to Auto (skill controls model) */
-    isAutoMode: boolean;
 }
 
 /**
@@ -137,11 +135,6 @@ export class SkillExecutor {
         // Progress UI is supplied by the run surface (never built here).
         const hooks = options.hooks;
 
-        // Use pre-computed auto mode flag from command context
-        // Auto mode = skill controls model selection
-        // Specific mode = user override, always use their choice
-        const autoMode = options.isAutoMode;
-
         // Create result builder for this execution
         const resultBuilder = new SkillResultBuilder(skill.id, startTime);
 
@@ -152,12 +145,7 @@ export class SkillExecutor {
         // This is defensive - normally command handler calls startExecution,
         // but executor should work correctly even if called directly
         if (!executionState.hasState(skill.id)) {
-            // Compute model override for graph display (when user selects specific model)
-            const modelOverride = !autoMode ? {
-                displayName: this.modelResolver.extractDisplayName(options.model.id),
-                modelId: options.model.id
-            } : undefined;
-            executionState.startExecution(skill.id, skill.steps.map(s => s.id), { modelOverride });
+            executionState.startExecution(skill.id, skill.steps.map(s => s.id));
         }
 
         // On resume, prune records for steps that will re-run and reset their
@@ -179,8 +167,7 @@ export class SkillExecutor {
             stepResults,
             resultBuilder,
             executionState,
-            modelResolver: this.modelResolver,
-            isAutoMode: autoMode
+            modelResolver: this.modelResolver
         };
 
         try {
@@ -445,8 +432,7 @@ export class SkillExecutor {
                     step.model,
                     ctx.skill.models?.aliases,
                     ctx.skill.models?.default,
-                    ctx.options.model,
-                    ctx.isAutoMode
+                    ctx.options.model
                 );
 
                 // Update execution state with model info (for graph badge display)

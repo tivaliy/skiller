@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as vscode from 'vscode';
-import { VSCodeModelResolver, isAutoMode } from '../../../src/skills/model-resolver';
+import { VSCodeModelResolver } from '../../../src/skills/model-resolver';
 
 // ============================================================================
 // Test Helpers
@@ -30,32 +30,6 @@ function createMockModel(id: string, overrides: Partial<vscode.LanguageModelChat
 }
 
 // ============================================================================
-// isAutoMode Tests
-// ============================================================================
-
-describe('isAutoMode', () => {
-    it('returns true when model ID contains "auto"', () => {
-        const model = createMockModel('copilot-auto');
-        expect(isAutoMode(model)).toBe(true);
-    });
-
-    it('returns true when model ID contains "Auto" (case insensitive)', () => {
-        const model = createMockModel('copilot-Auto-gpt4');
-        expect(isAutoMode(model)).toBe(true);
-    });
-
-    it('returns false for specific model selection', () => {
-        const model = createMockModel('gpt-4o');
-        expect(isAutoMode(model)).toBe(false);
-    });
-
-    it('returns false for claude models', () => {
-        const model = createMockModel('claude-opus-4-5-20251101');
-        expect(isAutoMode(model)).toBe(false);
-    });
-});
-
-// ============================================================================
 // VSCodeModelResolver Tests
 // ============================================================================
 
@@ -76,25 +50,27 @@ describe('VSCodeModelResolver', () => {
         vi.mocked(vscode.lm.selectChatModels).mockResolvedValue(mockModels);
     });
 
-    describe('resolve - user override mode', () => {
-        it('returns request model when not in auto mode', async () => {
-            const requestModel = createMockModel('user-selected-model');
+    describe('resolve - one path: step model, then skill default, then the run model', () => {
+        it('the run model never overrides a step model', async () => {
+            const runModel = createMockModel('run-model');
 
-            const result = await resolver.resolve(
-                'fast',           // stepModelSpec
-                { fast: 'gpt-4o-mini' }, // aliases
-                'gpt-4o',         // skillDefault
-                requestModel,     // requestModel
-                false             // isAutoMode = false (user override)
-            );
+            const result = await resolver.resolve('fast', { fast: 'gpt-4o-mini' }, 'gpt-4o', runModel);
 
-            expect(result.model).toBe(requestModel);
-            expect(result.source).toBe('user-override');
-            expect(result.usedFallback).toBe(false);
+            expect(result.model.id).toBe('gpt-4o-mini');
+            expect(result.source).toBe('skill-step');
+        });
+
+        it('the run model never overrides the skill default', async () => {
+            const runModel = createMockModel('run-model');
+
+            const result = await resolver.resolve(undefined, undefined, 'gpt-4o', runModel);
+
+            expect(result.model.id).toBe('gpt-4o');
+            expect(result.source).toBe('skill-default');
         });
     });
 
-    describe('resolve - auto mode with step model', () => {
+    describe('resolve - step model', () => {
         it('resolves alias to model ID', async () => {
             const requestModel = createMockModel('auto-resolved');
             const aliases = { fast: 'gpt-4o-mini', smart: 'gpt-4o' };
@@ -103,8 +79,7 @@ describe('VSCodeModelResolver', () => {
                 'fast',
                 aliases,
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.model.id).toBe('gpt-4o-mini');
@@ -119,8 +94,7 @@ describe('VSCodeModelResolver', () => {
                 'gpt-4o',
                 { fast: 'gpt-4o-mini' },
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.model.id).toBe('gpt-4o');
@@ -134,8 +108,7 @@ describe('VSCodeModelResolver', () => {
                 'gpt-4o',
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             // Should find gpt-4o (exact match exists)
@@ -143,7 +116,7 @@ describe('VSCodeModelResolver', () => {
         });
     });
 
-    describe('resolve - auto mode with skill default', () => {
+    describe('resolve - skill default', () => {
         it('uses skill default when no step model specified', async () => {
             const requestModel = createMockModel('auto-resolved');
 
@@ -151,8 +124,7 @@ describe('VSCodeModelResolver', () => {
                 undefined,        // no step model
                 { fast: 'gpt-4o-mini' },
                 'gpt-4o',        // skill default
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.model.id).toBe('gpt-4o');
@@ -160,7 +132,7 @@ describe('VSCodeModelResolver', () => {
         });
     });
 
-    describe('resolve - auto mode with no config', () => {
+    describe('resolve - no config', () => {
         it('returns request model when no model config exists', async () => {
             const requestModel = createMockModel('auto-resolved');
 
@@ -168,8 +140,7 @@ describe('VSCodeModelResolver', () => {
                 undefined,
                 undefined,
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.model).toBe(requestModel);
@@ -186,8 +157,7 @@ describe('VSCodeModelResolver', () => {
                 'nonexistent-model',
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.model).toBe(requestModel);
@@ -203,8 +173,7 @@ describe('VSCodeModelResolver', () => {
                 'fast',
                 { fast: 'nonexistent-model' },
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.model).toBe(requestModel);
@@ -230,8 +199,7 @@ describe('VSCodeModelResolver', () => {
                 'gpt-4o',
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             // Should match gpt-4o-2024-05-13 (versioned prefix match)
@@ -246,8 +214,7 @@ describe('VSCodeModelResolver', () => {
                 'gpt',            // Too short, should not match gpt-4o
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             // Should fall back since 'gpt' doesn't match 'gpt-4o' (not a versioned suffix)
@@ -261,9 +228,9 @@ describe('VSCodeModelResolver', () => {
             const requestModel = createMockModel('auto-resolved');
 
             // Resolve multiple times
-            await resolver.resolve('gpt-4o', {}, undefined, requestModel, true);
-            await resolver.resolve('gpt-4o-mini', {}, undefined, requestModel, true);
-            await resolver.resolve('claude-opus-4-5-20251101', {}, undefined, requestModel, true);
+            await resolver.resolve('gpt-4o', {}, undefined, requestModel);
+            await resolver.resolve('gpt-4o-mini', {}, undefined, requestModel);
+            await resolver.resolve('claude-opus-4-5-20251101', {}, undefined, requestModel);
 
             // selectChatModels should only be called once
             expect(vscode.lm.selectChatModels).toHaveBeenCalledTimes(1);
@@ -278,8 +245,7 @@ describe('VSCodeModelResolver', () => {
                 'gpt-4o-2024-05-13',
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.displayName).toBe('gpt-4o');
@@ -292,8 +258,7 @@ describe('VSCodeModelResolver', () => {
                 'claude-opus-4-5-20251101',
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.displayName).toBe('claude-opus-4-5');
@@ -306,25 +271,10 @@ describe('VSCodeModelResolver', () => {
                 'gpt-4o-mini',
                 {},
                 undefined,
-                requestModel,
-                true
+                requestModel
             );
 
             expect(result.displayName).toBe('gpt-4o-mini');
-        });
-    });
-
-    describe('listModels', () => {
-        it('returns all available models', async () => {
-            const models = await resolver.listModels();
-
-            expect(models).toHaveLength(4);
-            expect(models.map(m => m.id)).toEqual([
-                'gpt-4o',
-                'gpt-4o-mini',
-                'gpt-4o-2024-05-13',
-                'claude-opus-4-5-20251101',
-            ]);
         });
     });
 });

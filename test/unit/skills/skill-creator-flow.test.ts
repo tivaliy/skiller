@@ -75,7 +75,6 @@ function fakeResolver(model: vscode.LanguageModelChat): ModelResolver {
     const resolved: ResolvedModel = { model, displayName: 'fake-model', source: 'auto', usedFallback: false };
     return {
         resolve: async () => resolved,
-        listModels: async () => [],
         extractDisplayName: () => 'fake-model',
     } as unknown as ModelResolver;
 }
@@ -84,7 +83,6 @@ function makeOptions(executionState: ExecutionStateEmitter, inputs: Record<strin
     return {
         inputs,
         model: { id: 'fake-model' } as unknown as ExecutionOptions['model'],
-        isAutoMode: true,
         // withTimeout links the tool invocation to this token, so it must be subscribable.
         token: {
             isCancellationRequested: false,

@@ -79,10 +79,6 @@ export class ElkWebviewRenderer {
         <button id="follow-toggle" class="toggle" title="Pan to the active step during a run" aria-label="Follow active step">Follow</button>
     </div>
 
-    <div id="model-override-banner" class="model-override-banner is-hidden">
-        <span>⚠️ Model Override:</span> <span id="model-override-name"></span>
-    </div>
-
     <div id="error" class="error is-hidden"></div>
     <div id="warning" class="warning is-hidden">
         <div class="warning-header" id="warning-header">
@@ -205,13 +201,6 @@ body {
 .toolbar-spacer { flex: 1; }
 .zoom-level { color: var(--vscode-descriptionForeground); font-size: 12px; min-width: 42px; text-align: center; }
 
-.model-override-banner {
-    padding: 4px 10px;
-    font-size: 12px;
-    color: var(--vscode-inputValidation-warningForeground, inherit);
-    background: color-mix(in srgb, var(--graph-confirm) 15%, var(--vscode-editor-background));
-    border-bottom: 1px solid var(--graph-confirm);
-}
 .error {
     padding: 10px 14px;
     color: var(--vscode-inputValidation-errorForeground, inherit);
@@ -965,16 +954,6 @@ const CLIENT = `
         clearEdgeTrail();
     }
 
-    function setModelOverride(model) {
-        var banner = document.getElementById('model-override-banner');
-        if (model) {
-            document.getElementById('model-override-name').textContent = model;
-            show(banner);
-        } else {
-            hide(banner);
-        }
-    }
-
     function updateStepModel(stepId, model) {
         var g = nodeEls[stepId];
         if (!g) return;
@@ -1153,7 +1132,6 @@ const CLIENT = `
             case 'highlightStep': setNodeStatus(msg.stepId, msg.status); break;
             case 'highlightTerminal': setTerminalStatus(msg.terminal, msg.status); break;
             case 'resetHighlights': resetHighlights(); hideInspectionPopover(); break;
-            case 'setModelOverride': setModelOverride(msg.model); break;
             case 'updateStepModel': updateStepModel(msg.stepId, msg.model); break;
             case 'stepInspection':
                 // Lazy-pull response: only act if the cursor is still on the node

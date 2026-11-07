@@ -128,7 +128,7 @@ export class LLMStepHandler implements StepHandler {
             return await executeLLMStep(
                 step,
                 prompt,
-                resolvedModel.model,  // Use resolved model, not request model
+                resolvedModel.model,  // Use the resolved model, not the run model
                 token,
                 stepStart,
                 stepTools,
