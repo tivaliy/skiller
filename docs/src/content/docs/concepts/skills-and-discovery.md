@@ -18,12 +18,12 @@ required:
 ```
 
 Skiller scans for these folders at startup (and on demand), parses each manifest with a
-strict schema, and registers the result so you can launch it from chat as
-`@skiller /skill <id>`.
+strict schema, and registers the result so you can run it — with **Skiller: Run Skill…**, from
+the editor, or from Copilot (see [Running skills](../../guides/running-skills/)).
 
 ## The folder name is the default `id`
 
-A skill's `id` is what you type to run it and what discovery uses to deduplicate across
+A skill's `id` is how Skiller and Copilot refer to it and what discovery uses to deduplicate across
 tiers. If the manifest omits `id`, Skiller uses the **folder name** as the `id`. The folder
 above registers as `greeter` even with no `id:` line in `skill.yaml`. Set `id` explicitly in
 the manifest only when you want it to differ from the folder name — and keep it stable, since
@@ -48,8 +48,8 @@ treated as a broken skill.
 ## Forking a built-in skill
 
 Because higher tiers win, **reusing an `id` is how you fork.** The easy way is the **Copy**
-action: click **⎘ Copy** next to a built-in in the `@skiller /skills` list (or run
-`Skiller: New Skill…` and choose **Copy a skill**). Skiller copies the skill into
+action: pick a built-in in **Skiller: Show Skills** and choose **Copy to Workspace…** (or run
+**Skiller: New Skill…** and choose **Copy a skill**). Skiller copies the skill into
 `.skiller/skills/<id>/`, keeps the same `id`, and opens it for editing. Your version takes over wherever
 that workspace is active, while the original stays untouched. See
 [Create a skill](../../getting-started/create-a-skill/).
@@ -61,14 +61,13 @@ that workspace is active, while the original stays untouched. See
 The same mechanism lets you pin a project-specific variant in the workspace while keeping a
 general-purpose version in your user tier.
 
-## What `/reload` re-scans
+## What Reload Skills re-scans
 
-Discovery is cached after the first scan, so newly added or edited skills are not picked up
-automatically. Run `@skiller /reload` to re-scan **all three tiers** from disk. It reports a
-diff of what changed — skills added, skills removed, and any manifests that started or stopped
-failing to parse — so you can confirm your edit landed (and which tier it resolved from) without
-restarting VS Code. See the [Commands reference](../../reference/commands/) for the full
-behavior of `/reload`.
+Discovery is cached after the first scan, so skills you add or edit on disk are not picked up
+automatically (a skill created with **Skiller: New Skill…** is). Run **Skiller: Reload Skills** to
+re-scan **all three tiers** from disk. It reports how many skills were added and removed, and any
+manifests that fail to parse, so you can confirm your edit landed without restarting VS Code. See
+the [Commands reference](../../reference/commands/).
 
 ---
 
@@ -80,5 +79,5 @@ For the full manifest field list, see the
 [Write your first skill](../../getting-started/write-your-first-skill/).
 
 When a freshly added skill does not appear, or resolves from the wrong tier, the
-[Debug a skill](../../guides/debugging/) guide walks through `/reload` and the other ways to
+[Debug a skill](../../guides/debugging/) guide walks through **Reload Skills** and the other ways to
 confirm what discovery picked up.

@@ -101,7 +101,7 @@ Skiller renders templates in two modes, and the difference matters.
 When an `llm` reply is **not** valid JSON, Skiller stores it as a raw string instead of an object.
 Reaching into it with `{{ outputs.x.field }}` then renders **empty** (the string has no `field`
 property) rather than throwing. If a downstream prompt comes out blank, suspect a malformed-JSON
-reply first — turn on `skiller.skills.verboseMode` to inspect the exact text. See
+reply first — hover the step in the live execution graph to inspect the exact text. See
 [Debug a skill](../../guides/debugging/).
 :::
 

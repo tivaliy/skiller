@@ -2,7 +2,7 @@
 title: Build a tool/MCP skill
 description: Make a skill that writes files and calls your MCP tools, end to end.
 sidebar:
-  order: 1
+  order: 3
 ---
 
 This guide builds a complete skill that **drafts text with the model and then writes it to a file** —
@@ -110,15 +110,14 @@ belong to agentic `llm` steps.
 
 ## Step 4 — Run it
 
-Reload so Skiller picks up the new folder, then launch the skill:
+Run **Skiller: Reload Skills** so Skiller picks up the new folder, then **Skiller: Run Skill…** →
+**Note Writer**, and give it a topic — say, *our release process*.
 
-```
-@skiller /reload
-@skiller /skill note-writer topic="our release process"
-```
-
-The `draft` step calls the model; the `save` step writes `notes.md` to your workspace and reports the
-resolved path. Open `notes.md` to confirm the text is there. The whole run animates in the
+The `draft` step calls the model. Before the `save` step writes, Skiller asks: a **Create File** card
+in the graph shows the path and a preview of the content. Choose **Allow** (or **Allow for this run**,
+or **Always allow in this workspace** to stop being asked) — see
+[Tool approvals](../running-skills/#tool-approvals). The step then writes `notes.md` to your
+workspace and reports the resolved path. Open `notes.md` to confirm the text is there. The whole run animates in the
 [live execution graph](../../concepts/execution-graph/) as each step fires.
 
 :::tip
@@ -130,16 +129,11 @@ To edit an existing file across several steps instead of overwriting it, alias
 ## Call a real MCP tool
 
 The skill above needs no MCP server. To use a tool from an MCP server you have configured in VS Code,
-alias it the same way — then let an **agentic `llm` step** decide when to call it. Confirm the tool is
-visible to Skiller first:
-
-```
-@skiller /tools
-```
-
-That lists every tool Skiller can see, including ones from your MCP servers. Use the exact name it
-shows as the alias target. Here the model researches a topic and may call a search
-tool while it works:
+alias it the same way — then let an **agentic `llm` step** decide when to call it. Use the tool's
+exact registered name as the alias target. If the name is wrong or the server isn't running, the run
+refuses to start and names the missing tool; after starting a server, run **Skiller: Reload Skills**
+so Skiller sees its tools. Here the model researches a topic and may call a search tool while it
+works:
 
 ```yaml
 tools:

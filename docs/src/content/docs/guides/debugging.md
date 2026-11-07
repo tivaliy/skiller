@@ -1,8 +1,8 @@
 ---
 title: Debug a skill
-description: Inspect prompts and responses, use verbose mode, and recover stuck runs.
+description: Inspect prompts and responses, catch manifest mistakes, and recover stuck runs.
 sidebar:
-  order: 3
+  order: 5
 ---
 
 When a skill misbehaves, the cause is almost always one of three things: a prompt that
@@ -12,29 +12,9 @@ from "something is wrong" to a fix.
 
 ## Start by seeing the prompt and response
 
-By default Skiller shows only step output and confirmations — the prompts and raw model
-replies stay hidden. Turn that on with `skiller.skills.verboseMode`:
-
-| Value | What you see |
-| ----- | ------------ |
-| `"off"` (default) | Nothing extra — only step output and confirmation buttons. |
-| `"rendered"` | The fully interpolated prompt as a code block, plus the response as rendered Markdown. |
-| `"raw"` | The prompt and response as plain text, exactly as exchanged with the model. |
-
-1. Open Settings (search for "Skiller") and set **`skiller.skills.verboseMode`** to
-   `"rendered"`.
-2. Re-run the skill from `@skiller` chat.
-3. Read the printed prompt. Confirm that every `{{ inputs.* }}` and `{{ outputs.* }}`
-   resolved to the value you expected — an empty or wrong substitution here is your bug.
-
-Use `"rendered"` for most work; switch to `"raw"` when rendered Markdown is hiding
-whitespace, escaping, or formatting you need to see exactly. See
-[Settings](../../reference/settings/#skillerskillsverbosemode) for the full description.
-
-## Inspect a single step from the graph
-
-Verbose mode prints everything inline; the [live execution graph](../../concepts/execution-graph/)
-lets you zoom in on one step after it has run, without re-reading the whole transcript.
+A run shows you its confirmations and its result, but not the prompts it sent or the raw
+replies it got back. The [live execution graph](../../concepts/execution-graph/) captures both
+for every step, so you can read exactly what one step saw and produced after it has run.
 
 1. Open the graph from the **"Show Graph"** CodeLens above the `skill.yaml`.
 2. Run the skill.
@@ -43,6 +23,8 @@ lets you zoom in on one step after it has run, without re-reading the whole tran
    the model's **response**.
 4. Click **Open ↗** to read the captured prompt and response in a read-only document, or
    **Copy** to put the prompt on your clipboard and paste it elsewhere.
+5. Confirm that every `{{ inputs.* }}` and `{{ outputs.* }}` in the prompt resolved to the
+   value you expected — an empty or wrong substitution here is your bug.
 
 Hover inspection is available for `llm` and `confirmation` steps. `tool` steps and skipped
 steps capture no prompt, so hovering them shows a short "nothing captured" note. The captured
@@ -63,9 +45,9 @@ an unknown or misspelled key is rejected with a did-you-mean suggestion the mome
 catch `tool_mode` typed as `toolMode`, or `goto_step` as `gotoStep`, here rather than at run
 time.
 
-After editing a manifest on disk, run `@skiller /reload` so the skill registry and any other
-open panels pick up the change; it prints an added / removed / parse-error diff of what it
-found.
+After editing a manifest on disk, run **Skiller: Reload Skills** so the skill registry and any
+other open panels pick up the change; it reports how many skills were added and removed, and any
+parse errors.
 
 ## The empty-interpolation trap
 
@@ -82,8 +64,8 @@ data should be. If a downstream value is mysteriously missing, suspect this firs
 
 To confirm and fix it:
 
-1. Set `skiller.skills.verboseMode` to `"raw"` and re-run.
-2. Read the exact reply the step received. If it is text instead of clean JSON, the parse
+1. Hover the step in the graph and click **Open ↗**.
+2. Read the exact reply the model returned. If it is text instead of clean JSON, the parse
    failed.
 3. Tighten the prompt so the model returns only JSON (for example, "Respond with JSON only,
    no prose, no code fences"), then re-run and confirm the field resolves.
@@ -93,29 +75,22 @@ work.
 
 ## Recover a stuck run
 
-If a skill is paused at a confirmation, or its state feels wedged, three **control commands**
-get you unstuck. They are dispatched *before* the pending-interaction gate, so they run even
-while a skill is waiting for input — the pending state can never block its own escape hatch.
+A running skill shows a progress notification with its current step — or *Waiting for you*
+when a card is open in the graph. To stop it, click **Cancel** on that notification or run
+**Skiller: Cancel Run**. Cancelling clears any open card and ends the run; starting another
+skill while one is running asks whether to cancel the first.
 
-| Command | Use it when |
-| ------- | ----------- |
-| `/status` | You're not sure whether anything is paused — it reports whether a skill is awaiting input and at which step. |
-| `/cancel` | A single skill is stuck at a confirmation and you want to abort just that run. |
-| `/reset` | State is thoroughly stuck — it clears all Skiller state, pending interactions and graph highlights alike. |
-
-Pending state is isolated per conversation, so run `/cancel` or `/reset` from the same chat
-that started the skill. See [Commands](../../reference/commands/#control-commands-work-mid-skill)
-for the full behavior.
+If a tool you once marked **Always allow in this workspace** should ask again, run
+**Skiller: Reset Tool Approvals**. See [Running skills](../running-skills/).
 
 ## A debugging checklist
 
-- **Value is wrong or empty?** → `verboseMode: "rendered"`, read the prompt, confirm the
+- **Value is wrong or empty?** → hover the step in the graph, read the prompt, confirm the
   interpolation.
-- **`{{ outputs.x.field }}` is blank?** → JSON-fallback trap; `verboseMode: "raw"` and check
+- **`{{ outputs.x.field }}` is blank?** → JSON-fallback trap; **Open ↗** the step and check
   the reply is real JSON.
-- **Need the exact prompt one step saw?** → hover that node in the live execution graph.
-- **Manifest won't load?** → read the inline parse/validation banner, then `/reload`.
-- **Run is wedged?** → `/status`, then `/cancel` or `/reset`.
+- **Manifest won't load?** → read the inline parse/validation banner, then **Reload Skills**.
+- **Run is wedged?** → **Cancel** on the progress notification, or **Skiller: Cancel Run**.
 
 ## Related
 
@@ -123,6 +98,6 @@ for the full behavior.
   live validation in full.
 - **Concept:** [Step types](../../concepts/step-types/) — the state model and the JSON-fallback
   behavior behind the empty-interpolation trap.
-- **Reference:** [Settings](../../reference/settings/) — `verboseMode` and the other
-  `skiller.*` settings.
-- **Reference:** [Commands](../../reference/commands/) — `/status`, `/cancel`, and `/reset`.
+- **Reference:** [Settings](../../reference/settings/) — every `skiller.*` setting.
+- **Reference:** [Commands](../../reference/commands/) — **Cancel Run**, **Reload Skills**, and
+  **Reset Tool Approvals**.

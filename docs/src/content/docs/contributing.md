@@ -32,8 +32,8 @@ npm run watch        # rebuild on change
 ## Run the extension
 
 Press <kbd>F5</kbd> in VS Code to launch an **Extension Development Host** — a second VS Code window
-with your local build of Skiller loaded. Open the Chat view there and talk to `@skiller` to try your
-changes against real skills. The built-in example skills (`greeter`, `mind-reader`) are available
+with your local build of Skiller loaded. Run **Skiller: Run Skill…** there to try your changes
+against real skills. The built-in skills (`greeter`, `mind-reader`, `skill-creator`) are available
 immediately; drop your own under `.skiller/skills/` in the host's workspace to iterate.
 
 ## Type-check

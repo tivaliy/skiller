@@ -1,14 +1,14 @@
 ---
 title: Write your first skill
-description: Build a small, real skill from scratch — a manifest, a prompt step, a human-in-the-loop confirmation — and run it in chat.
+description: Build a small, real skill from scratch — a manifest, a prompt step, a human-in-the-loop confirmation — and run it in VS Code.
 sidebar:
   order: 5
 ---
 
 You ran the built-in example skills earlier. (Prefer a head start? [Create a skill](../create-a-skill/) scaffolds one from a template or an idea.) Now you'll author one yourself: a
 **greeter** that asks for your name, drafts a friendly greeting, **pauses** so you can decide
-whether to continue, then offers a fun fact. It stays entirely in chat and needs no MCP tools — a
-complete skill in two small files.
+whether to continue, then offers a fun fact. It needs no MCP tools — a complete skill in two small
+files.
 
 This is the same `greeter` that ships with Skiller. Building it yourself shows you every moving
 part: the folder layout, the manifest, a Liquid-templated prompt, a `confirmation` gate, and
@@ -84,15 +84,15 @@ output:
 ```
 
 :::note[Don't have `gpt-4o` in your model list?]
-The model IDs here are just examples. If your provider's `/models` list doesn't include `gpt-4o`
-or `gpt-4.1`, Skiller falls back to your selected chat model (and shows a banner) — the skill still
-runs. See [Use & override models](../../guides/models/) to pin your own.
+The model IDs here are just examples. If your provider doesn't offer `gpt-4o` or `gpt-4.1`,
+Skiller uses your fallback model for that step (and says so) — the skill still runs. See
+[Use & override models](../../guides/models/) to pin your own.
 :::
 
 What each part does:
 
 - **`inputs`** are collected before the skill runs. The `prompt` is the question you're asked in
-  chat; the answer lands at `{{ inputs.name }}`.
+  an input box; the answer lands at `{{ inputs.name }}`.
 - **`models.default`** sets the model for the whole skill. The `fact` step overrides it with
   `model: gpt-4.1` — see [Use & override models](../../guides/models/).
 - **`steps`** run top to bottom. Each step has a unique `id` and writes to a unique `output`. The
@@ -145,32 +145,21 @@ Keep it to one or two sentences.
 
 ## 4. Run it
 
-In the Chat view:
+1. Run **Skiller: Reload Skills** to pick up the new skill (it reports what was added, removed, or
+   failed to parse).
+2. Open the [live execution graph](../../concepts/execution-graph/) — click the **Show Graph**
+   CodeLens above your `skill.yaml`.
+3. Run **Skiller: Run Skill…** and pick **Greeter**.
 
-```text
-@skiller /reload          Pick up the new skill (reports added/removed/errors)
-@skiller /skill greeter   Run it
-```
-
-Skiller asks **"What is your name?"**, drafts a greeting, then pauses on the confirmation. Pick
-**Yes, give me a fun fact** to continue to the `fact` step, or **No thanks, just the greeting** to
-stop. To watch it visually, open the [live execution graph](../../concepts/execution-graph/) first —
-click the **Show Graph** CodeLens above your `skill.yaml` (or run `@skiller /skills greeter`) — then
-run the skill and watch `greet → confirm → fact` light up as each step fires.
-
-You can also skip the prompt by passing the input up front:
-
-```text
-@skiller /skill greeter name=Ada
-```
+Skiller asks **"What is your name?"**, drafts a greeting, then pauses on the confirmation card in the
+graph. Pick **Yes, give me a fun fact** to continue to the `fact` step, or **No thanks, just the
+greeting** to stop. Watch `greet → confirm → fact` light up as each step fires.
 
 ## 5. Watch the templating
 
-While authoring, set **`skiller.skills.verboseMode`** to `"rendered"` in VS Code settings to see
-each prompt *after* Liquid interpolation alongside the model's reply — the fastest way to confirm a
-template resolves the way you expect. Set it to `"raw"` to see the raw model exchange instead. You
-can also hover any step in the live execution graph to inspect its fully-interpolated prompt and
-response. See [Debug a skill](../../guides/debugging/).
+Hover any executed step in the live execution graph to see its prompt *after* Liquid interpolation
+alongside the model's reply — the fastest way to confirm a template resolves the way you expect.
+**Open ↗** shows both in a read-only document. See [Debug a skill](../../guides/debugging/).
 
 ## A note on JSON replies
 
@@ -184,7 +173,8 @@ If you expect JSON but the model returns something that isn't valid JSON, Skille
 error — it silently stores the reply as a raw string. A later `{{ outputs.draft.message }}` then
 renders **empty** instead of failing, which is easy to miss. When a step must return JSON, say so
 explicitly in the prompt (for example, "Reply with ONLY JSON: `{ "message": "..." }`") and, while
-debugging, use `verboseMode: "raw"` to see exactly what the model returned. More in
+debugging, hover the step in the graph and **Open ↗** its reply to see exactly what the model
+returned. More in
 [Step types & state](../../concepts/step-types/).
 :::
 

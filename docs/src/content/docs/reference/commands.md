@@ -1,117 +1,56 @@
 ---
 title: Commands
-description: Every @skiller slash command, its arguments, and what it does.
+description: Every Skiller command, editor entry point, and language-model tool.
 sidebar:
   order: 3
 ---
 
-Skiller adds a chat participant, `@skiller`, that runs declarative workflows. You drive it
-with slash commands: address `@skiller`, then type a command. A message that is neither a
-slash command nor a skill launch gets a short hint pointing you back to the commands below
-— `@skiller` does not do free-form chat.
+Skiller runs skills natively in VS Code. You drive it from the Command Palette, the editor, and the
+graph panel; Copilot can drive it through two language-model tools. For how a run behaves once it
+starts — inputs, cards, tool approvals, results — see [Running skills](../../guides/running-skills/).
 
-You can also launch a skill **straight from the editor** — a code action, the editor context
-menu, or the Command Palette — without typing the command yourself. See
-[Launching from the editor](#launching-from-the-editor).
-
-## All commands
-
-| Command | What it does | Notes |
-| ------- | ------------ | ----- |
-| `/help` | Lists the available commands. | Start here if you forget a command. |
-| `/skills` | Lists every discovered skill with its `id`, name, and source tier. | Source is workspace, user, or built-in. Built-ins also offer **⎘ Copy**, which forks the skill into your workspace. |
-| `/skill <id> [params]` | Runs the skill with that `id`. | Accepts named (`name=Ada`) and positional launch arguments — see below. |
-| `/new [idea]` | Creates a new skill: three links (describe it, from a template, copy a skill), or `/new <idea>` runs the built-in `skill-creator` with that idea. | See [Create a skill](../../getting-started/create-a-skill/). |
-| `/tools` | Lists the tools available to skills. | Includes the built-in file tools and any configured MCP tools. |
-| `/models` | Lists the language models available for skill configuration. | The ids you reference in `models.default` / `models.aliases`. |
-| `/reload` | Re-scans skills and tools and reports what changed. | Shows an added / removed / parse-error diff (see below). |
-| `/status` | Reports whether a skill is awaiting input or confirmation. | Control command — works mid-skill. |
-| `/cancel` | Aborts the skill currently awaiting input or confirmation. | Control command — works mid-skill. |
-| `/reset` | Clears all Skiller state — pending interactions and graph highlights. | Control command — the blunt recovery hatch. |
-
-## Launching a skill: `/skill <id> [params]`
-
-`/skill <id>` runs a discovered skill. Any input the skill declares but you do not supply on
-the command line is collected interactively before the skill starts.
-
-You can pass launch arguments two ways, and mix them:
-
-- **Named** — `name=value`. Matches the input by its declared `name`.
-- **Positional** — a bare value. Fills the remaining inputs in declaration order.
-
-```text
-@skiller /skill greeter name=Ada
-@skiller /skill greeter "Ada"
-```
-
-Both forms set the `name` input to `Ada`. Quote a value that contains spaces.
-
-## Launching from the editor
-
-Skills don't have to be typed into chat. Skiller registers a VS Code command,
-`skiller.runSkill`, reachable three ways:
-
-| Surface | How |
-| ------- | --- |
-| **Command Palette** | `Skiller: Run Skill` → pick a skill from the list |
-| **Editor context menu** | Right-click in a file → **Run Skill** |
-| **Code action** | The lightbulb / quick-fix menu, for skills that match the current file or selection |
-
-Either way, Skiller captures the editor state at that moment — the selection, file, diff, or
-diagnostics — so a skill's [`from:` inputs](../skill-yaml/#binding-inputs-to-editor-context) are
-filled from where you launched, and an [`output.to` sink](../skill-yaml/#output-sinks-outputto)
-writes back there even after chat takes focus. It then opens chat to run the skill; the
-[`skiller.skills.runSurface`](../settings/#skillerskillsrunsurface) setting controls whether the
-command is prefilled for you to submit (`adaptive`, default) or submitted immediately (`chat`).
-
-See [Editor-native skills](../../concepts/editor-native-skills/) for the whole model.
-
-## Creating skills
+## Command Palette
 
 | Command | What it does |
 | ------- | ------------ |
-| `@skiller /new` | Offers three links: **✎ Describe it**, **▤ From a template**, **⎘ Copy a skill**. `/new <text>` runs `skill-creator` with the text as the idea. |
-| `Skiller: New Skill…` (`skiller.newSkill`) | Command Palette version of the same three choices. |
-| **⎘ Copy** in `/skills` (`skiller.copySkill`) | Forks a built-in skill into `.skiller/skills/<id>/`, keeping its id so it overrides the built-in. |
+| **Skiller: Run Skill…** (`skiller.runSkill`) | Pick a skill and run it. Captures the editor state first, so `from:` inputs and `output.to` sinks use where you started. |
+| **Skiller: New Skill…** (`skiller.newSkill`) | Create a skill: **Describe it** (runs the built-in `skill-creator`), **From a template**, or **Copy a skill**. See [Create a skill](../../getting-started/create-a-skill/). |
+| **Skiller: Show Skills** (`skiller.showSkills`) | Pick a skill, then **Run**, **Show Graph**, or — for a built-in — **Copy to Workspace…**. |
+| **Skiller: Cancel Run** (`skiller.cancelRun`) | Cancel the running skill (same as **Cancel** on its progress notification). |
+| **Skiller: Reload Skills** (`skiller.reloadSkills`) | Re-scan skills and tools, refresh open graphs, and report how many skills were added or removed, and any parse errors. |
+| **Skiller: Reset Tool Approvals** (`skiller.resetToolApprovals`) | Forget every **Always allow in this workspace** choice, so every tool asks again. |
 
-Skills are written to `.skiller/skills/<id>/` (or `~/.vscode/skiller/skills/` with no workspace open)
-after passing the same validation as `/skill`. See [Create a skill](../../getting-started/create-a-skill/).
+`skiller.copySkill` (**Copy Skill to Workspace…**) is what **Copy** runs. It is hidden from the
+palette: reach it through **Show Skills** or **New Skill… → Copy a skill**.
 
-## The `/reload` diff
+## In the editor
 
-`/reload` re-scans all three discovery tiers and the configured tools, then prints what
-changed rather than a flat list:
+| Entry point | What it does |
+| ----------- | ------------ |
+| **Editor context menu → Run Skill…** | Same as the palette command, from a right-click in any file. |
+| **Code action: Skiller: Run ‹skill›** | Offered in the lightbulb / quick-fix menu for skills whose [`from:` inputs](../skill-yaml/#binding-inputs-to-editor-context) match the current selection, file, or diagnostics; runs that skill directly. |
+| **Show Graph** CodeLens | Above every `skill.yaml`: opens the skill's [live execution graph](../../concepts/execution-graph/). |
 
-- **Added** — skills or tools that now exist.
-- **Removed** — skills or tools that disappeared (their graph highlights are cleared; a
-  pending interaction tied to a removed skill is dropped).
-- **Parse errors** — skills whose `skill.yaml` now fails validation (and any that were
-  previously broken and are now fixed).
+When a skill is created, a notification offers **Run it now** and **Reveal in Explorer**.
 
-Use it after editing a manifest on disk so the registry and any open
-[live execution graph](../../concepts/execution-graph/) panels pick up the change.
+## Copilot
 
-## Control commands work mid-skill
+| Surface | What it does |
+| ------- | ------------ |
+| **`/skiller`** in Copilot chats | Added by Skiller's chat plugin: asks Copilot to find and run one of your workflows. Unrelated to Copilot's own `/skills` commands. |
+| `skiller_listSkills` (`#listSkills`) | Lists the workflows available in this window, with their inputs. |
+| `skiller_runSkill` (`#runSkill`) | Runs a workflow by id. Always asks you first; waits up to 10 minutes for the result, then the run continues in VS Code. |
 
-`/status`, `/cancel`, and `/reset` are **control commands**. They are dispatched *before* the
-pending-interaction gate, so they always run — even while a skill is paused waiting for input
-or a confirmation. Without this, a wedged pending state could block its own escape hatch.
+See [Use Skiller from Copilot](../../guides/use-from-copilot/).
 
-- `/status` — tells you whether something is paused, and at which step.
-- `/cancel` — aborts only the skill awaiting input or confirmation.
-- `/reset` — clears everything, when state is thoroughly stuck.
+## The removed `@skiller` chat commands
 
-Pending state is isolated per conversation: a skill paused in one chat will not consume a turn
-you send in a different chat. Use `/cancel` or `/reset` from the chat that started the skill.
-
-## No free-form chat
-
-Skiller is skills-only by design. A message to `@skiller` that is not a recognized command and
-does not launch a skill returns a short hint listing `/skills`, `/skill <name>`, and `/help` —
-it does not attempt an open-ended conversation.
+Skiller 0.5.0 removed the `@skiller` chat participant and its slash commands (`/skill`, `/skills`,
+`/new`, `/reload`, `/cancel`, `/reset`, `/status`, `/models`, `/tools`, `/help`). The
+[table in Running skills](../../guides/running-skills/#coming-from-the-skiller-chat-commands) maps
+each one to its replacement.
 
 ## Next
 
-- [Run a built-in skill](../../getting-started/run-a-bundled-skill/) — try `/skills` and
-  `/skill greeter` end to end.
-- [Settings](../../reference/settings/) — tune verbose output and the agentic-loop limits.
+- [Run a built-in skill](../../getting-started/run-a-bundled-skill/) — try **Run Skill…** end to end.
+- [Settings](../settings/) — the fallback model, file-tool confinement, and agentic-loop limits.

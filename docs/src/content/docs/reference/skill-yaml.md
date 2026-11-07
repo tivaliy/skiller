@@ -114,15 +114,16 @@ inputs:
     pattern: "^[A-Z]+-[0-9]+$" # e.g. PROJ-123
 ```
 
-Pass inputs when launching: `@skiller /skill <id> ticket=PROJ-12 "positional value"` — named values
-match by name; positional values fill the remaining inputs in declaration order.
+When a skill runs, each input not filled from the editor or a `default` is asked with its `prompt`:
+an input box, or a pick list for `enum` and `boolean` inputs. Copilot's `skiller_runSkill` tool can
+pass values by name instead — see [Use Skiller from Copilot](../../guides/use-from-copilot/).
 
 ### Binding inputs to editor context
 
 `from` fills an input from the editor at launch instead of prompting — so a skill launched from the
 editor (a code action, the context menu, the Command Palette) picks up the selection, file, diff, or
-diagnostics it needs without asking. An explicit launch argument or a `default` always wins; the
-context only fills an input that would otherwise be empty.
+diagnostics it needs without asking. A value passed in (for example by Copilot) or a `default` always
+wins; the context only fills an input that would otherwise be empty.
 
 | `from` value | Resolves to |
 | ------------ | ----------- |
@@ -152,7 +153,7 @@ silently resolving to nothing. For the full launch-and-deliver model see
 
 ## Models
 
-`models` is optional. Omit it to use the model selected in the chat picker.
+`models` is optional. Omit it to use your fallback model — see [Use & override models](../../guides/models/#the-fallback-model).
 
 | Field | Type | Notes |
 | ----- | ---- | ----- |
@@ -168,8 +169,7 @@ models:
 ```
 
 A step then refers to an alias or a direct ID via its `model` field (see [llm steps](#llm-steps)).
-A model picked in the chat model dropdown overrides all of this and shows a banner — see
-[Use & override models](../../guides/models/).
+Steps that name no model use your fallback model — see [Use & override models](../../guides/models/).
 
 ## Tools
 
@@ -334,7 +334,7 @@ Top-level, optional. Two keys:
 | Key | Type | Notes |
 | --- | ---- | ----- |
 | `summary` | string | Liquid template rendered after the skill finishes — the closing message |
-| `to` | string | Optional **output sink**: where `summary` is delivered. Omit for chat only |
+| `to` | string | Optional **output sink**: where `summary` is delivered. Omit to show it as a result card |
 
 `output.summary` is rendered and shown to the user when the skill completes:
 
@@ -345,9 +345,9 @@ output:
 
 ### Output sinks (`output.to`)
 
-When `to` is set, the rendered `summary` is delivered to that destination instead of (just) being
-shown in chat. The destination is captured at launch, so an editor sink writes back where the skill
-was started even after chat takes focus.
+When `to` is set, the rendered `summary` is delivered to that destination instead of being shown as a
+result card. The destination is captured at launch, so an editor sink writes back where the skill
+was started even after the run's pickers and cards take focus.
 
 | `to` value | Delivers to |
 | ---------- | ----------- |
@@ -372,7 +372,7 @@ behaviour see [Editor-native skills](../../concepts/editor-native-skills/).
 
 :::note[Strict schema]
 Every level rejects unknown keys with a did-you-mean suggestion. Keys are `snake_case`
-(`on_error`, `tool_mode`, `goto_step`). When `@skiller /reload` reports a parse error, it is usually a
+(`on_error`, `tool_mode`, `goto_step`). When **Skiller: Reload Skills** reports a parse error, it is usually a
 misspelled or misplaced key.
 :::
 

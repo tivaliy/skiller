@@ -1,7 +1,7 @@
 {
   "name": "skiller",
   "displayName": "Skiller",
-  "description": "Declarative, human-in-the-loop workflow runner for VS Code chat",
+  "description": "Declarative, human-in-the-loop workflow runner for VS Code",
   "version": "0.4.0",
   "publisher": "tivaliy",
   "icon": "resources/icon.png",
@@ -16,7 +16,7 @@
   "homepage": "https://github.com/tivaliy/skiller#readme",
   "qna": "marketplace",
   "engines": {
-    "vscode": "^1.93.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "AI",
@@ -338,7 +338,7 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^20.x",
-    "@types/vscode": "^1.93.0",
+    "@types/vscode": "^1.95.0",
     "@vitest/ui": "^3.2.0",
     "@vscode/vsce": "^3.x",
     "esbuild": "^0.25.0",

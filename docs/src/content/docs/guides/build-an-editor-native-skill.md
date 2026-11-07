@@ -2,12 +2,11 @@
 title: Build an editor-native skill
 description: Build a skill that reads your selection, rewrites it with the model, and shows the result as a reviewable diff — launched from the editor.
 sidebar:
-  order: 5
+  order: 7
 ---
 
 This guide builds a skill that takes the **selected code**, rewrites it from a short instruction, and
-shows the result as a **diff** you can review and apply — all launched from the editor, no typing in
-chat. It uses the two editor-native fields, [`from:`](../../reference/skill-yaml/#binding-inputs-to-editor-context)
+shows the result as a **diff** you can review and apply — all launched from the editor. It uses the two editor-native fields, [`from:`](../../reference/skill-yaml/#binding-inputs-to-editor-context)
 and [`output.to`](../../reference/skill-yaml/#output-sinks-outputto); for the model behind them, see
 [Editor-native skills](../../concepts/editor-native-skills/).
 
@@ -32,7 +31,7 @@ version: "1.0.0"
 
 inputs:
   # Filled from the editor at launch. No prompt — if nothing is selected, the
-  # input is empty and the skill falls back to asking, so it still works from chat.
+  # input is empty and the skill falls back to asking, so it still works without one.
   - name: code
     type: string
     from: selection
@@ -85,17 +84,18 @@ Output rules:
 - Change only what the instruction asks for.
 ```
 
-Run `@skiller /reload` so the registry picks up the new skill.
+Run **Skiller: Reload Skills** so the registry picks up the new skill.
 
 ## 3. Launch it from the editor
 
 1. Open any source file and **select** the code you want to rewrite.
 2. Launch the skill — either:
-   - right-click → **Run Skill** → `Rewrite Selection`, or
-   - open the Command Palette → **Skiller: Run Skill** → `Rewrite Selection`.
-3. Chat opens with the run ready (prefilled by default — see
-   [`runSurface`](../../reference/settings/#skillerskillsrunsurface)). Skiller already captured your
-   selection and the file's language, so it only asks the one thing it can't read: your **instruction**.
+   - right-click → **Run Skill…** → `Rewrite Selection`,
+   - open the Command Palette → **Skiller: Run Skill…** → `Rewrite Selection`, or
+   - open the lightbulb menu → **Skiller: Run Rewrite Selection** (offered because the skill reads
+     the selection).
+3. Skiller has already captured your selection and the file's language, so it only asks the one
+   thing it can't read: your **instruction**.
 4. Answer the prompt. The skill runs and opens a **diff** of your selection vs. the rewrite.
 5. Review it. Click **Apply** to accept, or just close it to discard.
 
@@ -110,13 +110,13 @@ edited the file while the diff was open, Skiller refuses the stale apply rather 
 - **Send a command to the terminal.** `to: terminal` types a drafted command onto your prompt and
   waits for you to press Enter; `to: terminal.run` types **and runs** it. Pair `terminal.run` with a
   confirmation step so the command is reviewed before it executes — the bundled `shell-it` skill does
-  exactly this: drafts a command, confirms it in chat, then runs it.
+  exactly this: drafts a command, shows it on a confirmation card, then runs it.
 - **Save to a file.** `to: "file:notes/{{ inputs.name }}.md"` writes a (templated) workspace file.
-- **It still works from chat.** Run `@skiller /skill rewrite-selection` with no selection and the
-  `from:` inputs fall back to prompting — the same skill, no editor required.
+- **It still works without a selection.** Run it with nothing selected and the empty `from:` inputs
+  fall back to prompting — the same skill, either way.
 
 ## See also
 
 - [Editor-native skills](../../concepts/editor-native-skills/) — the capture-run-deliver model and the safety guarantees.
 - [skill.yaml reference](../../reference/skill-yaml/) — every `from:` source and `output.to` sink.
-- [Commands](../../reference/commands/#launching-from-the-editor) — the editor launch surfaces.
+- [Commands](../../reference/commands/#in-the-editor) — the editor launch surfaces.

@@ -1,6 +1,6 @@
 ---
 title: Built-in tools
-description: The skiller_createFile, skiller_replaceInFile, and skiller_writeSkill language-model tools.
+description: Skiller's language-model tools — the file tools, skiller_writeSkill, and the Copilot-facing skiller_listSkills and skiller_runSkill.
 sidebar:
   order: 5
 ---
@@ -9,15 +9,22 @@ Skiller ships three language-model tools that write to the filesystem: the file 
 `skiller_createFile` and `skiller_replaceInFile`, and [`skiller_writeSkill`](#skiller_writeskill),
 which writes a whole new skill. They are always available — no MCP server to configure — so a skill
 can produce files with **zero setup**. Use the file tools from a `tool` step in a skill, or reference
-them directly in chat (e.g. `@skiller #createFile`).
+them in a Copilot chat (`#createFile`, `#replaceInFile`).
+
+Two more tools let Copilot (or any agent) run your skills: [`skiller_listSkills` and
+`skiller_runSkill`](#skiller_listskills-and-skiller_runskill).
 
 ## Why these exist
 
-VS Code's built-in file-editing tools (such as `copilot_createFile`) rely on internal Copilot chat
-context that is **not** passed to third-party chat participants when they are invoked through the
-Language Model Tools API. Calling them from `@skiller` fails (for example, with an "Invalid stream"
-error). Skiller therefore ships its own file tools that work reliably in any context — both inside a
-skill's `tool` step and when invoked from chat.
+Copilot's own file-editing tools (such as `copilot_createFile` and `copilot_editFiles`) need a VS
+Code chat session and fail when a Skiller run calls them. A skill that references them fails its
+readiness check, which points you at Skiller's file tools instead; the same goes for the other
+chat-only tools (Copilot's subagents and interactive prompts). Skiller's file tools work in any
+context — inside a skill's `tool` or `llm` step, and from Copilot chat.
+
+In a skill run, every tool call asks for approval first — Skiller's file tools with their own
+**Create File** / **Replace in File** wording and a preview. See
+[Tool approvals](../../guides/running-skills/#tool-approvals).
 
 ## Workspace confinement
 
@@ -100,9 +107,9 @@ Writes a complete new skill folder in one step. It is the tool the built-in `ski
 uses, and **among skills, only Skiller's built-in skills may use it**: a workspace or user skill
 that references it (in `tools.aliases` or a step) fails its readiness check and does not run, and
 a step that offers or calls it anyway (for example through a step file's frontmatter `tools:`) fails
-when it runs. It is not referenceable from chat prompts. Like any registered tool, other VS Code extensions can still
-call it programmatically.
-Skiller validates the skill with the same checks as `/skill` first — if anything fails, **nothing is
+when it runs. It is not referenceable from chat prompts. Like any registered tool, other VS Code
+extensions and agents can still call it.
+Skiller validates the skill with the same checks as a run first — if anything fails, **nothing is
 written** and the errors come back as text so the model can fix them and call again.
 
 | Parameter | Type | Required | Description |
@@ -117,16 +124,32 @@ required.
 
 On success it returns `Skill written: …`; on failure, `Skill not written:` followed by the problems.
 The folder lands in `.skiller/skills/<id>/` (the user folder when no workspace is open), and the
-ids must be unique across tiers. It asks no confirmation, since you already asked for the skill;
-that is why skills other than the built-ins may not call it.
+ids must be unique across tiers. During a `skill-creator` run it asks no further confirmation —
+you already approved the plan. Called from anywhere else, it asks first (**Write Skiller skill**,
+listing the files).
 
 ## Where to use them
 
 - **In a skill** — alias a tool under [`tools.aliases`](../skill-yaml/) and call it from a `tool`
   step. The step's `params` are Liquid-interpolated, so you can wire in `{{ inputs.* }}` and
   `{{ outputs.* }}` values.
-- **In chat** — both file tools are referenceable in a prompt (`#createFile`, `#replaceInFile`), so the
-  model can call them while answering a request.
+- **In Copilot chat** — both file tools are referenceable in a prompt (`#createFile`, `#replaceInFile`),
+  so the model can call them while answering a request.
+
+## `skiller_listSkills` and `skiller_runSkill`
+
+These two tools are how Copilot runs your skills; Skiller's `/skiller` chat plugin teaches Copilot to
+use them. See [Use Skiller from Copilot](../../guides/use-from-copilot/).
+
+| Tool | Input | Returns |
+| ---- | ----- | ------- |
+| `skiller_listSkills` (`#listSkills`) | none | A JSON array of the runnable skills: `id`, `name`, `description`, `inputs` (`name`, `type`, `description`, `required`, `editorBound`), and `writesToEditor`. |
+| `skiller_runSkill` (`#runSkill`) | `id`, optional `inputs` (by name) | The run's result summary and where its output was delivered — or why it failed, was cancelled, or didn't start. |
+
+`skiller_runSkill` always asks before it starts (**Run Skiller skill**, with any input values shown as
+JSON). The run itself is a normal native run in VS Code. The tool waits up to 10 minutes; after that
+it returns *"The run continues in VS Code; see the graph panel for the result."* and the run keeps
+going.
 
 ## Related
 
@@ -134,3 +157,4 @@ that is why skills other than the built-ins may not call it.
   and writes it with `skiller_createFile`.
 - [skill.yaml reference](../skill-yaml/) — the `tool` step and `tools.aliases` schema.
 - [Settings](../settings/) — `skiller.skills.allowOutsideWorkspaceWrites`.
+- [Use Skiller from Copilot](../../guides/use-from-copilot/) — `/skiller`, `skiller_listSkills`, and `skiller_runSkill`.

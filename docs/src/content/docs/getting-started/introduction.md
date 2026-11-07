@@ -1,18 +1,18 @@
 ---
 title: Introduction
-description: What Skiller is — a declarative, human-in-the-loop workflow runner for VS Code chat.
+description: What Skiller is — a declarative, human-in-the-loop workflow runner for VS Code.
 sidebar:
   order: 1
 ---
 
 Skiller runs **skills**: declarative, multi-step workflows you define in YAML and Markdown and
-launch from the `@skiller` chat participant. Each skill is a playbook — a sequence of typed steps
+run right in VS Code — from the Command Palette, the editor, a code action, or Copilot chat. Each skill is a playbook — a sequence of typed steps
 that call a language model, invoke your [MCP](https://modelcontextprotocol.io) tools, and pause for
 your input or approval exactly where you tell them to.
 
 If you have read the [home page](../../), you have the pitch: Skiller is the deliberate opposite of a
-free-form agent. This page shows you what a skill actually looks like and how the `@skiller`
-participant behaves, then points you at installation.
+free-form agent. This page shows you what a skill actually looks like and how you run one, then
+points you at installation.
 
 ## What a skill looks like
 
@@ -64,18 +64,20 @@ The `{{ outputs.greeting }}` reference is [Liquid templating](../../concepts/tem
 read the output of an earlier one. Steps run in order, the model fills in the `llm` steps, and the
 `confirmation` step stops to wait for you.
 
-## What to expect from `@skiller`
+## How you run a skill
 
-`@skiller` is a **skills runner**, not a general-purpose chat assistant. It responds to two kinds of
-messages:
+Skiller is a **skills runner**, not a general-purpose assistant. You start a skill, and it runs the
+steps you wrote — nothing more:
 
-- **Slash commands** — `/skills`, `/skill <id>`, `/help`, and the rest (see the full
-  [Commands reference](../../reference/commands/)).
-- **A skill launch** — `@skiller /skill greeter` runs the `greeter` skill end to end.
+- **Skiller: Run Skill…** in the Command Palette or the editor context menu, or a **code action** for
+  skills that read your selection, file, or diagnostics.
+- **Skiller: New Skill…** to create one — describe it and the built-in `skill-creator` drafts it.
+- **Copilot** — ask it, or use `/skiller` in a Copilot chat, and it runs the matching skill for you.
 
-Any other message — a free-form question or instruction — returns a short hint pointing you back at
-the commands. Skiller does not improvise its own steps or hold an open-ended conversation; that
-predictability is the point.
+Inputs are asked with pickers; confirmations, tool approvals, and results appear as cards in the
+skill's [live execution graph](../../concepts/execution-graph/). Skiller does not improvise its own
+steps or hold an open-ended conversation; that predictability is the point. See
+[Running skills](../../guides/running-skills/).
 
 ## Next steps
 

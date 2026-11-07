@@ -1,19 +1,18 @@
 ---
 title: The execution graph
-description: The live execution graph — state highlighting, hover inspection, and navigation.
+description: The live execution graph — state highlighting, interactive cards, hover inspection, and navigation.
 sidebar:
   order: 4
 ---
 
 Every `skill.yaml` has a **live execution graph**: a first-class visual surface that shows
 the skill's steps as connected nodes and lights them up as the skill runs. It is the
-fastest way to understand a skill's control flow, watch a run unfold, and inspect what each
-step actually saw and produced.
+fastest way to understand a skill's control flow, watch a run unfold, answer the run when it
+needs you, and inspect what each step actually saw and produced.
 
 Open it from the **"Show Graph"** [CodeLens](#open-the-graph) above any `skill.yaml`, then
-run the skill from `@skiller` chat — the graph and the run are connected.
-
-![The Skiller execution graph beside the chat after a completed run: all three steps marked done, the step-type legend in the corner, and the run's result and summary in the chat panel.](../../../assets/execution-graph.png)
+run the skill — the graph and the run are connected. A run also opens the graph by itself the
+first time it needs you.
 
 ## The renderer
 
@@ -50,14 +49,21 @@ ahead. Edges carry labels for branch, `goto`, and loop transitions so you can re
 without opening the manifest.
 
 The graph stays in sync even if you switch tabs: when the panel comes back, it re-applies
-every step's current state, the terminal states, and the model-override banner from the live
-run.
+every step's current state and the terminal states from the live run.
 
-:::tip
-A model chosen in the chat model dropdown overrides the skill's configuration and shows a
-**Model Override** banner across the top of the graph. See
-[Use & override models](../../guides/models/).
-:::
+## Interactive cards
+
+When a run needs you, the graph shows an interactive **card** docked at the bottom of the panel:
+
+- **Confirmation cards** — a `confirmation` step's message, rendered as Markdown, with one button
+  per option.
+- **Tool-approval cards** — the tool a step wants to call and its input, with **Allow**, **Allow
+  for this run**, **Always allow in this workspace**, and **Deny**.
+- **Result cards** — the finished run's summary, with **Open as document** and **Copy**.
+
+The card disappears once you answer it, and a cancelled run clears its card. If the panel is closed
+while a confirmation or tool approval is waiting, Skiller asks with a modal dialog instead, so a
+run never waits on a panel you can't see. See [Running skills](../../guides/running-skills/).
 
 ## Hover inspection
 
@@ -105,12 +111,12 @@ source stay in lockstep.
 
 A **"Show Graph"** CodeLens sits above every `skill.yaml`. Click it to open (or re-focus)
 the panel for that skill — there is one panel per skill, reused on reopen. You can also open it
-from chat: `@skiller /skills <id>` shows a skill's details and opens its graph in the side panel.
+with **Skiller: Show Skills** → pick a skill → **Show Graph**.
 
 <!-- SCREENSHOT TODO (owner): the "Show Graph" CodeLens above the first line of a skill.yaml — captured live from the editor. Drop the image here, e.g. ![The "Show Graph" CodeLens action above the first line of a skill.yaml.](../../../assets/codelens-show-graph.png) -->
 
-Running a skill from chat also drives whichever graph panel is open for it — the run and its
-graph stay in lockstep, as in the view at the top of this page.
+Running a skill drives whichever graph panel is open for it — the run and its graph stay in
+lockstep.
 
 ## Live reload and validation
 

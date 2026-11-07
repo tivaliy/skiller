@@ -1,72 +1,57 @@
 ---
 title: Run a built-in skill
-description: Talk to the @skiller chat participant and run one of the built-in example skills that ship with Skiller.
+description: Run one of the built-in example skills that ship with Skiller, straight from the Command Palette.
 sidebar:
   order: 3
 ---
 
 Skiller ships with built-in skills — this walkthrough uses `greeter` and `mind-reader` (a third, `skill-creator`, [writes new skills for you](../create-a-skill/)) — so you can run a
-real workflow before writing one. This walkthrough has you list them, run each, and watch the
+real workflow before writing one. This walkthrough has you find them, run each, and watch the
 [live execution graph](../../concepts/execution-graph/) react as the steps fire.
 
-## 1. List the available skills
+## 1. See the available skills
 
-Open the Chat view and ask `@skiller` what it can run:
+Open the Command Palette and run **Skiller: Show Skills**. You'll see `greeter`, `mind-reader`, and
+`skill-creator` (plus any skills you've added in your workspace or user folder). Pick one to
+**Run** it, **Show Graph**, or — for a built-in — **Copy to Workspace…**.
 
-```text
-@skiller /skills
-```
-
-You'll see `greeter`, `mind-reader`, and `skill-creator` (plus any skills you've added in your workspace or user
-folder), each with **Run** and **View** actions:
-
-![The @skiller chat participant responding to /skills with the built-in greeter and mind-reader skills, each offering Run and View actions.](../../../assets/skills-list.png)
-
-If the list looks stale after you edit a `skill.yaml`, run `@skiller /reload` to re-scan.
+If the list looks stale after you edit a `skill.yaml`, run **Skiller: Reload Skills** to re-scan.
 
 ## 2. Run `greeter` — meet the confirmation pause
 
-```text
-@skiller /skill greeter
-```
+Run **Skiller: Run Skill…** and pick **Greeter**.
 
-`greeter` prompts for your name, generates a personalized greeting, then **pauses** and asks whether
+The first time you run a skill, Skiller may ask **Choose a model for Skiller runs**. Pick one; it is
+remembered (or set [`skiller.model.default`](../../reference/settings/#skillermodeldefault)).
+
+`greeter` asks for your name, generates a personalized greeting, then **pauses** and asks whether
 you'd also like a fun fact. That pause is a `confirmation` step — Skiller's human-in-the-loop core.
-Nothing happens until you click an option:
+The skill's graph opens beside your editor with the question as a card; nothing happens until you
+click an option:
 
 - **Yes, give me a fun fact** continues to the next step.
-- **No thanks, just the greeting** aborts the run there.
+- **No thanks, just the greeting** stops the run there.
 
-You can pass launch arguments to skip the prompt:
-
-```text
-@skiller /skill greeter name=Ada
-```
+When it finishes, the result appears as a card in the graph, with **Open as document** and **Copy**.
 
 ## 3. Run `mind-reader` — watch the graph branch and loop
 
-```text
-@skiller /skill mind-reader
-```
+Open the graph first so you can watch from the first step: **Skiller: Show Skills** → **Mind
+Reader** → **Show Graph**. Then run it (**Skiller: Run Skill…** → **Mind Reader**).
 
 `mind-reader` is a game of Twenty Questions: think of something, and the model asks yes/no questions
 until it guesses. Each answer you click either **loops back** to ask another question or **branches
 forward** to the guess — control flow driven by `goto` confirmation options.
 
-Open the skill's [live execution graph](../../concepts/execution-graph/) — run `@skiller /skills mind-reader`
-(or click **View** in the `/skills` list), which opens it in the side panel — then play a few rounds.
-Watch the active step highlight, the traversed edge animate,
-and the loop edge light up each time you send the model back to ask again. This branching and looping
-is the surface the graph is built to make visible.
+Play a few rounds. Watch the active step highlight, the traversed edge animate, and the loop edge
+light up each time you send the model back to ask again. This branching and looping is the surface
+the graph is built to make visible.
 
-## Commands
+## Other ways to run
 
-`/skills`, `/skill`, and `/reload` are three of ten `@skiller` slash commands. For the full set —
-including the `/status`, `/cancel`, and `/reset` control commands — see the
-[Commands reference](../../reference/commands/).
-
-A message that is **not** a slash command and **not** a skill gets a short hint. Skiller doesn't do
-free-form chat.
+The same skills run from the editor context menu (**Run Skill…**), from code actions for skills that
+read your selection, and from Copilot chat with `/skiller`. See
+[Running skills](../../guides/running-skills/) and the [Commands reference](../../reference/commands/).
 
 ---
 

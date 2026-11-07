@@ -7,17 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Skills now run natively in VS Code, and Copilot can run them for you. The `@skiller` chat participant is gone.
+
 ### Added
 
-- Create skills without a blank file: `@skiller /new` (describe it, start from a template, or copy a skill; `/new <idea>` runs the new built-in `skill-creator` skill) and the Command Palette's `Skiller: New Skill…`. New skills are validated before they are written to `.skiller/skills/<id>/`.
-- Five starter templates (`basic`, `approval`, `loop`, `tool`, `editor`) and three copyable examples (`change-map`, `shell-it`, `smell-refactor`); built-in skills gain a **Copy** action in `/skills` that forks them into the workspace.
+- **Native runs.** Skills run in VS Code itself, from `Skiller: Run Skill…`, the editor context menu, code actions, and `Run it now` after creating a skill. Inputs are asked with input boxes and pick lists; a progress notification shows the current step and has a **Cancel** button.
+- **Interactive cards in the graph panel.** Confirmations, tool approvals, and the finished result appear as cards in the skill's live execution graph, which opens when a run needs you. If the panel can't be shown, or is closed while a card waits, confirmations and tool approvals fall back to a modal dialog that shows the full message.
+- **Tool approvals.** VS Code asks for no approval before a tool runs outside chat, so Skiller asks before a tool runs: **Allow** (this call), **Allow for this run**, **Always allow in this workspace**, or **Deny**. Skiller's own tools use their own wording (**Create File**, **Replace in File**, **Write Skiller skill**) with a preview.
+- **Copilot can run your skills.** A chat plugin adds `/skiller` to Copilot chats, backed by two new language-model tools: `skiller_listSkills` lists the runnable skills and their inputs, and `skiller_runSkill` runs one by id. `skiller_runSkill` always asks before it starts, waits up to 10 minutes for the result, then returns while the run continues in VS Code. Unrelated to Copilot's own `/skills` commands.
+- **Create skills without a blank file:** `Skiller: New Skill…` offers **Describe it** (runs the new built-in `skill-creator` skill natively: it drafts a plan, lets you revise it, then writes the skill), **From a template**, or **Copy a skill**. New skills are validated before they are written to `.skiller/skills/<id>/`.
+- Five starter templates (`basic`, `approval`, `loop`, `tool`, `editor`) and three copyable examples (`change-map`, `shell-it`, `smell-refactor`); built-in skills can be forked into the workspace with **Copy to Workspace…** in `Skiller: Show Skills`.
+- New commands: `Skiller: Show Skills` (run a skill, show its graph, or copy a built-in), `Skiller: Cancel Run`, `Skiller: Reload Skills`, and `Skiller: Reset Tool Approvals`.
+- The `skiller.model.default` setting: the fallback model id for steps whose skill names no model. When it is empty, the first run asks for a model once and remembers it.
 - The `from: tools` input binding, which fills an input with the installed language-model tools.
-- The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. Only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
+- The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. Among skills, only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
+- A one-time notice for users upgrading from 0.4, pointing at `Skiller: Run Skill…` and Copilot.
+
+### Changed
+
+- Every entry point — the Command Palette, the editor context menu, code actions, `Run it now`, and Copilot — runs the skill natively instead of handing it to chat.
+- Steps that name no model, or a model that isn't available, use the fallback model above (previously the chat session's model).
+
+### Removed
+
+- The `@skiller` chat participant and all its slash commands (`/skill`, `/new`, `/skills`, `/help`, `/tools`, `/models`, `/reload`, `/cancel`, `/reset`, `/status`). See the docs' [Running skills](https://tivaliy.github.io/skiller/guides/running-skills/#coming-from-the-skiller-chat-commands) page for where each one went.
+- The `skiller.skills.runSurface` setting: every entry point now runs the skill directly.
+- The chat model-dropdown override of a skill's models, and the graph's model-override banner.
 
 ### Fixed
 
+- Skiller never activated on VS Code 1.93: the language-model tools API it uses was still proposed there. The minimum VS Code version is now 1.95.
+- `skiller_writeSkill` asks for confirmation unless it is called from Skiller's own `skill-creator` run.
+- A skill that references a tool that only works inside a VS Code chat session (Copilot's `copilot_createFile` / `copilot_editFiles`, subagents, and interactive prompts) now fails its readiness check, pointing at Skiller's file tools where they apply, instead of failing mid-run.
 - An editor write-back skill (`editor.replaceSelection`, `editor.insert`, `diff`) no longer writes into its own `skill.yaml` or step files when one of them is the active editor at launch — for example right after creating the skill, when its `skill.yaml` is open. The result opens in a new tab instead.
-- When an editor write-back sink falls back to a new tab (no launch editor, or the document changed since launch), chat now says so instead of reporting an in-place write.
+- When an editor write-back sink falls back to a new tab (no launch editor, or the document changed since launch), Skiller now says so instead of reporting an in-place write.
 
 ## [0.4.0] - 2026-06-23
 

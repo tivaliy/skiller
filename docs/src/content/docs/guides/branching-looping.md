@@ -2,7 +2,7 @@
 title: Branch & loop with confirmations
 description: Use goto jumps to branch and loop, threading state through outputs.
 sidebar:
-  order: 2
+  order: 4
 ---
 
 Steps normally run top to bottom. To make a skill **loop** — repeat a step until the user is
@@ -136,7 +136,8 @@ only after it has been written.
 
 ## Watch it run
 
-Run `@skiller /skill mind-reader` and open the live execution graph. The `goto` edges are
+Open the live execution graph (**Skiller: Show Skills** → **Mind Reader** → **Show Graph**), then
+run the skill with **Skiller: Run Skill…**. The `goto` edges are
 drawn explicitly and labeled, so each loop back to `ask` and each forward branch to `guess`
 animates the moment it fires — the marching-ants edge traces the exact path the run took.
 Because the graph is the literal control flow, it is the fastest way to confirm a `goto`

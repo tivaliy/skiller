@@ -4,9 +4,9 @@
 
 # Skiller
 
-**Declarative, human-in-the-loop workflow runner for VS Code chat.**
+**Declarative, human-in-the-loop workflow runner for VS Code.**
 
-Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them from the `@skiller` chat participant.
+Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them from the Command Palette, the editor, or Copilot chat.
 
 [![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-tivaliy.skiller-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=tivaliy.skiller)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -36,8 +36,8 @@ If you want predictable, reviewable automation that still leverages an LLM — n
 
 ## Requirements
 
-- **VS Code 1.93+**
-- A **chat language model provider** (e.g. GitHub Copilot, or any provider exposing VS Code's Language Model API)
+- **VS Code 1.95+**
+- A **language model provider** (e.g. GitHub Copilot, or any provider exposing VS Code's Language Model API)
 - **MCP servers** configured in VS Code (optional — only needed for tool integrations)
 
 ## Quick start
@@ -60,15 +60,14 @@ code --install-extension skiller-*.vsix
 
 ### Run your first skill
 
-Open the Chat view and talk to `@skiller`:
+- **Skiller: Run Skill…** (Command Palette or editor context menu) — pick the built-in `greeter` to try it. Inputs are asked with pickers; confirmations, tool approvals, and the result appear as cards in the skill's live graph.
+- **Code actions** — the lightbulb menu offers **Skiller: Run ‹skill›** for skills that read your selection, file, or diagnostics.
+- **Skiller: New Skill…** — describe a workflow and the built-in `skill-creator` drafts it, or start from a template or a copy. **Run it now** when it's written.
+- **Copilot** — type `/skiller` in a Copilot chat, or just ask, and Copilot runs the matching skill (after you approve the run). This is unrelated to Copilot's own `/skills` commands.
 
-```text
-@skiller /help            Show available commands
-@skiller /skills          List discovered skills
-@skiller /skill greeter   Run the built-in "greeter" example skill
-```
+Before a skill's step calls a tool, Skiller asks: **Allow**, **Allow for this run**, **Always allow in this workspace**, or **Deny** (**Skiller: Reset Tool Approvals** forgets the "always" choices).
 
-A message that is **not** a slash command and **not** a skill gets a short hint — Skiller does not do free-form chat.
+> **Upgrading from 0.4?** The `@skiller` chat participant and its slash commands are gone — see [where each command went](https://tivaliy.github.io/skiller/guides/running-skills/#coming-from-the-skiller-chat-commands).
 
 See the [Getting Started tutorial](https://tivaliy.github.io/skiller/getting-started/introduction/) to install, run a skill, and author your own.
 
@@ -77,12 +76,13 @@ See the [Getting Started tutorial](https://tivaliy.github.io/skiller/getting-sta
 The docs are the single source of truth. Jump to what you need:
 
 - **[Run a built-in skill](https://tivaliy.github.io/skiller/getting-started/run-a-bundled-skill/)** and **[Write your first skill](https://tivaliy.github.io/skiller/getting-started/write-your-first-skill/)** — guided tutorials.
+- **[Running skills](https://tivaliy.github.io/skiller/guides/running-skills/)** and **[Use Skiller from Copilot](https://tivaliy.github.io/skiller/guides/use-from-copilot/)** — inputs, cards, tool approvals, and `/skiller`.
 - **Guides** — how-to for [tool/MCP skills](https://tivaliy.github.io/skiller/guides/tool-mcp-skill/), [branching & looping](https://tivaliy.github.io/skiller/guides/branching-looping/), [debugging](https://tivaliy.github.io/skiller/guides/debugging/), and [models](https://tivaliy.github.io/skiller/guides/models/).
 - **[Skills & discovery](https://tivaliy.github.io/skiller/concepts/skills-and-discovery/)**, **[Step types & state](https://tivaliy.github.io/skiller/concepts/step-types/)**, **[Templating with Liquid](https://tivaliy.github.io/skiller/concepts/templating/)**, and **[The execution graph](https://tivaliy.github.io/skiller/concepts/execution-graph/)** — how it all works.
 - **[skill.yaml manifest](https://tivaliy.github.io/skiller/reference/skill-yaml/)** and **[step-file frontmatter](https://tivaliy.github.io/skiller/reference/step-frontmatter/)** — every field.
-- **[Commands](https://tivaliy.github.io/skiller/reference/commands/)** — all `@skiller` slash commands.
+- **[Commands](https://tivaliy.github.io/skiller/reference/commands/)** — every Skiller command and Copilot tool.
 - **[Settings](https://tivaliy.github.io/skiller/reference/settings/)** — every `skiller.*` setting and its default.
-- **[Built-in tools](https://tivaliy.github.io/skiller/reference/built-in-tools/)** — `skiller_createFile` and `skiller_replaceInFile`.
+- **[Built-in tools](https://tivaliy.github.io/skiller/reference/built-in-tools/)** — `skiller_createFile`, `skiller_replaceInFile`, `skiller_writeSkill`, `skiller_listSkills`, and `skiller_runSkill`.
 
 ## Contributing
 

@@ -1,10 +1,10 @@
 ---
 title: Skiller
-description: Declarative, human-in-the-loop workflow runner for VS Code chat.
+description: Declarative, human-in-the-loop workflow runner for VS Code.
 template: splash
 hero:
-  title: Declarative workflows for VS Code chat
-  tagline: Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them right from the @skiller chat participant.
+  title: Declarative workflows for VS Code
+  tagline: Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them from the Command Palette, the editor, or Copilot chat.
   image:
     alt: Skiller logo
     file: ../../assets/icon.svg
@@ -41,7 +41,7 @@ the steps; the model fills them in.
 
 <CardGrid>
 	<Card title="Declarative skills">
-		Author workflows as plain YAML + Liquid-templated Markdown. No code.
+		Author workflows as plain YAML + Liquid-templated Markdown, schema-checked before they run. No code.
 	</Card>
 	<Card title="Human-in-the-loop">
 		`confirmation` steps pause for your choice and can branch or jump with `goto`.
@@ -52,11 +52,11 @@ the steps; the model fills them in.
 	<Card title="Live execution graph">
 		Watch a skill run as a live execution graph, with branches and loops lighting up as they fire.
 	</Card>
+	<Card title="Runs in VS Code — or from Copilot">
+		Run skills from the Command Palette, the editor, or a code action, or let Copilot run them with `/skiller`.
+	</Card>
 	<Card title="Layered discovery">
 		Workspace, user, and built-in skills — with workspace winning.
-	</Card>
-	<Card title="Typed & validated">
-		Manifests are schema-checked (Zod) with helpful errors before they run.
 	</Card>
 </CardGrid>
 

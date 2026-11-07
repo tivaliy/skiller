@@ -26,7 +26,7 @@ export default defineConfig({
 		starlight({
 			title: 'Skiller',
 			description:
-				'Declarative, human-in-the-loop workflow runner for VS Code chat. Author branching YAML playbooks that orchestrate your language model and MCP tools.',
+				'Declarative, human-in-the-loop workflow runner for VS Code. Author branching YAML playbooks that orchestrate your language model and MCP tools.',
 			logo: {
 				src: './src/assets/icon.svg',
 				alt: 'Skiller',

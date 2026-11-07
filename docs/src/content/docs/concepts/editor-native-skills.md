@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-A skill doesn't have to live entirely in chat. It can **read** your editor — the selection, the
+A skill can **read** your editor — the selection, the
 current file, a git diff, the problems list — to fill its inputs, and it can **write its result
 back** — to a new document, a file, your selection, a diff, or the terminal. That's an
 *editor-native* skill: you launch it from where you're working, and the result lands where you
@@ -14,7 +14,7 @@ expect it.
 Two manifest fields turn an ordinary skill into an editor-native one:
 
 - [`inputs[].from`](../../reference/skill-yaml/#binding-inputs-to-editor-context) — fill an input from editor context instead of prompting.
-- [`output.to`](../../reference/skill-yaml/#output-sinks-outputto) — deliver the finished result to a destination instead of (just) chat.
+- [`output.to`](../../reference/skill-yaml/#output-sinks-outputto) — deliver the finished result to a destination instead of the result card.
 
 Neither is required, and they're independent: a skill can read context without an output sink, route
 output without binding context, or do both.
@@ -25,14 +25,14 @@ When you launch a skill from the editor, four things happen in order:
 
 1. **Capture** — Skiller snapshots the editor state *at that moment*: the selection, file, diffs, and
    diagnostics the skill declares it needs (and only those).
-2. **Launch** — chat opens and the skill starts (see [the run surface](#the-run-surface) below).
+2. **Launch** — the skill starts as a [native run](../../guides/running-skills/).
 3. **Run** — `from:` inputs are filled from the snapshot; anything not bound, or empty, is collected
-   the normal way (prompt / argument / default).
+   the normal way (default, or an input box / picker).
 4. **Deliver** — when the skill finishes, its rendered `output.summary` is routed to the `output.to`
    sink.
 
 The capture in step 1 is the whole reason this works. By the time the skill actually runs, focus has
-moved into chat — the "active editor" is gone. So Skiller records *where you launched from* up front
+moved to its input boxes, cards, and dialogs — the "active editor" may be gone. So Skiller records *where you launched from* up front
 and carries it through the run, rather than guessing at completion time.
 
 ## Reading context: `from:`
@@ -42,11 +42,11 @@ reference](../../reference/skill-yaml/#binding-inputs-to-editor-context) — `se
 and its `.path` / `.content` / `.language`, `git.staged`, `git.working`, `diagnostics`, and `tools` (the installed language-model tools, one per line; an ambient
 source that never triggers a code action).
 
-The binding is a *fallback*, not an override: an explicit launch argument or a `default` always wins,
-and the context only fills an input that would otherwise be empty. So a `from: selection` input is
-filled from the highlighted code when you launch from the editor, and quietly falls back to its normal
-prompt when there's nothing selected (or when you run the skill from chat, where there's no editor
-context at all). The same skill works in both places.
+The binding is a *fallback*, not an override: a value passed in (for example by Copilot) or a
+`default` always wins, and the context only fills an input that would otherwise be empty. So a
+`from: selection` input is filled from the highlighted code when you launch from the editor, and
+quietly falls back to its normal prompt when there's nothing selected. The same skill works either
+way.
 
 ## Writing back: `output.to`
 
@@ -85,23 +85,15 @@ A wrapping ```` ```lang ```` code fence around the whole result is stripped firs
 or snippet lands verbatim.
 :::
 
-## The run surface
+## Where you launch from
 
-Launching from the editor (a code action, the editor context menu, or `Skiller: Run Skill` in the
-Command Palette) opens chat to run the skill. The
-[`skiller.skills.runSurface`](../../reference/settings/#skillerskillsrunsurface) setting decides what
-happens at that hand-off:
-
-- `adaptive` (default) — chat opens with the command **prefilled**; you get a beat to review or add
-  arguments, then submit.
-- `chat` — the run **starts immediately**.
-
-It's a control-vs-speed choice, and it only affects editor launches — running a skill from chat means
-you've already typed the command yourself.
+Every entry point — a code action, the editor context menu, **Skiller: Run Skill…**, or Copilot's
+`skiller_runSkill` tool — captures the editor first and runs the skill directly. See
+[Running skills](../../guides/running-skills/).
 
 ## See also
 
 - [skill.yaml reference](../../reference/skill-yaml/) — the exact `from:` sources and `output.to` sinks.
 - [Build an editor-native skill](../../guides/build-an-editor-native-skill/) — a selection-to-selection skill, end to end.
-- [Commands](../../reference/commands/#launching-from-the-editor) — the launch surfaces.
-- [Settings](../../reference/settings/#skillerskillsrunsurface) — the run surface.
+- [Commands](../../reference/commands/#in-the-editor) — the launch surfaces.
+- [Running skills](../../guides/running-skills/) — what a run looks like once it starts.

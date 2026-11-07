@@ -10,8 +10,8 @@ User or Workspace `settings.json`, or through the Settings UI (search for "Skill
 
 | Setting | Default | Effect / when to change |
 | ------- | ------- | ----------------------- |
-| `skiller.skills.runSurface` | `"adaptive"` | `"adaptive"` or `"chat"`. How a skill launched from the editor enters chat — prefill and wait, or submit immediately. |
-| `skiller.skills.verboseMode` | `"off"` | `"off"`, `"rendered"`, or `"raw"`. Shows the prompt and response during execution. Turn on while debugging templates. |
+| `skiller.model.default` | `""` | Fallback model id for steps whose skill names no model. Empty: you're asked once and your pick is remembered. |
+| `skiller.skills.verboseMode` | `"off"` | `"off"`, `"rendered"`, or `"raw"`. Not shown by native runs yet — see below. |
 | `skiller.skills.toolInvocationTimeout` | `60000` | Milliseconds before a tool invocation in a step times out. Raise for slow MCP servers. |
 | `skiller.skills.maxToolIterations` | `10` | Maximum tool-use iterations per `llm` step. Caps runaway agentic loops. |
 | `skiller.skills.allowOutsideWorkspaceWrites` | `false` | Lets the built-in file tools write outside the workspace. A security control — leave off unless required. |
@@ -19,31 +19,20 @@ User or Workspace `settings.json`, or through the Settings UI (search for "Skill
 | `skiller.llm.maxToolResponseLength` | `4000` | Maximum characters per tool response before truncation (≈ 1000 tokens at 4000). |
 | `skiller.llm.maxToolResponses` | `10` | Maximum tool responses carried into follow-up context. |
 
-## `skiller.skills.runSurface`
+## `skiller.model.default`
 
-Controls the hand-off when you launch a skill **from the editor** (the Command Palette, the editor
-context menu, or a code action). Both values open chat; they differ in whether it submits for you:
-
-- `"adaptive"` (default) — open chat with `@skiller /skill <id>` **prefilled** and wait for you to
-  submit. A beat to review, add arguments, or change the skill before it runs.
-- `"chat"` — **submit immediately** and stream the run. No extra step.
-
-It has no effect on skills launched from chat directly (you've already typed the command there). See
-[Editor-native skills](../../concepts/editor-native-skills/) for the full launch model.
+The model id native runs fall back to for steps whose skill names no model (no step `model`, no
+`models.default`) or names one you don't have. Leave it empty and the first run asks **Choose a
+model for Skiller runs**, then remembers your pick; set it to make the choice explicit or to change
+it later. An id that isn't installed is ignored. See
+[Use & override models](../../guides/models/#the-fallback-model).
 
 ## `skiller.skills.verboseMode`
 
-The primary aid for debugging templates. It controls how much of each step's model
-exchange Skiller prints into the chat as a skill runs:
-
-- `"off"` (default) — show nothing; only step output and confirmations appear.
-- `"rendered"` — show the fully interpolated prompt in a code block and the response as
-  rendered Markdown. Use this to confirm that `{{ inputs.* }}` and `{{ outputs.* }}`
-  resolved to the values you expect.
-- `"raw"` — show the prompt and response as plain text, exactly as exchanged with the
-  model. Use this when rendered Markdown hides whitespace or formatting you need to see.
-
-For a full walkthrough, see [Debug a skill](../../guides/debugging/).
+This setting printed each step's prompt and response into the `@skiller` chat, which Skiller 0.5.0
+removed. Native runs don't show that output yet. To see what a step sent and received, hover it in
+the [live execution graph](../../concepts/execution-graph/#hover-inspection) — see
+[Debug a skill](../../guides/debugging/).
 
 ## `skiller.skills.allowOutsideWorkspaceWrites`
 
@@ -81,6 +70,6 @@ of replayed context. If steps feel slow or expensive, tighten `maxToolIterations
 
 ## See also
 
-- [Commands](../commands/) — the `@skiller` slash commands.
+- [Commands](../commands/) — every Skiller command.
 - [Built-in tools](../built-in-tools/) — the workspace-confined file tools.
-- [Debug a skill](../../guides/debugging/) — `verboseMode` in practice.
+- [Debug a skill](../../guides/debugging/) — hover inspection in practice.

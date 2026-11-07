@@ -1,13 +1,13 @@
 ---
 title: Use & override models
-description: Set default and per-step models, and understand Auto vs user-override.
+description: Set default and per-step models, and choose the fallback model for everything else.
 sidebar:
-  order: 4
+  order: 6
 ---
 
-A skill can pin the language model each step uses, fall back to a friendly alias, or leave
-the choice entirely to the chat picker. This guide shows the three layers — `models.default`,
-per-step `model`, and the chat-dropdown override — and how Skiller resolves them.
+A skill can pin the language model each step uses, name models through friendly aliases, or
+leave the choice to you. This guide shows the layers — per-step `model`, `models.default`, and
+your fallback model — and how Skiller resolves them.
 
 ## 1. Set a default model
 
@@ -19,7 +19,7 @@ models:
   default: gpt-4o
 ```
 
-Omit `models` entirely and every step uses whatever model is selected in the chat model picker.
+Omit `models` entirely and every step uses your [fallback model](#the-fallback-model).
 A `models.default` is most useful when a skill needs a specific model's behavior to be
 reproducible regardless of who runs it.
 
@@ -71,39 +71,37 @@ steps:
 
 `models.default` and a step's `model` both accept either an alias or a direct model ID.
 
-## Auto vs user-override
+## The fallback model
 
-The model the chat session is set to matters as much as the manifest:
+Each step resolves its model in order: the step's `model`, then `models.default`, then your
+**fallback model**. The fallback is chosen once per run:
 
-- **Auto** — the chat model picker left on its default (not a literal menu item). Each step uses
-  the model it resolved from the manifest (per-step `model` → `models.default` → the session model).
-- **User-override** — when you pick a specific model in the chat model dropdown, that choice
-  **overrides all skill configuration**: `models.default` and every per-step `model` are
-  ignored for the run, and Skiller shows a banner so the override is never silent.
+1. the [`skiller.model.default`](../../reference/settings/#skillermodeldefault) setting, if it names
+   a model you have;
+2. otherwise the model you picked on an earlier run;
+3. otherwise Skiller asks — **Choose a model for Skiller runs** — and remembers your pick.
 
-:::tip[Why the override exists]
-The dropdown override lets you try a skill against a different model without editing its
-manifest — handy when you are deciding what to pin, or when the model a skill names is not
-available in your setup.
-:::
+The skill's own configuration always wins: nothing outside the manifest overrides a model the
+skill names. To try a skill against another model, change `models.default` (or a step's `model`),
+or — for steps that name none — change `skiller.model.default`.
 
 ## Fallback and date-suffixed IDs
 
-When a step asks for a model that the chat LM provider does not expose under that exact ID,
+When a step asks for a model that your language model provider does not expose under that exact ID,
 Skiller does not fail outright:
 
 - It matches **date-suffixed IDs** — a configured `gpt-4o` resolves a provider model published
   as `gpt-4o-2024-08-06`, so manifests stay readable as providers append dated revisions.
-- If no match is found, Skiller falls back to the session's selected model and warns you, rather
-  than aborting the run.
+- If no match is found, Skiller uses your fallback model for that step and warns you
+  (*model 'x' isn't available for step 'y'; using 'z'*), rather than aborting the run.
 
-Run `@skiller /models` to list the exact model IDs your provider currently exposes — those are
-the values to put in `models.default` and `models.aliases`.
+The model picker shows each model's `vendor/family/id`; the last part is the exact id to put in
+`models.default`, `models.aliases`, or `skiller.model.default`.
 
 ## Related
 
 - **Reference:** [`skill.yaml` manifest](../../reference/skill-yaml/#models) — the `models`
   schema and per-step `model` field.
-- **Reference:** [Commands](../../reference/commands/) — `/models` lists the available model IDs.
+- **Reference:** [Settings](../../reference/settings/#skillermodeldefault) — `skiller.model.default`.
 - **Concept:** [Step types](../../concepts/step-types/) — where the per-step `model` lives and how
   each `llm` step is resolved.

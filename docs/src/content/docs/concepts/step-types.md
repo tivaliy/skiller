@@ -136,8 +136,8 @@ Auto-parse fails silently. If you expect JSON but the model returns malformed JS
 trailing comma, prose wrapped around the object, a code fence it forgot to close), the reply
 falls back to a raw string. Then `{{ outputs.draft.text }}` resolves to a missing property
 on a string and renders **empty** — no error, just a blank where your data should be. If a
-downstream value is mysteriously empty, that is the first thing to check. Turn on
-`skiller.skills.verboseMode` to see the exact reply Skiller received (see
+downstream value is mysteriously empty, that is the first thing to check. Hover the step in
+the live execution graph to see the exact reply Skiller received (see
 [Debug a skill](../../guides/debugging/)).
 :::
 
