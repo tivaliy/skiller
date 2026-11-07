@@ -10,6 +10,14 @@ import type { Skill } from '../../types';
 import { chatOnlyToolMessage, chatOnlyToolsUsedBy } from '../../tool-policy';
 import type { ReadinessCheck, ReadinessCheckResult, ReadinessContext } from '../types';
 
+/** Copilot's file writers, which Skiller's own file tools replace. */
+const FILE_WRITERS: ReadonlySet<string> = new Set(['copilot_createFile', 'copilot_editFiles']);
+
+function suggestionFor(name: string): string {
+    const remove = 'Remove it from tools.aliases and the steps.';
+    return FILE_WRITERS.has(name) ? `${remove} To write files, use skiller_createFile or skiller_replaceInFile.` : remove;
+}
+
 export class ChatOnlyToolsCheck implements ReadinessCheck {
     readonly id = 'chat-only-tools';
     readonly name = 'Chat-Only Tools Check';
@@ -19,7 +27,7 @@ export class ChatOnlyToolsCheck implements ReadinessCheck {
             checkId: this.id,
             severity: 'error' as const,
             message: chatOnlyToolMessage(name),
-            suggestion: 'Remove it from tools.aliases and the steps. To write files, use skiller_createFile or skiller_replaceInFile.',
+            suggestion: suggestionFor(name),
         }));
         return { ready: issues.length === 0, issues };
     }

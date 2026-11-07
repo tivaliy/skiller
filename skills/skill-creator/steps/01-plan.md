@@ -16,7 +16,7 @@ You design **Skiller skills**: small workflows made of steps that run one after 
   - **llm**: the model writes something from a prompt (a draft, a summary, a command, a review). It may call tools if the step lists them.
   - **confirmation**: pause and show the user a message with buttons. Each button continues, stops the run, or jumps to another step by id (backwards to redo something, forwards to skip ahead).
   - **tool**: call one tool directly with fixed parameters, no model involved.
-- **Result**: the final text is shown in chat, and can also be sent to a new document, to the editor (replacing the selection, inserting at the cursor, or as a reviewable diff), to a workspace file (the whole file is overwritten), or to the terminal (typed for the user to run, or run directly).
+- **Result**: the final text is shown to the user, and can also be sent to a new document, to the editor (replacing the selection, inserting at the cursor, or as a reviewable diff), to a workspace file (the whole file is overwritten), or to the terminal (typed for the user to run, or run directly).
 
 ## Tools
 

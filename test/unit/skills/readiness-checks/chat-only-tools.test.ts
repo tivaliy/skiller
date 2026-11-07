@@ -43,16 +43,23 @@ describe('ChatOnlyToolsCheck', () => {
         ]);
     });
 
+    it('points Copilot file writers at Skiller\'s own file tools, and only them', () => {
+        const skill = createMockSkill({ source: src('workspace'), tools: { aliases: { e: 'copilot_editFiles', s: 'search_subagent' } } });
+        const [edit, search] = check.check(skill, {}).issues;
+        expect(edit.suggestion).toContain('skiller_replaceInFile');
+        expect(search.suggestion).not.toContain('skiller_');
+    });
+
     it('ignores tools that work in Skiller runs', () => {
         const skill = createMockSkill({ source: src('workspace'), tools: { aliases: { c: 'skiller_createFile' } } });
         expect(check.check(skill, {})).toEqual({ ready: true, issues: [] });
     });
 
-    it('lists the chat-session tools found by the spike', () => {
-        expect([...CHAT_ONLY_TOOLS]).toEqual([
-            'copilot_createFile', 'copilot_editFiles', 'search_subagent', 'explore_subagent',
-            'execution_subagent', 'vscode_askQuestions', 'vscode_reviewPlan',
-        ]);
+    it.each([
+        'copilot_createFile', 'copilot_editFiles', 'search_subagent', 'explore_subagent',
+        'execution_subagent', 'vscode_askQuestions', 'vscode_reviewPlan',
+    ])('treats %s (found by the spike) as chat-only', (name) => {
+        expect(CHAT_ONLY_TOOLS.has(name)).toBe(true);
     });
 
     it('is registered in the default readiness engine', () => {
