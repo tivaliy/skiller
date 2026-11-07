@@ -49,6 +49,9 @@
     "workspaceContains:**/skills/**/*.yaml"
   ],
   "contributes": {
+    "chatPlugins": [
+      { "path": "./chat-plugin/" }
+    ],
     "chatParticipants": [
       {
         "id": "tivaliy.skiller",

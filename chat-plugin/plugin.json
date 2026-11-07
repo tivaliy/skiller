@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "skiller",
+  "version": "0.4.0",
+  "description": "Run your Skiller workflows — reviewable, step-by-step playbooks — from chat."
+}
