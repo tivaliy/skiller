@@ -175,3 +175,7 @@ export * from './context';
 
 // Editor output sinks - deliver a completed skill's summary to editor/file/diff
 export * from './output';
+
+// Run model selection
+export { resolveRequestModel } from './model-selection';
+export type { ResolvedRunModel } from './model-selection';

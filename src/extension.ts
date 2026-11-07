@@ -23,6 +23,7 @@ import {
 } from './skills';
 import type { SkillExecutor } from './skills';
 import { ToolCache } from './ToolCache';
+import { resolveRequestModel } from './skills';
 import { registerTools } from './tools';
 
 const PARTICIPANT_ID = 'tivaliy.skiller';
@@ -63,43 +64,6 @@ function conversationInitiatedPending(
         }
     }
     return false;
-}
-
-/**
- * Result of resolving a chat request model.
- */
-interface ResolvedRequestModel {
-    model: vscode.LanguageModelChat;
-    isAutoMode: boolean;
-}
-
-/**
- * Resolve the request model to a usable model for LLM calls.
- * When user selects "Auto", VS Code may pass a placeholder that can't make
- * actual LLM calls; resolve it to a real model while preserving auto mode.
- */
-async function resolveRequestModel(requestModel: vscode.LanguageModelChat): Promise<ResolvedRequestModel> {
-    const isAutoMode = requestModel.id?.toLowerCase().includes('auto') ?? false;
-
-    if (!isAutoMode) {
-        return { model: requestModel, isAutoMode: false };
-    }
-
-    const models = await vscode.lm.selectChatModels({ vendor: 'copilot' });
-    if (models.length > 0) {
-        console.log(`[Auto mode] Using copilot model: ${models[0].id}`);
-        return { model: models[0], isAutoMode: true };
-    }
-
-    const anyModels = await vscode.lm.selectChatModels();
-    if (anyModels.length > 0) {
-        console.log(`[Auto mode] Using fallback model: ${anyModels[0].id}`);
-        return { model: anyModels[0], isAutoMode: true };
-    }
-
-    throw new Error(
-        'No language models available. Please ensure a language model provider (e.g. GitHub Copilot) is installed and signed in.'
-    );
 }
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
