@@ -4,8 +4,9 @@
  * The `skiller.runSkill` flow. Invoked with a skill id (from a code action or
  * Show Skills) it runs that skill; invoked with none (palette/context-menu/
  * keybinding) it shows a QuickPick. Either way it captures the editor snapshot
- * and delivery target NOW — before the run's pickers move focus — stashes them
- * in the launch store, and runs the skill natively through the RunController.
+ * and delivery target NOW — before the run's pickers move focus — stashes the
+ * snapshot in the launch store, and runs the skill natively through the
+ * RunController with the target on the request.
  */
 
 import * as vscode from 'vscode';
@@ -37,17 +38,24 @@ export async function runSkill(deps: RunSkillDeps, skillId?: unknown): Promise<v
     }
 
     // Capture only the editor state this skill binds — a selection-only skill
-    // shouldn't spawn the git-diff subprocesses it would never read.
+    // shouldn't spawn the git-diff subprocesses it would never read. The controller
+    // consumes the stash when it resolves inputs.
     const snapshot = await captureSnapshot(createVsCodeContextAccessors(), contextSourcesOf(skill));
     launchStore.set(id, snapshot);
     // Capture the editor location too, so a write-back sink lands where the skill
     // was launched even after the run's pickers move focus — only such sinks need it.
-    if (outputNeedsTarget(skill.output?.to)) {
-        const target = captureDeliveryTarget({ excludeDir: skill.source.path });
-        if (target) launchStore.setTarget(id, target);
-    }
+    // It travels with the request (not the shared store): a second launch of the
+    // same skill must not redirect a run that is already in progress.
+    const target = outputNeedsTarget(skill.output?.to)
+        ? captureDeliveryTarget({ excludeDir: skill.source.path })
+        : undefined;
 
-    await controller.run({ skill });
+    const outcome = await controller.run(target ? { skill, target } : { skill });
+    if (outcome.kind === 'notStarted') {
+        // Nothing consumed the stash; don't let it leak into the next run of this skill.
+        launchStore.take(id);
+        launchStore.takeTarget(id);
+    }
 }
 
 /** Ask which skill to run (or show). Resolves to its id, or undefined when dismissed. */

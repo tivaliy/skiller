@@ -26,7 +26,7 @@ import type { RunCommandsDeps } from '../../../../src/editor/run/commands';
 import { registerScaffoldCommands } from '../../../../src/editor/scaffold-commands';
 import { LaunchContextStore } from '../../../../src/skills/launch-context-store';
 import { ToolApprovalPolicy } from '../../../../src/skills/run/tool-approvals';
-import type { RunController } from '../../../../src/skills/run';
+import type { RunController, RunOutcome, RunRequest } from '../../../../src/skills/run';
 import type { SkillRegistry, SkillRefreshResult } from '../../../../src/skills';
 import type { Skill, SkillSource } from '../../../../src/skills/types';
 import type { DeliveryTarget } from '../../../../src/skills/output/types';
@@ -87,7 +87,7 @@ function fakeRegistry(skills: Skill[]) {
 
 function fakeController() {
     return {
-        run: vi.fn(async () => ({ kind: 'cancelled' as const })),
+        run: vi.fn(async (_req: RunRequest): Promise<RunOutcome> => ({ kind: 'cancelled' })),
         cancelActive: vi.fn(() => true),
         active: undefined,
     };
@@ -171,15 +171,15 @@ describe('registerRunCommands', () => {
 
         expect(showQuickPick).not.toHaveBeenCalled();
         expect(controller.run).toHaveBeenCalledTimes(1);
-        expect(controller.run).toHaveBeenCalledWith({ skill: greeter });
+        expect(controller.run).toHaveBeenCalledWith({ skill: greeter, target: TARGET });
     });
 
-    it('runSkill stashes editor context and the delivery target before running', async () => {
+    it('runSkill stashes editor context before running and passes the delivery target with the request', async () => {
         let stashedAtRun: unknown;
-        let targetAtRun: unknown;
+        let storedTargetAtRun: unknown;
         controller.run.mockImplementation(async () => {
             stashedAtRun = launchStore.take('greeter');
-            targetAtRun = launchStore.takeTarget('greeter');
+            storedTargetAtRun = launchStore.takeTarget('greeter');
             return { kind: 'cancelled' as const };
         });
 
@@ -189,7 +189,43 @@ describe('registerRunCommands', () => {
         expect(captureSnapshotMock).toHaveBeenCalledWith(expect.anything(), new Set(['selection']));
         expect(captureDeliveryTargetMock).toHaveBeenCalledWith({ excludeDir: '/skills/greeter' });
         expect(stashedAtRun).toEqual({ selection: 'hello' });
-        expect(targetAtRun).toEqual(TARGET);
+        // The target travels with the request, never through the shared store.
+        expect(controller.run).toHaveBeenCalledWith({ skill: greeter, target: TARGET });
+        expect(storedTargetAtRun).toBeUndefined();
+    });
+
+    it('runSkill discards the stashed context when the run does not start', async () => {
+        controller.run.mockResolvedValue({ kind: 'notStarted', reason: "'greeter name' is still running." });
+
+        await handlerFor('skiller.runSkill')('greeter');
+
+        expect(launchStore.take('greeter')).toBeUndefined();
+        expect(launchStore.hasTarget('greeter')).toBe(false);
+    });
+
+    it('a declined replace leaves the running skill delivering to its own launch location', async () => {
+        const TARGET_B: DeliveryTarget = { ...TARGET, uri: 'file:///ws/other.md', version: 9 };
+        let finishFirst!: () => void;
+        controller.run
+            .mockImplementationOnce(() => new Promise(resolve => {
+                finishFirst = () => resolve({ kind: 'cancelled' as const });
+            }))
+            .mockResolvedValueOnce({ kind: 'notStarted', reason: "'greeter name' is still running." });
+
+        // Run from editor A; it pauses (the first run stays pending).
+        const first = handlerFor('skiller.runSkill')('greeter');
+        await vi.waitFor(() => expect(controller.run).toHaveBeenCalledTimes(1));
+        // Run the same skill from editor B and decline the replace.
+        captureDeliveryTargetMock.mockReturnValue(TARGET_B);
+        await handlerFor('skiller.runSkill')('greeter');
+
+        const [[firstRequest], [secondRequest]] = controller.run.mock.calls as unknown as Array<[{ target?: DeliveryTarget }]>;
+        expect(firstRequest.target).toEqual(TARGET);
+        expect(secondRequest.target).toEqual(TARGET_B);
+        expect(launchStore.hasTarget('greeter')).toBe(false);
+
+        finishFirst();
+        await first;
     });
 
     it('runSkill does not capture a delivery target for a skill whose output ignores it', async () => {
@@ -207,7 +243,7 @@ describe('registerRunCommands', () => {
         await handlerFor('skiller.runSkill')(vscode.Uri.file('/ws/notes.md'));
 
         expect(showQuickPick).toHaveBeenCalledTimes(1);
-        expect(controller.run).toHaveBeenCalledWith({ skill: greeter });
+        expect(controller.run).toHaveBeenCalledWith({ skill: greeter, target: TARGET });
     });
 
     it('runSkill does nothing when the picker is dismissed', async () => {
@@ -262,7 +298,7 @@ describe('registerRunCommands', () => {
 
             await handlerFor('skiller.showSkills')();
 
-            expect(controller.run).toHaveBeenCalledWith({ skill: greeter });
+            expect(controller.run).toHaveBeenCalledWith({ skill: greeter, target: TARGET });
         });
 
         it('Show graph opens the skill graph', async () => {
