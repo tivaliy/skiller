@@ -37,8 +37,26 @@ describe('sanitizeCardHtml', () => {
         const p = out.children[0];
         expect(p.tag).toBe('p');
         expect(p.children[0]).toMatchObject({ tag: 'strong', attrs: {} });
-        expect(p.children[1].attrs).toEqual({ class: 'k badx' });
+        expect(p.children[1].attrs).toEqual({}); // 'k' is not a highlighter class: dropped
         expect(p.children[2].attrs).toEqual({});
+    });
+    it('keeps a class only when every token is a highlighter class (hljs-* / language-*)', () => {
+        const out = run([el('pre', [
+            el('code', [el('span', [text('if')], { class: 'hljs-keyword' })], { class: 'language-ts' }),
+            el('span', [text('a')], { class: 'hljs-title  hljs-function' }),
+            el('span', [text('b')], { class: 'hljs-keyword card-dock-actions' }),
+            el('code', [text('c')], { class: 'language-ts"><x' }),
+            el('span', [text('d')], { class: 'hljs' }),
+            el('span', [text('e')], { class: '   ' }),
+        ])]);
+        const [code, a, b, c, d, e] = out.children[0].children;
+        expect(code.attrs).toEqual({ class: 'language-ts' });
+        expect(code.children[0].attrs).toEqual({ class: 'hljs-keyword' });
+        expect(a.attrs).toEqual({ class: 'hljs-title hljs-function' });
+        expect(b.attrs).toEqual({});
+        expect(c.attrs).toEqual({});
+        expect(d.attrs).toEqual({});
+        expect(e.attrs).toEqual({});
     });
     it('renders links as plain text without href', () => {
         const out = run([el('a', [text('click')], { href: 'https://evil' })]);

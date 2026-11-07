@@ -33,6 +33,41 @@ export function fence(text: string): string {
     return '```\n' + text.replace(/```/g, '` ` `') + '\n```';
 }
 
+/** The length of the longest run of backticks in `text` (0 when none). */
+function longestBacktickRun(text: string): number {
+    return Math.max(0, ...(text.match(/`+/g) ?? []).map(run => run.length));
+}
+
+/**
+ * A Markdown code block whose fence is longer than any backtick run inside, so the
+ * text is shown verbatim and cannot end the block early.
+ */
+export function fencedBlock(text: string, language = ''): string {
+    const fence = '`'.repeat(Math.max(3, longestBacktickRun(text) + 1));
+    return `${fence}${language}\n${text}\n${fence}`;
+}
+
+/**
+ * A Markdown code span that shows `text` verbatim on one line: delimited by a backtick
+ * run longer than any inside, and padded when the text touches a backtick or a space
+ * (CommonMark strips one padding space from each side).
+ */
+export function codeSpan(text: string): string {
+    const flat = text.replace(/\r\n|\r|\n/g, ' ');
+    const ticks = '`'.repeat(longestBacktickRun(flat) + 1);
+    const pad = flat === '' || /^[` ]|[` ]$/.test(flat) ? ' ' : '';
+    return `${ticks}${pad}${flat}${pad}${ticks}`;
+}
+
+/**
+ * Escape `text` for inline Markdown (for example inside `**…**`): backslash-escapes the
+ * characters that start emphasis, code, links, HTML, or entities, and puts line breaks
+ * on one line. Ordinary paths and ids (letters, digits, `.`, `-`, `/`) are unchanged.
+ */
+export function escapeMarkdown(text: string): string {
+    return text.replace(/\r\n|\r|\n/g, ' ').replace(/[\\`*_[\]<>&~]/g, ch => `\\${ch}`);
+}
+
 /**
  * Strip one markdown code fence that wraps the whole content (LLMs routinely wrap
  * output in ```lang despite prompting). Content made of two separate fenced blocks,

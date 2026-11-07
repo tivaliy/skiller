@@ -17,6 +17,7 @@ import type { Skill } from '../skills/types';
 import type { RunOutcome, RunRequest } from '../skills/run/types';
 import type { DeliveryOutcome, DeliveryTarget } from '../skills/output/types';
 import { describeSink } from '../skills/output';
+import { fencedBlock } from '../skills/utils';
 
 export interface RunSkillInput {
     id: string;
@@ -39,10 +40,6 @@ const CAP_TEXT = 'The run continues in VS Code; see the graph panel for the resu
 
 function text(value: string): vscode.LanguageModelToolResult {
     return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(value)]);
-}
-
-function longestBacktickRun(s: string): number {
-    return Math.max(0, ...(s.match(/`+/g) ?? []).map(r => r.length));
 }
 
 function describeDelivery(delivery: DeliveryOutcome): string {
@@ -117,8 +114,7 @@ export class RunSkillTool implements vscode.LanguageModelTool<RunSkillInput> {
             // Agent-supplied values are shown only as JSON inside a fence longer than any
             // backtick run in it, so nothing in them can render as Markdown or end the block.
             const json = JSON.stringify(given, null, 2);
-            const fence = '`'.repeat(Math.max(3, longestBacktickRun(json) + 1));
-            message.appendMarkdown(`\n\nInputs:\n\n${fence}json\n${json}\n${fence}\n`);
+            message.appendMarkdown(`\n\nInputs:\n\n${fencedBlock(json, 'json')}\n`);
         }
         return {
             invocationMessage: `Running Skiller skill ${name}…`,

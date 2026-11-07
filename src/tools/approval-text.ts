@@ -5,8 +5,13 @@
  * tools' `prepareInvocation` confirmations (chat and agent runs) and the native
  * runner's approval card both use it. Plain Markdown, no vscode types.
  *
+ * Paths, ids, and previews come from the model, so they are escaped or fenced:
+ * nothing in them can render as Markdown or break out of its block.
+ *
  * @module tools/approval-text
  */
+
+import { codeSpan, escapeMarkdown, fencedBlock } from '../skills/utils';
 
 export interface ToolApprovalText {
     title: string;
@@ -21,8 +26,8 @@ export function createFileApproval(input: { filePath: string; content?: string }
         : content || '(empty)';
     return {
         title: 'Create File',
-        markdown: `Create file at **${filePath}**?\n\n` +
-            `Content preview:\n\`\`\`\n${contentPreview}\n\`\`\``
+        markdown: `Create file at **${escapeMarkdown(filePath)}**?\n\n` +
+            `Content preview:\n${fencedBlock(contentPreview)}`
     };
 }
 
@@ -33,17 +38,17 @@ export function replaceInFileApproval(input: { filePath: string; search?: string
         : search || '(empty)';
     return {
         title: 'Replace in File',
-        markdown: `Replace text in **${filePath}**?\n\n` +
-            `Search: \`${searchPreview}\``
+        markdown: `Replace text in **${escapeMarkdown(filePath)}**?\n\n` +
+            `Search: ${codeSpan(searchPreview)}`
     };
 }
 
 /** The approval wording for skiller_writeSkill, used by the tool's confirmation and the runner's card. */
 export function writeSkillApproval(input: { id: string; files: Array<{ path: string }> }): ToolApprovalText {
-    const files = input.files.map(f => `\`${f.path}\``).join(', ');
+    const files = input.files.map(f => codeSpan(f.path)).join(', ');
     return {
         title: 'Write Skiller skill',
-        markdown: `Write skill **${input.id}** with files: ${files}?`
+        markdown: `Write skill **${escapeMarkdown(input.id)}** with files: ${files}?`
     };
 }
 

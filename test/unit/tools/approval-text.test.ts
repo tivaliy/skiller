@@ -42,6 +42,21 @@ describe('Skiller tool approval wording', () => {
         });
     });
 
+    it('model-supplied text cannot break out of the Markdown it is shown in', () => {
+        // A preview containing a fence gets a longer fence, so it cannot close the block early.
+        expect(createFileApproval({ filePath: 'a', content: 'x\n```\n# not a heading' }).markdown)
+            .toBe('Create file at **a**?\n\nContent preview:\n````\nx\n```\n# not a heading\n````');
+        // Paths and ids are escaped inside the bold, and kept on one line.
+        expect(createFileApproval({ filePath: '**x**[y](z)<b>_`\n# h', content: 'c' }).markdown.split('\n')[0])
+            .toBe(String.raw`Create file at **\*\*x\*\*\[y\](z)\<b\>\_\` # h**?`);
+        expect(replaceInFileApproval({ filePath: 'a*b', search: 's' }).markdown).toBe('Replace text in **a\\*b**?\n\nSearch: `s`');
+        expect(writeSkillApproval({ id: 'x**y', files: [] }).markdown).toBe('Write skill **x\\*\\*y** with files: ?');
+        // Code spans use a backtick run longer than any inside, padded when the text touches a backtick.
+        expect(replaceInFileApproval({ filePath: 'a', search: 'a`b' }).markdown).toBe('Replace text in **a**?\n\nSearch: ``a`b``');
+        expect(replaceInFileApproval({ filePath: 'a', search: '`x`' }).markdown).toBe('Replace text in **a**?\n\nSearch: `` `x` ``');
+        expect(writeSkillApproval({ id: 's', files: [{ path: 'a``b.md' }] }).markdown).toBe('Write skill **s** with files: ```a``b.md```?');
+    });
+
     it('describeSkillerToolCall dispatches by tool name and ignores other or malformed calls', () => {
         expect(describeSkillerToolCall('skiller_createFile', { filePath: 'a.md', content: 'c' })?.title).toBe('Create File');
         expect(describeSkillerToolCall('skiller_replaceInFile', { filePath: 'a.md', search: 's', replace: 'r' })?.title).toBe('Replace in File');

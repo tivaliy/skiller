@@ -262,6 +262,29 @@ describe('NativeSurface', () => {
             expect(window.showQuickPick).not.toHaveBeenCalled();
         });
 
+        it('does not announce the card when the graph panel was already visible', async () => {
+            startRun();
+            panels.getPanel.mockReturnValue({ visible: true });
+            panels.showCard.mockResolvedValue('0');
+
+            await surface.askConfirmation(makeSkill(), pending());
+            await surface.approveTool(makeSkill(), { toolName: 'mytool', input: {} });
+
+            expect(panels.showCard).toHaveBeenCalledTimes(2);
+            expect(window.showInformationMessage).not.toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
+        });
+
+        it('announces the card when the panel was hidden before the card revealed it', async () => {
+            startRun();
+            // Hidden when the card arrives; visible once revealed.
+            panels.getPanel.mockReturnValueOnce({ visible: false }).mockReturnValue({ visible: true });
+            panels.showCard.mockResolvedValue('0');
+
+            await surface.approveTool(makeSkill(), { toolName: 'mytool', input: {} });
+
+            expect(window.showInformationMessage).toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
+        });
+
         it('gives every card a fresh id, so a stale answer cannot match', async () => {
             startRun();
             panels.showCard.mockResolvedValue('0');

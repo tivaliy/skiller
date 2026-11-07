@@ -20,6 +20,7 @@ import type { RunSurface, ToolApproval, ToolCallRequest } from '../../skills/run
 import type { ProgressHooks } from '../../skills/progress-hooks';
 import type { SkillGraphPanelManager } from '../../skills/graph/panel-manager';
 import type { GraphCard } from '../../skills/graph/types';
+import { fencedBlock } from '../../skills/utils';
 import { renderCardMarkdown } from './markdown';
 
 export interface NativeSurfaceDeps {
@@ -105,9 +106,10 @@ class NativeSurface implements RunSurface {
 
     async askConfirmation(skill: Skill, pending: PendingConfirmationInfo): Promise<ConfirmationOption | 'cancelled'> {
         const token = this.runToken;
+        const announce = this.panelHidden(skill);
         await this.revealGraph(skill);
 
-        const actionId = await this.cardAnswer(skill, token, {
+        const actionId = await this.cardAnswer(skill, token, announce, {
             cardId: this.nextCardId(pending.stepId),
             kind: 'confirmation',
             stepId: pending.stepId,
@@ -143,10 +145,11 @@ class NativeSurface implements RunSurface {
         const described = this.deps.describeTool?.(call);
         const json = describeToolInput(call.input);
         const title = described?.title ?? `Allow ${call.toolName}?`;
-        const markdown = described?.markdown ?? fenced(json, 'json');
+        const markdown = described?.markdown ?? fencedBlock(json, 'json');
+        const announce = this.panelHidden(skill);
         await this.revealGraph(skill);
 
-        const actionId = await this.cardAnswer(skill, token, {
+        const actionId = await this.cardAnswer(skill, token, announce, {
             cardId: this.nextCardId(`tool:${call.toolName}`),
             kind: 'toolApproval',
             title,
@@ -317,15 +320,28 @@ class NativeSurface implements RunSurface {
     // Helpers
     // -----------------------------------------------------------------------
 
-    /** Show a card and wait for its answer; a cancelled run clears the card (resolving undefined). */
+    /**
+     * Whether the skill's graph panel is missing or out of sight. Read before the card
+     * reveals the panel: afterwards it is always visible.
+     */
+    private panelHidden(skill: Skill): boolean {
+        return !this.deps.panels.getPanel(skill.id)?.visible;
+    }
+
+    /**
+     * Show a card and wait for its answer; a cancelled run clears the card (resolving undefined).
+     * `announce`: also show the "waiting" notice (when the panel was out of sight), so a
+     * visible panel doesn't get a notification for every card.
+     */
     private async cardAnswer(
         skill: Skill,
         token: vscode.CancellationToken | undefined,
+        announce: boolean,
         card: GraphCard
     ): Promise<string | undefined> {
         if (token?.isCancellationRequested) return undefined;
         const clearOnCancel = token?.onCancellationRequested(() => this.deps.panels.clearCard(skill.id, card.cardId));
-        if (this.deps.panels.getPanel(skill.id)) this.notifyWaiting(skill);
+        if (announce && this.deps.panels.getPanel(skill.id)) this.notifyWaiting(skill);
         try {
             const actionId = await this.deps.panels.showCard(skill.id, card);
             if (actionId !== undefined) this.deps.panels.clearCard(skill.id, card.cardId);
@@ -433,13 +449,6 @@ function describeToolInput(input: unknown): string {
     } catch {
         return String(input);
     }
-}
-
-/** A Markdown code block whose fence is longer than any backtick run inside. */
-function fenced(text: string, language: string): string {
-    const longestRun = Math.max(0, ...(text.match(/`+/g) ?? []).map(run => run.length));
-    const fence = '`'.repeat(Math.max(3, longestRun + 1));
-    return `${fence}${language}\n${text}\n${fence}`;
 }
 
 function errorMessage(error: unknown): string {

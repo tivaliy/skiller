@@ -31,7 +31,7 @@ export interface SanitizerEnv {
 
 export function sanitizeCardHtml(html: string, env: SanitizerEnv): SanitizerTarget {
     const allowed = ' p br hr h1 h2 h3 h4 h5 h6 ul ol li strong b em i code pre blockquote table thead tbody tr th td span ';
-    const classOk = ' code pre span ';
+    const classOk = ' code pre span '; // and only hljs-* / language-* values
     const dropped = ' script style iframe object embed form input button meta base link svg math textarea select noscript template head title ';
 
     const copyChildren = (src: SanitizerNode, dest: SanitizerTarget): void => {
@@ -51,9 +51,12 @@ export function sanitizeCardHtml(html: string, env: SanitizerEnv): SanitizerTarg
                     const el = env.createElement(tag);
                     const cls = node.getAttribute ? node.getAttribute('class') : null;
                     if (cls && classOk.indexOf(' ' + tag + ' ') >= 0 && el.setAttribute) {
-                        const safe = cls.replace(/[^\w\- ]/g, '');
-                        if (safe) {
-                            el.setAttribute('class', safe);
+                        // Only syntax-highlighting classes, and only when every token is one:
+                        // anything else could borrow the webview's own styles (e.g. a button look).
+                        const tokens = cls.split(/\s+/).filter(t => t.length > 0);
+                        const highlight = tokens.length > 0 && tokens.every(t => /^(hljs|language)-[\w-]+$/.test(t));
+                        if (highlight) {
+                            el.setAttribute('class', tokens.join(' '));
                         }
                     }
                     copyChildren(node, el);

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { formatDuration, fence, hasValue } from '../../../src/skills/utils';
+import { formatDuration, fence, hasValue, fencedBlock, codeSpan, escapeMarkdown } from '../../../src/skills/utils';
 
 describe('formatDuration', () => {
     it('formats sub-second durations in milliseconds', () => {
@@ -45,5 +45,35 @@ describe('hasValue', () => {
         expect(hasValue(0)).toBe(true);
         expect(hasValue(false)).toBe(true);
         expect(hasValue([])).toBe(true);
+    });
+});
+
+describe('fencedBlock', () => {
+    it('uses a fence longer than any backtick run inside, at least three', () => {
+        expect(fencedBlock('a')).toBe('```\na\n```');
+        expect(fencedBlock('{}', 'json')).toBe('```json\n{}\n```');
+        expect(fencedBlock('x\n````\ny')).toBe('`````\nx\n````\ny\n`````');
+    });
+});
+
+describe('codeSpan', () => {
+    it('delimits with a longer backtick run and pads text touching a backtick or space', () => {
+        expect(codeSpan('a.ts')).toBe('`a.ts`');
+        expect(codeSpan('a`b')).toBe('``a`b``');
+        expect(codeSpan('`a')).toBe('`` `a ``');
+        expect(codeSpan(' a ')).toBe('`  a  `');
+        expect(codeSpan('')).toBe('`  `');
+    });
+
+    it('keeps the span on one line', () => {
+        expect(codeSpan('a\n\nb\r\nc')).toBe('`a  b c`');
+    });
+});
+
+describe('escapeMarkdown', () => {
+    it('leaves ordinary paths alone and escapes Markdown syntax', () => {
+        expect(escapeMarkdown('src/my-file.v2.ts')).toBe('src/my-file.v2.ts');
+        expect(escapeMarkdown('a_*b*`[c]<d>&e~\\')).toBe('a\\_\\*b\\*\\`\\[c\\]\\<d\\>\\&e\\~\\\\');
+        expect(escapeMarkdown('a\n# b')).toBe('a # b');
     });
 });
