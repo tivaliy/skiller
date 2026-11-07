@@ -99,6 +99,31 @@ describe('executeLLMStep', () => {
         expect(invokeTool.mock.calls[0][1]).toMatchObject({ toolInvocationToken: toolToken });
     });
 
+    it('asks the approver and skips a declined tool', async () => {
+        const invokeTool = vi.fn(async () => toolResult('ran'));
+        const approveTool = vi.fn(async () => false);
+        const r = await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'mytool', { q: 1 })], [text('ok')]]), TOKEN, undefined,
+            Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool, approveTool }));
+        expect(approveTool).toHaveBeenCalledWith({ toolName: 'mytool', input: { q: 1 } });
+        expect(invokeTool).not.toHaveBeenCalled();
+        expect(r.error).toContain('mytool: The user declined to run this tool.');
+    });
+
+    it('runs an approved tool', async () => {
+        const invokeTool = vi.fn(async () => toolResult('ran'));
+        const approveTool = vi.fn(async () => true);
+        await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'mytool')], [text('ok')]]), TOKEN, undefined,
+            Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool, approveTool }));
+        expect(invokeTool).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not ask for a tool the step never offered', async () => {
+        const approveTool = vi.fn(async () => true);
+        await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'other')], [text('ok')]]), TOKEN, undefined,
+            Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ approveTool }));
+        expect(approveTool).not.toHaveBeenCalled();
+    });
+
     it('runs the tool then analyzes the result', async () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('final answer')]]);
         const invokeTool = vi.fn(async () => toolResult('tool says hi'));

@@ -11,14 +11,15 @@
 
 import * as vscode from 'vscode';
 import { SkillStep, StepResult } from '../../types';
-import type { ToolInvocationToken } from '../../types';
+import type { ToolInvocationToken, ToolApprover } from '../../types';
 import type { ProgressHooks } from '../../progress-hooks';
 import { getSetting } from '../../../settings';
 import {
     findMcpTool,
     extractToolResultData,
     withTimeout,
-    isTimeoutError
+    isTimeoutError,
+    DECLINED_TOOL_MESSAGE
 } from './utils';
 
 /**
@@ -38,6 +39,8 @@ export interface ToolRunnerDeps {
     ) => Thenable<vscode.LanguageModelToolResult>;
     /** Tool-invocation timeout in milliseconds. */
     timeoutMs: number;
+    /** Asks before the tool runs; absent means no gate. */
+    approveTool?: ToolApprover;
 }
 
 /**
@@ -88,6 +91,17 @@ export async function executeToolStep(
     // read per-call so settings hot-reload applies.
     const invokeTool = deps.invokeTool ?? ((name, options, tok) => vscode.lm.invokeTool(name, options, tok));
     const timeoutMs = deps.timeoutMs ?? getSetting('skills.toolInvocationTimeout');
+
+    if (deps.approveTool && !(await deps.approveTool({ toolName, input: params }))) {
+        hooks.onPhaseComplete?.(`Declined: ${toolName}`);
+        return {
+            stepId: step.id,
+            success: false,
+            error: `${toolName}: ${DECLINED_TOOL_MESSAGE}`,
+            duration: Date.now() - stepStart,
+            toolName
+        };
+    }
 
     // Invoke the tool with timeout protection
     hooks.onPhaseStart?.(`Calling ${toolName}`);

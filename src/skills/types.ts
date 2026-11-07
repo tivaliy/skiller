@@ -11,6 +11,7 @@
 import * as vscode from 'vscode';
 import type { ExecutionStateManager } from './execution-state';
 import type { ProgressHooks } from './progress-hooks';
+import type { ToolCallRequest } from './run/types';
 
 // ============================================================================
 // Re-export constants and types from schema module (single source of truth)
@@ -572,6 +573,12 @@ export type ToolInvocationToken = vscode.LanguageModelToolInvocationOptions<obje
 /**
  * Options for skill execution
  */
+/**
+ * Decides whether a tool call may run. Resolves false when the user declines.
+ * Absent on a run means no gate (chat shows its own confirmations).
+ */
+export type ToolApprover = (call: ToolCallRequest) => Promise<boolean>;
+
 export interface ExecutionOptions {
     /** Input parameters for the skill */
     inputs: Record<string, unknown>;
@@ -591,6 +598,8 @@ export interface ExecutionOptions {
     availableMcps: string[];
     /** Tool invocation token for MCP calls */
     toolToken?: ToolInvocationToken;
+    /** Asks before a tool runs (native runs); absent means no gate */
+    approveTool?: ToolApprover;
     /** Verbose output mode for debugging (from settings) */
     verboseMode?: VerboseMode;
     /** Execution state manager for tracking progress (required, inject via DI) */

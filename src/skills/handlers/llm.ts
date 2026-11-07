@@ -13,7 +13,7 @@ import type { ProgressHooks } from '../progress-hooks';
 import type { StepHandler, StepContext, HandlerResult, HandlerCategory } from './types';
 import type { ToolResolver } from '../tool-resolver';
 import { interpolate } from '../interpolation';
-import { executeLLMStep } from './runners';
+import { executeLLMStep, defaultLLMRunnerDeps } from './runners';
 import { buildHandlerResult, createErrorResult } from './utils';
 import { assertMayUseTools } from '../reserved-tools';
 
@@ -105,7 +105,7 @@ export class LLMStepHandler implements StepHandler {
         parsedStep: ParsedStep | undefined,
         hooks: ProgressHooks
     ) {
-        const { skill, step, resolvedModel, token, toolToken } = ctx;
+        const { skill, step, resolvedModel, token, toolToken, approveTool } = ctx;
 
         // LLM steps always have a resolved model (executor ensures this)
         if (!resolvedModel) {
@@ -134,7 +134,8 @@ export class LLMStepHandler implements StepHandler {
                 stepStart,
                 stepTools,
                 toolMode,
-                hooks
+                hooks,
+                { ...defaultLLMRunnerDeps(), approveTool }
             );
 
         } catch (error) {

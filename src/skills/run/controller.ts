@@ -18,6 +18,7 @@ import type { SkillExecutor } from '../SkillExecutor';
 import type { ExecutionStateManager } from '../execution-state';
 import type { ResolvedRunModel } from '../model-selection';
 import type { LaunchContextStore } from '../launch-context-store';
+import type { ToolApprovalPolicy } from './tool-approvals';
 import { deliverSkillOutput } from '../output/deliver-skill-output';
 import { checkReadiness, formatReadinessResult } from '../readiness/factory';
 import { validateSkill, formatValidationResult } from '../validators/factory';
@@ -39,6 +40,8 @@ export interface RunControllerDeps {
     surface: RunSurface;
     resolveModel(skill: Skill): Promise<ResolvedRunModel>;
     launchStore: LaunchContextStore;
+    /** Decides when a tool call needs the user's approval. */
+    toolApprovals: ToolApprovalPolicy;
     availableMcps(): string[];
     verboseMode(): VerboseMode;
     /** Output delivery (injectable for tests). */
@@ -180,7 +183,8 @@ class RunSession {
                 hooks: progress,
                 availableMcps: this.deps.availableMcps(),
                 verboseMode: this.deps.verboseMode(),
-                executionState
+                executionState,
+                approveTool: this.deps.toolApprovals.approverFor(call => surface.approveTool(skill, call))
             };
 
             let result = await this.deps.executor.execute(skill, options);

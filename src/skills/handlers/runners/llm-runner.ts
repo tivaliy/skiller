@@ -7,9 +7,9 @@
 
 import * as vscode from 'vscode';
 import { SkillStep, StepResult, ToolMode } from '../../types';
-import type { ToolInvocationToken } from '../../types';
+import type { ToolInvocationToken, ToolApprover } from '../../types';
 import type { ProgressHooks } from '../../progress-hooks';
-import { tryParseJson, withTimeout, isTimeoutError } from './utils';
+import { tryParseJson, withTimeout, isTimeoutError, DECLINED_TOOL_MESSAGE } from './utils';
 import { getSetting } from '../../../settings';
 
 /**
@@ -156,12 +156,14 @@ export interface LLMRunnerDeps {
         token: vscode.CancellationToken
     ) => Thenable<vscode.LanguageModelToolResult>;
     settings: LLMRunnerSettings;
+    /** Asks before a tool runs; absent means no gate. */
+    approveTool?: ToolApprover;
 }
 
 /**
  * Production defaults. Settings are read per-call so hot-reload applies.
  */
-function defaultLLMRunnerDeps(): LLMRunnerDeps {
+export function defaultLLMRunnerDeps(): LLMRunnerDeps {
     return {
         invokeTool: (name, options, token) => vscode.lm.invokeTool(name, options, token),
         settings: {
@@ -354,6 +356,11 @@ export async function executeLLMStep(
                 // including tools reserved for built-in skills (see skills/reserved-tools.ts).
                 if (!offeredToolNames.has(call.name)) {
                     failCall(call, `Tool '${call.name}' is not available in this step.`, 'Refused');
+                    continue;
+                }
+
+                if (deps.approveTool && !(await deps.approveTool({ toolName: call.name, input: call.input }))) {
+                    failCall(call, DECLINED_TOOL_MESSAGE, 'Declined');
                     continue;
                 }
 

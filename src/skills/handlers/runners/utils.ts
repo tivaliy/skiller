@@ -20,6 +20,9 @@ export const DEFAULT_TIMEOUTS = {
     PARAM_EXTRACTION: 30_000 // 30 seconds
 } as const;
 
+/** Error text for a tool call the user declined to run. */
+export const DECLINED_TOOL_MESSAGE = 'The user declined to run this tool.';
+
 /**
  * Custom error for timeout operations
  */

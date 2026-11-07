@@ -486,6 +486,7 @@ export class SkillExecutor {
                 {
                     token: ctx.options.token,
                     toolToken: ctx.options.toolToken,
+                    approveTool: ctx.options.approveTool,
                     model: ctx.options.model,
                     resolvedModel,
                     verboseMode: ctx.options.verboseMode ?? 'off'

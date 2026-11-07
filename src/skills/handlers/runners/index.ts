@@ -8,7 +8,7 @@
  */
 
 // LLM step execution
-export { executeLLMStep } from './llm-runner';
+export { executeLLMStep, defaultLLMRunnerDeps } from './llm-runner';
 
 // Tool step execution
 export { executeToolStep } from './tool-runner';

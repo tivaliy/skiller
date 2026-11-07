@@ -8,7 +8,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { CancellationToken } from 'vscode';
 import { RunController } from '../../../../src/skills/run/controller';
 import type { RunControllerDeps } from '../../../../src/skills/run/controller';
-import type { RunSurface, ToolApproval } from '../../../../src/skills/run/types';
+import { ToolApprovalPolicy } from '../../../../src/skills/run/tool-approvals';
+import type { RunSurface, ToolApproval, ToolCallRequest } from '../../../../src/skills/run/types';
 import { SkillExecutor } from '../../../../src/skills/SkillExecutor';
 import { StepHandlerRegistry, ConfirmationStepHandler } from '../../../../src/skills/handlers';
 import type { StepHandler, StepContext } from '../../../../src/skills/handlers';
@@ -98,9 +99,13 @@ class FakeSurface implements RunSurface {
         return option;
     }
 
-    async approveTool(): Promise<ToolApproval> {
+    approvalAnswer: ToolApproval = 'deny';
+    approvalAsked: Array<{ skill: string; tool: string }> = [];
+
+    async approveTool(skill: Skill, call: ToolCallRequest): Promise<ToolApproval> {
         this.calls.push('approveTool');
-        return 'deny';
+        this.approvalAsked.push({ skill: skill.id, tool: call.toolName });
+        return this.approvalAnswer;
     }
 
     progress(_skill: Skill, token: CancellationToken) {
@@ -134,6 +139,10 @@ function recordingHandler(runOrder: string[]): StepHandler {
         canHandle: (step) => step.type === 'llm',
         handle: async (ctx: StepContext) => {
             runOrder.push(ctx.step.id);
+            if (ctx.step.id === 'gated') {
+                const allowed = await ctx.approveTool?.({ toolName: 'mytool', input: {} });
+                runOrder.push(`gated:${allowed}`);
+            }
             if (ctx.step.id === 'broken') {
                 return {
                     action: 'return',
@@ -237,6 +246,7 @@ describe('RunController', () => {
                 isAutoMode: true,
             }),
             launchStore,
+            toolApprovals: new ToolApprovalPolicy({ get: () => [], set: async () => {} }),
             availableMcps: () => [],
             verboseMode: () => 'off',
             deliver: deliver as unknown as RunControllerDeps['deliver'],
@@ -247,6 +257,17 @@ describe('RunController', () => {
 
     const endCompleted = () => events.some(e => e.type === 'terminal:status' && e.terminal === 'end' && e.status === 'completed');
     const finished = (success: boolean) => events.filter(e => e.type === 'execution:complete' && e.success === success).length;
+
+    it('gives the engine an approver that asks the surface about the running skill', async () => {
+        surface.approvalAnswer = 'run';
+        const skill = noInputSkill('gate');
+        skill.steps = [{ id: 'gated', type: 'llm', message: 'hi', output: 'o' }];
+
+        await controller.run({ skill });
+
+        expect(surface.approvalAsked).toEqual([{ skill: 'gate', tool: 'mytool' }]);
+        expect(runOrder).toContain('gated:true');
+    });
 
     it('runs inputs → execute → confirmation(continue) → deliver → showResult and finishes success', async () => {
         const skill = makeSkill();

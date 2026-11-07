@@ -35,6 +35,27 @@ function makeDeps(overrides: Partial<ToolRunnerDeps> = {}): ToolRunnerDeps {
 }
 
 describe('executeToolStep', () => {
+    it('does not invoke a declined tool and fails the step', async () => {
+        const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
+        const approveTool = vi.fn(async () => false);
+        const result = await executeToolStep(
+            STEP, 'create_file', { filePath: 'a.md' }, TOKEN, undefined, Date.now(), HOOKS, makeDeps({ invokeTool, approveTool })
+        );
+        expect(approveTool).toHaveBeenCalledWith({ toolName: 'create_file', input: { filePath: 'a.md' } });
+        expect(invokeTool).not.toHaveBeenCalled();
+        expect(result.success).toBe(false);
+        expect(result.error).toBe('create_file: The user declined to run this tool.');
+    });
+
+    it('invokes an approved tool', async () => {
+        const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
+        const result = await executeToolStep(
+            STEP, 'create_file', {}, TOKEN, undefined, Date.now(), HOOKS, makeDeps({ invokeTool, approveTool: async () => true })
+        );
+        expect(invokeTool).toHaveBeenCalledTimes(1);
+        expect(result.success).toBe(true);
+    });
+
     it('invokes the tool and returns extracted data on success', async () => {
         const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
         const deps = makeDeps({ invokeTool });

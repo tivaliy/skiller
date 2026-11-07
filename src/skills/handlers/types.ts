@@ -59,7 +59,7 @@ import type {
     VerboseMode,
     ResolvedModel
 } from '../types';
-import type { ParsedStep, ToolInvocationToken } from '../types';
+import type { ParsedStep, ToolInvocationToken, ToolApprover } from '../types';
 import type { ProgressHooks } from '../progress-hooks';
 import type { StepInspectionKind } from '../execution-state';
 
@@ -119,6 +119,9 @@ export interface StepContext {
 
     /** Tool invocation token for MCP calls */
     readonly toolToken: ToolInvocationToken | undefined;
+
+    /** Asks before a tool runs; absent means no gate */
+    readonly approveTool?: ToolApprover;
 
     /** LLM model to use (from request, may differ from resolvedModel) */
     readonly model: vscode.LanguageModelChat;
@@ -309,6 +312,7 @@ export interface StepContextFactory {
         options: {
             token: vscode.CancellationToken;
             toolToken: ToolInvocationToken | undefined;
+            approveTool?: ToolApprover;
             model: vscode.LanguageModelChat;
             resolvedModel: ResolvedModel | undefined;
             verboseMode: VerboseMode;
