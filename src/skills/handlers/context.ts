@@ -14,7 +14,7 @@ import type {
     VerboseMode,
     ResolvedModel
 } from '../types';
-import type { ParsedStep, ToolInvocationToken, ToolApprover } from '../types';
+import type { ParsedStep, ToolApprover } from '../types';
 import type { StepContext, StepContextFactory } from './types';
 
 /**
@@ -30,7 +30,6 @@ class StepContextImpl implements StepContext {
     readonly parsedStep: ParsedStep | undefined;
     readonly context: ExecutionContext;
     readonly token: vscode.CancellationToken;
-    readonly toolToken: ToolInvocationToken | undefined;
     readonly approveTool: ToolApprover | undefined;
     readonly model: vscode.LanguageModelChat;
     readonly resolvedModel: ResolvedModel | undefined;
@@ -46,7 +45,6 @@ class StepContextImpl implements StepContext {
         context: ExecutionContext,
         options: {
             token: vscode.CancellationToken;
-            toolToken: ToolInvocationToken | undefined;
             approveTool?: ToolApprover;
             model: vscode.LanguageModelChat;
             resolvedModel: ResolvedModel | undefined;
@@ -62,7 +60,6 @@ class StepContextImpl implements StepContext {
         this.parsedStep = parsedStep;
         this.context = context;
         this.token = options.token;
-        this.toolToken = options.toolToken;
         this.approveTool = options.approveTool;
         this.model = options.model;
         this.resolvedModel = options.resolvedModel;
@@ -85,7 +82,6 @@ export const stepContextFactory: StepContextFactory = {
         context: ExecutionContext,
         options: {
             token: vscode.CancellationToken;
-            toolToken: ToolInvocationToken | undefined;
             approveTool?: ToolApprover;
             model: vscode.LanguageModelChat;
             resolvedModel: ResolvedModel | undefined;

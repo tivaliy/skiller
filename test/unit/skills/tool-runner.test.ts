@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { executeToolStep } from '../../../src/skills/handlers/runners/tool-runner';
 import type { ToolRunnerDeps } from '../../../src/skills/handlers/runners/tool-runner';
-import type { SkillStep, ToolInvocationToken } from '../../../src/skills/types';
+import type { SkillStep } from '../../../src/skills/types';
 import type { ProgressHooks } from '../../../src/skills/progress-hooks';
 
 const STEP: SkillStep = { id: 'save', type: 'tool', tool: 'create_file' };
@@ -39,7 +39,7 @@ describe('executeToolStep', () => {
         const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
         const approveTool = vi.fn(async () => false);
         const result = await executeToolStep(
-            STEP, 'create_file', { filePath: 'a.md' }, TOKEN, undefined, Date.now(), HOOKS, makeDeps({ invokeTool, approveTool })
+            STEP, 'create_file', { filePath: 'a.md' }, TOKEN, Date.now(), HOOKS, makeDeps({ invokeTool, approveTool })
         );
         expect(approveTool).toHaveBeenCalledWith({ toolName: 'create_file', input: { filePath: 'a.md' } });
         expect(invokeTool).not.toHaveBeenCalled();
@@ -50,7 +50,7 @@ describe('executeToolStep', () => {
     it('invokes an approved tool', async () => {
         const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
         const result = await executeToolStep(
-            STEP, 'create_file', {}, TOKEN, undefined, Date.now(), HOOKS, makeDeps({ invokeTool, approveTool: async () => true })
+            STEP, 'create_file', {}, TOKEN, Date.now(), HOOKS, makeDeps({ invokeTool, approveTool: async () => true })
         );
         expect(invokeTool).toHaveBeenCalledTimes(1);
         expect(result.success).toBe(true);
@@ -61,7 +61,7 @@ describe('executeToolStep', () => {
         const deps = makeDeps({ invokeTool });
 
         const result = await executeToolStep(
-            STEP, 'create_file', { filePath: 'a.md' }, TOKEN, undefined, Date.now(), HOOKS, deps
+            STEP, 'create_file', { filePath: 'a.md' }, TOKEN, Date.now(), HOOKS, deps
         );
 
         expect(result.success).toBe(true);
@@ -73,18 +73,19 @@ describe('executeToolStep', () => {
         expect(invokeTool.mock.calls[0][1].input).toEqual({ filePath: 'a.md' });
     });
 
-    it('passes the caller tool token through to invokeTool unchanged', async () => {
-        const toolToken = { opaque: 1 } as unknown as ToolInvocationToken;
+    it('invokes the tool without a chat invocation token: Skiller runs outside any chat session', async () => {
         const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
-        await executeToolStep(STEP, 'create_file', {}, TOKEN, toolToken, Date.now(), HOOKS, makeDeps({ invokeTool }));
-        expect(invokeTool.mock.calls[0][1]).toMatchObject({ toolInvocationToken: toolToken });
+        await executeToolStep(STEP, 'create_file', {}, TOKEN, Date.now(), HOOKS, makeDeps({ invokeTool }));
+        const options = invokeTool.mock.calls[0][1];
+        expect(options).toHaveProperty('toolInvocationToken');
+        expect(options.toolInvocationToken).toBeUndefined();
     });
 
     it('fails cleanly when the tool is not found', async () => {
         const deps = makeDeps({ findTool: () => undefined });
 
         const result = await executeToolStep(
-            STEP, 'missing', {}, TOKEN, undefined, Date.now(), HOOKS, deps
+            STEP, 'missing', {}, TOKEN, Date.now(), HOOKS, deps
         );
 
         expect(result.success).toBe(false);
@@ -97,7 +98,7 @@ describe('executeToolStep', () => {
         });
 
         const result = await executeToolStep(
-            STEP, 'create_file', {}, TOKEN, undefined, Date.now(), HOOKS, deps
+            STEP, 'create_file', {}, TOKEN, Date.now(), HOOKS, deps
         );
 
         expect(result.success).toBe(false);
@@ -112,7 +113,7 @@ describe('executeToolStep', () => {
         });
 
         const result = await executeToolStep(
-            STEP, 'create_file', {}, TOKEN, undefined, Date.now(), HOOKS, deps
+            STEP, 'create_file', {}, TOKEN, Date.now(), HOOKS, deps
         );
 
         expect(result.success).toBe(false);

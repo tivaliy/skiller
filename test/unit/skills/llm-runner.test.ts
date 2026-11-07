@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as vscode from 'vscode';
 import { executeLLMStep, truncateResultContent, trimMessageHistory } from '../../../src/skills/handlers/runners/llm-runner';
 import type { LLMRunnerDeps } from '../../../src/skills/handlers/runners/llm-runner';
-import type { SkillStep, ToolInvocationToken } from '../../../src/skills/types';
+import type { SkillStep } from '../../../src/skills/types';
 import type { ProgressHooks } from '../../../src/skills/progress-hooks';
 
 const STEP: SkillStep = { id: 'analyze', type: 'llm' };
@@ -76,7 +76,7 @@ describe('executeLLMStep', () => {
 
     it('returns the text response when no tools are called', async () => {
         const model = fakeModel([[text('hello world')]]);
-        const result = await executeLLMStep(STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps());
+        const result = await executeLLMStep(STEP, 'p', model, TOKEN, Date.now(), [], 'auto', HOOKS, makeDeps());
 
         expect(result.success).toBe(true);
         expect(result.data).toBe('hello world');
@@ -84,25 +84,25 @@ describe('executeLLMStep', () => {
 
     it('parses a JSON text response', async () => {
         const model = fakeModel([[text('{"answer": 42}')]]);
-        const result = await executeLLMStep(STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps());
+        const result = await executeLLMStep(STEP, 'p', model, TOKEN, Date.now(), [], 'auto', HOOKS, makeDeps());
 
         expect(result.success).toBe(true);
         expect(result.data).toEqual({ answer: 42 });
     });
 
-    it('passes the caller tool token through to invokeTool unchanged', async () => {
-        // Chat's inline tool confirmations depend on the request's token reaching invokeTool.
-        const toolToken = { opaque: 1 } as unknown as ToolInvocationToken;
+    it('invokes tools without a chat invocation token: Skiller runs outside any chat session', async () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
         const invokeTool = vi.fn<LLMRunnerDeps['invokeTool']>(async () => toolResult('ok'));
-        await executeLLMStep(STEP, 'p', model, TOKEN, toolToken, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool }));
-        expect(invokeTool.mock.calls[0][1]).toMatchObject({ toolInvocationToken: toolToken });
+        await executeLLMStep(STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool }));
+        const options = invokeTool.mock.calls[0][1];
+        expect(options).toHaveProperty('toolInvocationToken');
+        expect(options.toolInvocationToken).toBeUndefined();
     });
 
     it('asks the approver and skips a declined tool', async () => {
         const invokeTool = vi.fn(async () => toolResult('ran'));
         const approveTool = vi.fn(async () => false);
-        const r = await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'mytool', { q: 1 })], [text('ok')]]), TOKEN, undefined,
+        const r = await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'mytool', { q: 1 })], [text('ok')]]), TOKEN,
             Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool, approveTool }));
         expect(approveTool).toHaveBeenCalledWith({ toolName: 'mytool', input: { q: 1 } });
         expect(invokeTool).not.toHaveBeenCalled();
@@ -112,14 +112,14 @@ describe('executeLLMStep', () => {
     it('runs an approved tool', async () => {
         const invokeTool = vi.fn(async () => toolResult('ran'));
         const approveTool = vi.fn(async () => true);
-        await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'mytool')], [text('ok')]]), TOKEN, undefined,
+        await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'mytool')], [text('ok')]]), TOKEN,
             Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool, approveTool }));
         expect(invokeTool).toHaveBeenCalledTimes(1);
     });
 
     it('does not ask for a tool the step never offered', async () => {
         const approveTool = vi.fn(async () => true);
-        await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'other')], [text('ok')]]), TOKEN, undefined,
+        await executeLLMStep(STEP, 'p', fakeModel([[call('c1', 'other')], [text('ok')]]), TOKEN,
             Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ approveTool }));
         expect(approveTool).not.toHaveBeenCalled();
     });
@@ -128,7 +128,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('final answer')]]);
         const invokeTool = vi.fn(async () => toolResult('tool says hi'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(result.success).toBe(true);
@@ -141,7 +141,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
         const invokeTool = vi.fn(async () => toolResult('Error calling tool mytool: nope'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(result.success).toBe(false);
@@ -152,7 +152,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
         const invokeTool = vi.fn(async () => toolResult('Error: 0 results found'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(result.success).toBe(true);
@@ -163,7 +163,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'skiller_writeSkill', { id: 'x' })], [text('done')]]);
         const invokeTool = vi.fn(async () => toolResult('should not run'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(invokeTool).not.toHaveBeenCalled();
@@ -177,7 +177,7 @@ describe('executeLLMStep', () => {
     it('refuses every tool call when the step offers no tools', async () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
         const invokeTool = vi.fn(async () => toolResult('x'));
-        await executeLLMStep(STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps({ invokeTool }));
+        await executeLLMStep(STEP, 'p', model, TOKEN, Date.now(), [], 'auto', HOOKS, makeDeps({ invokeTool }));
         expect(invokeTool).not.toHaveBeenCalled();
     });
 
@@ -185,7 +185,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')]]); // always a tool call
         const invokeTool = vi.fn(async () => toolResult('again'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS,
+            STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS,
             makeDeps({ invokeTool, settings: { maxToolIterations: 2, toolInvocationTimeout: 1000, maxHistoryTurns: 20, maxToolResponseLength: 4000, maxToolResponses: 10 } })
         );
 

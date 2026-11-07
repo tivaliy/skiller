@@ -168,7 +168,7 @@ export interface ExecutionStateManager {
     /** Reset all state for a skill */
     reset(skillId: string): void;
 
-    /** Reset all tracked execution states (e.g., on chat /clear) */
+    /** Reset all tracked execution states */
     resetAll(): void;
 
     /**
@@ -345,7 +345,6 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
     /**
      * Reset all tracked execution states
      *
-     * Called when chat is cleared (/clear) or a new session starts.
      * Emits reset events for each tracked skill so graph panels update.
      */
     resetAll(): void {
@@ -426,7 +425,7 @@ export class ExecutionStateEmitter extends EventEmitter implements ExecutionStat
  *
  * Use this factory for dependency injection:
  * - Create once at extension activation
- * - Pass to CommandContext, SkillExecutor, PanelManager
+ * - Pass to RunController, SkillExecutor, PanelManager
  * - In tests, create fresh instances
  */
 export function createExecutionState(): ExecutionStateManager {

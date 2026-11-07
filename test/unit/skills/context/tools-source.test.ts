@@ -26,6 +26,7 @@ describe('tools source', () => {
     const out = formatToolList([
       { name: 'x_tool', description: 'Does X' },
       { name: 'copilot_createFile', description: '…' },
+      { name: 'search_subagent', description: '…' },
       { name: 'skiller_writeSkill', description: '…' },
     ]);
     expect(out).toBe('x_tool — Does X');

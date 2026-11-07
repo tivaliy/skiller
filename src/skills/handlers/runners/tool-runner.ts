@@ -11,7 +11,7 @@
 
 import * as vscode from 'vscode';
 import { SkillStep, StepResult } from '../../types';
-import type { ToolInvocationToken, ToolApprover } from '../../types';
+import type { ToolApprover } from '../../types';
 import type { ProgressHooks } from '../../progress-hooks';
 import { getSetting } from '../../../settings';
 import {
@@ -53,7 +53,6 @@ export interface ToolRunnerDeps {
  * @param toolName - Resolved MCP tool name to invoke
  * @param params - Pre-interpolated parameters for the tool
  * @param token - Cancellation token
- * @param toolToken - Optional tool invocation token
  * @param stepStart - Timestamp when step started
  * @param hooks - Progress hooks for phase reporting
  * @param deps - Injectable dependencies; any omitted field falls back to the
@@ -67,7 +66,6 @@ export async function executeToolStep(
     toolName: string,
     params: Record<string, unknown>,
     token: vscode.CancellationToken,
-    toolToken: ToolInvocationToken | undefined,
     stepStart: number,
     hooks: ProgressHooks,
     deps: Partial<ToolRunnerDeps> = {}
@@ -110,7 +108,8 @@ export async function executeToolStep(
         const result = await withTimeout(
             (timeoutToken) => invokeTool(tool.name, {
                 input: params,
-                toolInvocationToken: toolToken
+                // Skiller runs outside any chat session: there is no chat request to tie the call to.
+                toolInvocationToken: undefined
             }, timeoutToken),
             timeoutMs,
             `Tool invocation: ${toolName}`,

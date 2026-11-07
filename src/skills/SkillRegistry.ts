@@ -42,7 +42,7 @@ interface ScanResult {
 
 /**
  * Result of refreshing skills with diff information.
- * Used by /reload command to show what changed.
+ * Used by Skiller: Reload Skills to report what changed.
  */
 export interface SkillRefreshResult {
     /** Number of skills before refresh */
@@ -121,7 +121,7 @@ export class SkillRegistry {
      * Refresh skills and return what changed.
      *
      * Captures the before state, performs a full refresh, then computes
-     * the diff. Used by /reload command to show added/removed skills.
+     * the diff. Used by Skiller: Reload Skills to report added/removed skills.
      */
     async refreshWithDiff(): Promise<SkillRefreshResult> {
         // Capture before state (handle first run where discovered is null)

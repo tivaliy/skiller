@@ -99,7 +99,7 @@ async function askFreeId(deps: FlowDeps, suggested: string): Promise<string | un
 
 /**
  * @param sourceId  skip the source picker and use this source id
- * @param sourceKind  with `sourceId`: which kind it names (e.g. ⎘ Copy in /skills names a built-in),
+ * @param sourceKind  with `sourceId`: which kind it names (e.g. Copy to Workspace… in Show Skills names a built-in),
  *                    so an example and a built-in sharing an id can't be confused
  */
 export async function runNewSkillFlow(

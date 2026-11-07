@@ -130,8 +130,8 @@ describe('editor-context vscode-isolation guard', () => {
  * reaches for `vscode` inside a pure helper, the core stops being host-free and its
  * unit tests would silently depend on the editor runtime — this test fails loudly first.
  *
- * `LaunchContextStore` is the launch→run hand-off; it was hoisted into src/skills/
- * (shared CommandContext session state, the same kind as PendingStateManager). It is
+ * `LaunchContextStore` is the launch→run hand-off; it lives in src/skills/ as run
+ * session state shared by the editor triggers and the RunController. It is
  * vscode-free by design and is guarded below alongside the editor pure helpers.
  */
 describe('editor-layer vscode-isolation guard', () => {
@@ -204,26 +204,36 @@ describe('scaffold vscode-isolation guard', () => {
 });
 
 /**
- * The chat-participant API is deprecated (not supported in the Copilot harness).
- * The engine, scaffold, editor surfaces and tools must not depend on it; only the
- * chat command layer (src/commands/, removed in phase 4) may.
+ * The chat-participant API is gone: Skiller runs skills natively and reaches Copilot
+ * through its language-model tools and chat plugin. No source file may depend on it,
+ * whether through `vscode.ChatX` or a named `import { ChatX } from 'vscode'`.
  */
 describe('chat-participant isolation guard', () => {
-    const CHAT_API =
-        /\bvscode\.(ChatResponseStream|ChatParticipantToolToken|ChatRequest|ChatContext|ChatResult|ChatRequestTurn|ChatResponseTurn|ChatFollowup)\b|\bchat\.createChatParticipant\b/;
+    const CHAT_TYPES = 'ChatResponseStream|ChatParticipantToolToken|ChatParticipant|ChatRequest|ChatContext|ChatResult|ChatRequestTurn|ChatResponseTurn|ChatFollowup';
+    const CHAT_API = new RegExp(`\\bvscode\\.(${CHAT_TYPES})\\b|\\bchat\\.createChatParticipant\\b`);
+    // A negated class spans newlines, so multi-line import lists are covered too.
+    const CHAT_NAMED_IMPORT = new RegExp(`\\bimport\\s+(type\\s+)?\\{[^}]*\\b(${CHAT_TYPES})\\b[^}]*\\}\\s*from\\s+['"]vscode['"]`);
     const codeOnly = (text: string): string =>
         text.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+    const usesChatApi = (text: string): boolean => {
+        const code = codeOnly(text);
+        return CHAT_API.test(code) || CHAT_NAMED_IMPORT.test(code);
+    };
 
     it('the detector has teeth', () => {
-        expect(CHAT_API.test('stream?: vscode.ChatResponseStream;')).toBe(true);
-        expect(CHAT_API.test('vscode.chat.createChatParticipant(id, handler)')).toBe(true);
-        expect(CHAT_API.test(codeOnly(' * uses vscode.ChatRequest in docs'))).toBe(false);
+        expect(usesChatApi('stream?: vscode.ChatResponseStream;')).toBe(true);
+        expect(usesChatApi('vscode.chat.createChatParticipant(id, handler)')).toBe(true);
+        expect(usesChatApi("import { ChatRequest } from 'vscode';")).toBe(true);
+        expect(usesChatApi("import type { Uri, ChatResult } from 'vscode';")).toBe(true);
+        expect(usesChatApi("import {\n    Uri,\n    ChatResponseStream,\n} from 'vscode';")).toBe(true);
+        expect(usesChatApi(' * uses vscode.ChatRequest in docs')).toBe(false);
+        expect(usesChatApi("import { LanguageModelChatMessage, LanguageModelChatRequestOptions } from 'vscode';")).toBe(false);
+        expect(usesChatApi("import { ChatRequest } from './my-types';")).toBe(false);
     });
 
-    const roots = ['src/skills', 'src/scaffold', 'src/editor', 'src/tools'].map((r) => path.resolve(process.cwd(), r));
-    for (const file of roots.flatMap(walkTs)) {
+    for (const file of walkTs(path.resolve(process.cwd(), 'src'))) {
         it(`${path.relative(process.cwd(), file)} uses no chat-participant API`, () => {
-            expect(codeOnly(fs.readFileSync(file, 'utf8'))).not.toMatch(CHAT_API);
+            expect(usesChatApi(fs.readFileSync(file, 'utf8'))).toBe(false);
         });
     }
 });

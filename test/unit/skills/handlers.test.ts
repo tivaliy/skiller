@@ -373,8 +373,7 @@ describe('ToolStepHandler', () => {
                 skill: { source: { type: 'workspace' }, tools: { aliases: {} }, onError: 'continue' },
                 step: { id: 's1', type: 'tool', tool: 'fake_tool' },
                 context: {},
-                token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
-                toolToken: undefined
+                token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) }
             } as unknown as StepContext;
 
             const result = await h.handle(ctx, {});
@@ -401,7 +400,6 @@ describe('ToolStepHandler', () => {
                 step: { id: 's1', type: 'tool', tool: 'fake_tool' },
                 context: {},
                 token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
-                toolToken: undefined,
                 approveTool
             } as unknown as StepContext;
 
@@ -418,8 +416,7 @@ describe('ToolStepHandler', () => {
             skill: { source: { type: sourceType }, tools: { aliases }, onError: 'continue' },
             step: { id: 's1', type: 'tool', tool },
             context: {},
-            token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
-            toolToken: undefined
+            token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) }
         } as unknown as StepContext);
 
         const resolverFor = (toolName: string) => ({
@@ -457,8 +454,7 @@ describe('LLMStepHandler built-in-only tools (runtime gate)', () => {
         parsedStep: { meta: { tools: frontmatterTools }, prompt: 'do it' },
         resolvedModel: { model: {} },
         context: createMockExecutionContext(),
-        token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
-        toolToken: undefined
+        token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) }
     } as unknown as StepContext);
 
     it('refuses a workspace LLM step whose step-file frontmatter offers skiller_writeSkill', async () => {
@@ -498,7 +494,6 @@ describe('LLMStepHandler approval gate', () => {
             resolvedModel: { model },
             context: createMockExecutionContext(),
             token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
-            toolToken: undefined,
             approveTool
         } as unknown as StepContext;
 

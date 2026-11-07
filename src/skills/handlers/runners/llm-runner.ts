@@ -7,7 +7,7 @@
 
 import * as vscode from 'vscode';
 import { SkillStep, StepResult, ToolMode } from '../../types';
-import type { ToolInvocationToken, ToolApprover } from '../../types';
+import type { ToolApprover } from '../../types';
 import type { ProgressHooks } from '../../progress-hooks';
 import { tryParseJson, withTimeout, isTimeoutError, DECLINED_TOOL_MESSAGE } from './utils';
 import { getSetting } from '../../../settings';
@@ -185,7 +185,6 @@ export function defaultLLMRunnerDeps(): LLMRunnerDeps {
  * @param prompt - Interpolated prompt with context
  * @param model - VS Code language model
  * @param token - Cancellation token
- * @param toolToken - Optional tool invocation token
  * @param stepStart - Timestamp when step started
  * @param tools - Available MCP tools for this step
  * @param toolMode - 'required' forces tool use, 'auto' lets LLM decide
@@ -196,7 +195,6 @@ export async function executeLLMStep(
     prompt: string,
     model: vscode.LanguageModelChat,
     token: vscode.CancellationToken,
-    toolToken: ToolInvocationToken | undefined,
     stepStart: number,
     tools: vscode.LanguageModelToolInformation[] = [],
     toolMode: ToolMode = 'auto',
@@ -374,7 +372,8 @@ export async function executeLLMStep(
                     const toolResult = await withTimeout(
                         (timeoutToken) => deps.invokeTool(call.name, {
                             input: call.input,
-                            toolInvocationToken: toolToken
+                            // Skiller runs outside any chat session: there is no chat request to tie the call to.
+                            toolInvocationToken: undefined
                         }, timeoutToken),
                         toolInvocationTimeout,
                         `Tool invocation: ${call.name}`,

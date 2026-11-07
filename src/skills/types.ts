@@ -508,40 +508,6 @@ export interface PendingConfirmationInfo {
 }
 
 /**
- * Full pending confirmation state (for resuming execution)
- */
-export interface PendingConfirmation {
-    /** Skill ID */
-    skillId: string;
-    /** The skill definition */
-    skill: Skill;
-    /** Execution context at time of pause */
-    context: ExecutionContext;
-    /** Index of the confirmation step */
-    pendingStepIndex: number;
-    /** The confirmation options */
-    options: ConfirmationOption[];
-    /** Step results collected so far */
-    stepResults: StepResult[];
-}
-
-/**
- * Pending input collection state (for interactive input prompting)
- */
-export interface PendingInputCollection {
-    /** Skill ID */
-    skillId: string;
-    /** The skill definition */
-    skill: Skill;
-    /** Inputs collected so far */
-    collectedInputs: Record<string, unknown>;
-    /** Current input being prompted for */
-    currentInput: SkillInput;
-    /** Remaining inputs to collect */
-    remainingInputs: SkillInput[];
-}
-
-/**
  * Skill discovery result
  */
 export interface DiscoveredSkills {
@@ -564,21 +530,14 @@ export interface DiscoveredSkills {
 // ============================================================================
 
 /**
- * The opaque token that ties a tool invocation to its caller's context, typed via
- * the Language Model tool API (what `vscode.lm.invokeTool` accepts) rather than the
- * chat-participant API, so the engine carries no chat types.
+ * Decides whether a tool call may run. Resolves false when the user declines.
+ * Absent on a run means no gate.
  */
-export type ToolInvocationToken = vscode.LanguageModelToolInvocationOptions<object>['toolInvocationToken'];
+export type ToolApprover = (call: ToolCallRequest) => Promise<boolean>;
 
 /**
  * Options for skill execution
  */
-/**
- * Decides whether a tool call may run. Resolves false when the user declines.
- * Absent on a run means no gate (chat shows its own confirmations).
- */
-export type ToolApprover = (call: ToolCallRequest) => Promise<boolean>;
-
 export interface ExecutionOptions {
     /** Input parameters for the skill */
     inputs: Record<string, unknown>;
@@ -592,12 +551,10 @@ export interface ExecutionOptions {
     isAutoMode: boolean;
     /** Cancellation token */
     token: vscode.CancellationToken;
-    /** Progress UI for this run, supplied by the run surface (chat stream today, native runner next) */
+    /** Progress UI for this run, supplied by the run surface */
     hooks: ProgressHooks;
     /** Available MCP categories */
     availableMcps: string[];
-    /** Tool invocation token for MCP calls */
-    toolToken?: ToolInvocationToken;
     /** Asks before a tool runs (native runs); absent means no gate */
     approveTool?: ToolApprover;
     /** Verbose output mode for debugging (from settings) */

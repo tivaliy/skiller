@@ -105,7 +105,7 @@ export class LLMStepHandler implements StepHandler {
         parsedStep: ParsedStep | undefined,
         hooks: ProgressHooks
     ) {
-        const { skill, step, resolvedModel, token, toolToken, approveTool } = ctx;
+        const { skill, step, resolvedModel, token, approveTool } = ctx;
 
         // LLM steps always have a resolved model (executor ensures this)
         if (!resolvedModel) {
@@ -130,7 +130,6 @@ export class LLMStepHandler implements StepHandler {
                 prompt,
                 resolvedModel.model,  // Use resolved model, not request model
                 token,
-                toolToken,
                 stepStart,
                 stepTools,
                 toolMode,

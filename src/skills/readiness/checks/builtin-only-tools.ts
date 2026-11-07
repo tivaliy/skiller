@@ -1,8 +1,9 @@
 /**
  * Built-in-Only Tools Check
  *
- * Some Skiller tools run without a confirmation prompt because only Skiller's own
- * built-in skills may call them (skiller_writeSkill, used by skill-creator).
+ * Some Skiller tools skip the per-call confirmation inside built-in runs, because
+ * only Skiller's own built-in skills may call them (skiller_writeSkill, used by
+ * skill-creator).
  * A workspace or user skill may come from an untrusted repository, so
  * referencing one of these tools there is a readiness error: the skill can't run.
  */
@@ -23,7 +24,7 @@ export class BuiltinOnlyToolsCheck implements ReadinessCheck {
             checkId: this.id,
             severity: 'error' as const,
             message: builtinOnlyToolMessage(name),
-            suggestion: 'Remove it from tools.aliases and the steps. To create skills, use `@skiller /new`.',
+            suggestion: 'Remove it from tools.aliases and the steps. To create skills, use **Skiller: New Skill…**.',
         }));
         return { ready: issues.length === 0, issues };
     }

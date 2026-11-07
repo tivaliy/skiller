@@ -172,7 +172,7 @@ describe('skill-creator workflow (end-to-end with fake LLM)', () => {
         expect(result.pendingConfirmation?.message).toContain('## Plan: changelog-writer');
         const reviewLines = (result.pendingConfirmation?.message ?? '').trim().split('\n');
         expect(reviewLines[reviewLines.length - 1]).toBe(
-            'Not what you meant? Cancel and run `/new` again with a sharper description.',
+            'Not what you meant? Cancel and run **Skiller: New Skill…** again with a sharper description.',
         );
 
         // 2. "Make it simpler" → goto plan → pauses at review again.

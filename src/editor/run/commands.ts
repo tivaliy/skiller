@@ -4,12 +4,12 @@
  *   skiller.runSkill            pick (if no id) → stash editor context → run
  *   skiller.showSkills          pick a skill → Run / Show Graph / Copy (built-ins)
  *   skiller.cancelRun           cancel the active run
- *   skiller.reloadSkills        rescan skills (and tools), refresh open graphs
+ *   skiller.reloadSkills        rescan skills (and tools), refresh open graphs, forget removed skills' run state
  *   skiller.resetToolApprovals  forget every "Always allow" tool approval
  */
 
 import * as vscode from 'vscode';
-import type { Skill, SkillRegistry, LaunchContextStore } from '../../skills';
+import type { Skill, SkillRegistry, LaunchContextStore, ExecutionStateManager } from '../../skills';
 import { refreshOpenPanels } from '../../skills';
 import { isCopyableBuiltin } from '../../skills/reserved-tools';
 import type { RunController, ToolApprovalPolicy } from '../../skills/run';
@@ -22,6 +22,8 @@ export interface RunCommandsDeps {
     policy: ToolApprovalPolicy;
     launchStore: LaunchContextStore;
     showGraph(skill: Skill): Promise<void>;
+    /** Per-skill run state (graph highlights, step inspection); reset for skills that disappear on reload. */
+    executionState: Pick<ExecutionStateManager, 'reset'>;
     /** Rescan the language-model tools (Reload Skills refreshes them too, so readiness sees new MCP servers). */
     reloadTools?(): void;
 }
@@ -78,6 +80,10 @@ async function reloadSkills(deps: RunCommandsDeps): Promise<void> {
     const diff = await registry.refreshWithDiff();
     // Re-render open graphs from the fresh registry; close those whose skill is gone.
     await refreshOpenPanels(id => registry.getById(id));
+    // Drop leftover highlights and captured steps of skills that no longer exist.
+    for (const id of diff.removed) {
+        deps.executionState.reset(id);
+    }
 
     const parts = [`${diff.added.length} added`, `${diff.removed.length} removed`];
     if (diff.newParseErrors.length > 0) {

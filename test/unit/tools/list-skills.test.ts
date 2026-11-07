@@ -50,4 +50,13 @@ describe('ListSkillsTool', () => {
         ]);
         expect(out.map((s: { id: string }) => s.id)).toEqual(['skill-creator', 'ok']);
     });
+
+    it('excludes skills that use chat-only tools, built-ins included: no Skiller run has a chat session', async () => {
+        const out = await list([
+            skill({ id: 'explorer', tools: { aliases: { e: 'explore_subagent?' } } }),
+            skill({ id: 'asker', source: { type: 'builtin', path: '/b' }, steps: [{ id: 's', type: 'tool', tool: 'vscode_askQuestions' }] as Skill['steps'] }),
+            skill({ id: 'ok' })
+        ]);
+        expect(out.map((s: { id: string }) => s.id)).toEqual(['ok']);
+    });
 });

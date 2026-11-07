@@ -27,7 +27,6 @@
     "workflow runner",
     "mcp",
     "model context protocol",
-    "chat participant",
     "yaml",
     "playbook",
     "automation",
@@ -39,7 +38,6 @@
   },
   "main": "./out/extension.js",
   "activationEvents": [
-    "onChatParticipant:tivaliy.skiller",
     "onLanguageModelTool:skiller_createFile",
     "onLanguageModelTool:skiller_replaceInFile",
     "onLanguageModelTool:skiller_writeSkill",
@@ -51,58 +49,6 @@
   "contributes": {
     "chatPlugins": [
       { "path": "./chat-plugin/" }
-    ],
-    "chatParticipants": [
-      {
-        "id": "tivaliy.skiller",
-        "name": "skiller",
-        "fullName": "Skiller",
-        "description": "Run declarative workflows in chat",
-        "iconPath": "resources/icon.png",
-        "isSticky": true,
-        "commands": [
-          {
-            "name": "help",
-            "description": "Show available commands"
-          },
-          {
-            "name": "tools",
-            "description": "Show available tools"
-          },
-          {
-            "name": "models",
-            "description": "Show available language models for skill configuration"
-          },
-          {
-            "name": "reload",
-            "description": "Reload tools and skills"
-          },
-          {
-            "name": "skills",
-            "description": "List available skills"
-          },
-          {
-            "name": "new",
-            "description": "Create a new skill"
-          },
-          {
-            "name": "skill",
-            "description": "Run a skill"
-          },
-          {
-            "name": "cancel",
-            "description": "Cancel the skill awaiting input or confirmation"
-          },
-          {
-            "name": "reset",
-            "description": "Clear all Skiller state"
-          },
-          {
-            "name": "status",
-            "description": "Show whether a skill is awaiting input or confirmation"
-          }
-        ]
-      }
     ],
     "commands": [
       {

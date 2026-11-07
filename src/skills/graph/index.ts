@@ -319,7 +319,7 @@ function escapeRegex(str: string): string {
 /**
  * Re-render every open graph panel from the current registry.
  *
- * Used by `/reload`: an edited skill that is still present must have its open
+ * Used by Skiller: Reload Skills: an edited skill that is still present must have its open
  * panel refreshed (not just removed skills closed), otherwise the panel keeps
  * rendering the stale pre-edit diagram (S-11). Panels whose skill no longer
  * exists are closed; the rest are updated in place (no reveal, so focus isn't

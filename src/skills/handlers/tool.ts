@@ -53,7 +53,7 @@ export class ToolStepHandler implements StepHandler {
     }
 
     async handle(ctx: StepContext, hooks: ProgressHooks): Promise<HandlerResult> {
-        const { skill, step, context, token, toolToken, approveTool } = ctx;
+        const { skill, step, context, token, approveTool } = ctx;
         const stepStart = Date.now();
 
         try {
@@ -106,7 +106,6 @@ export class ToolStepHandler implements StepHandler {
                 toolName,
                 interpolatedParams,
                 token,
-                toolToken,
                 stepStart,
                 hooks,
                 { findTool: name => this.toolResolver.findTool(name), approveTool }

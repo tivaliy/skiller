@@ -4,7 +4,8 @@ description: Describe a workflow in one line — Skiller drafts a plan, lets you
 version: "1.0.0"
 
 inputs:
-  # Pre-filled by `@skiller /new <text>`; asked for otherwise.
+  # Pre-filled by Skiller: New Skill… → Describe it (or by an agent through
+  # skiller_runSkill); asked for otherwise.
   - name: idea
     type: string
     description: The workflow the new skill should run
@@ -42,7 +43,7 @@ steps:
 
       Build it as planned, or ask for a change.
 
-      Not what you meant? Cancel and run `/new` again with a sharper description.
+      Not what you meant? Cancel and run **Skiller: New Skill…** again with a sharper description.
     options:
       - label: "Build it"
         action: continue

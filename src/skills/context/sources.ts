@@ -6,7 +6,7 @@
  */
 
 import type { ContextSource, EditorContextSnapshot } from './types';
-import { BUILTIN_ONLY_TOOLS } from '../reserved-tools';
+import { BUILTIN_ONLY_TOOLS, CHAT_ONLY_TOOLS } from '../tool-policy';
 
 const CONTEXT_SOURCES: Record<string, ContextSource> = {
     'selection': s => s.selection,
@@ -37,16 +37,9 @@ export const FILE_CONTENT_SOURCES: ReadonlySet<string> = new Set(['activeFile', 
  */
 export const AMBIENT_SOURCES: ReadonlySet<string> = new Set(['tools']);
 
-/**
- * Copilot's editor-file writers: they need Copilot's own chat session and fail when a
- * skill calls them (Skiller ships skiller_createFile / skiller_replaceInFile instead).
- * VS Code exposes no flag for this, so the names are listed here.
- */
-const COPILOT_SESSION_ONLY_TOOLS: readonly string[] = ['copilot_createFile', 'copilot_editFiles'];
-
-/** Tools hidden from the `from: tools` list: unusable from skills, or reserved for built-ins (enforced by readiness). */
+/** Tools hidden from the `from: tools` list: they need a chat session, or are reserved for built-ins (both enforced by readiness). */
 const TOOLS_UNUSABLE_FROM_SKILLS: ReadonlySet<string> = new Set([
-    ...COPILOT_SESSION_ONLY_TOOLS,
+    ...CHAT_ONLY_TOOLS,
     ...BUILTIN_ONLY_TOOLS,
 ]);
 

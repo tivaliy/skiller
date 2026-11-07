@@ -3,7 +3,7 @@
  *
  * The ProgressHooks interface: abstract progress events the executor and step
  * handlers emit. Each run surface supplies its own implementation via
- * ExecutionOptions.hooks (the chat adapter lives in commands/skill/stream-progress-hooks).
+ * ExecutionOptions.hooks (the native runner's lives in skills/run).
  */
 
 import type { ConfirmationOption, StepModelInfo } from './types';

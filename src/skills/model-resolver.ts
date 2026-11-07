@@ -32,7 +32,7 @@ export interface ModelResolver {
      * @param stepModelSpec - Model specification from step definition (alias or ID)
      * @param skillAliases - Alias mapping from skill's models.aliases
      * @param skillDefault - Default model from skill's models.default
-     * @param requestModel - Model from chat request (user's dropdown selection)
+     * @param requestModel - The run's fallback model (see resolveNativeModel)
      * @param isAutoMode - Whether user has "Auto" selected in dropdown
      * @returns Resolved model with metadata
      */
@@ -208,13 +208,13 @@ export function createModelResolver(): ModelResolver {
 }
 
 /**
- * Detect if the chat request is in Auto mode
+ * Detect if a model is VS Code's "Auto" placeholder
  *
  * When user selects "Auto" in the model dropdown, VS Code's
  * auto-resolved model ID contains 'auto'. This is a reliable
  * detection method based on VS Code's behavior.
  *
- * @param requestModel - Model from chat request
+ * @param requestModel - The model to inspect
  * @returns true if Auto mode is detected
  */
 export function isAutoMode(requestModel: vscode.LanguageModelChat): boolean {

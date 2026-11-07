@@ -27,7 +27,7 @@ import { registerScaffoldCommands } from '../../../../src/editor/scaffold-comman
 import { LaunchContextStore } from '../../../../src/skills/launch-context-store';
 import { ToolApprovalPolicy } from '../../../../src/skills/run/tool-approvals';
 import type { RunController, RunOutcome, RunRequest } from '../../../../src/skills/run';
-import type { SkillRegistry, SkillRefreshResult } from '../../../../src/skills';
+import type { SkillRegistry, SkillRefreshResult, ExecutionStateManager } from '../../../../src/skills';
 import type { Skill, SkillSource } from '../../../../src/skills/types';
 import type { DeliveryTarget } from '../../../../src/skills/output/types';
 
@@ -128,6 +128,7 @@ describe('registerRunCommands', () => {
     let launchStore: LaunchContextStore;
     let showGraph: Mock;
     let reloadTools: Mock;
+    let executionState: { reset: Mock };
     let context: ExtensionContext;
 
     const greeter = makeSkill('greeter', {
@@ -146,6 +147,7 @@ describe('registerRunCommands', () => {
         launchStore = new LaunchContextStore();
         showGraph = vi.fn(async () => undefined);
         reloadTools = vi.fn();
+        executionState = { reset: vi.fn() };
         context = fakeContext();
         const deps: RunCommandsDeps = {
             controller: controller as unknown as RunController,
@@ -154,6 +156,7 @@ describe('registerRunCommands', () => {
             launchStore,
             showGraph,
             reloadTools,
+            executionState: executionState as unknown as ExecutionStateManager,
         };
         registerRunCommands(context, deps);
     });
@@ -347,6 +350,13 @@ describe('registerRunCommands', () => {
         expect(registry.refreshWithDiff).toHaveBeenCalledTimes(1);
         expect(reloadTools).toHaveBeenCalledTimes(1);
         expect(showInformationMessage).toHaveBeenCalledWith(expect.stringMatching(/1 added.*1 removed/));
+    });
+
+    it('reloadSkills clears leftover execution state of skills that disappeared', async () => {
+        await handlerFor('skiller.reloadSkills')();
+
+        expect(executionState.reset).toHaveBeenCalledTimes(1);
+        expect(executionState.reset).toHaveBeenCalledWith('gone');
     });
 });
 

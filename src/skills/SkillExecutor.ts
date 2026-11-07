@@ -485,7 +485,6 @@ export class SkillExecutor {
                 ctx.context,
                 {
                     token: ctx.options.token,
-                    toolToken: ctx.options.toolToken,
                     approveTool: ctx.options.approveTool,
                     model: ctx.options.model,
                     resolvedModel,

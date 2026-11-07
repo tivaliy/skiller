@@ -29,10 +29,7 @@ export type {
     ConfirmationOption,
     ConfirmationResponse,
     PendingConfirmationInfo,
-    PendingConfirmation,
-    PendingInputCollection,
     ExecutionOptions,
-    ToolInvocationToken,
     ResumeOptions,
     VerboseMode,
     ParsedStep,
@@ -132,13 +129,9 @@ export {
 // Shared helpers
 export { hasValue } from './utils';
 
-// Pending state management - class for dependency injection
-export { PendingStateManager } from './PendingStateManager';
-
 // Launch-context hand-off - session state bridging an editor trigger to the
-// /skill handler + output sink (same kind of CommandContext collaborator as
-// PendingStateManager; vscode-free, lives here so the command layer depends on
-// it through the shared engine rather than reaching into the editor layer).
+// RunController and output sink (vscode-free; lives here so the run core depends
+// on it through the shared engine rather than reaching into the editor layer).
 export { LaunchContextStore } from './launch-context-store';
 
 // Run core - chat-free launch-input logic shared by every runner
@@ -182,5 +175,5 @@ export * from './context';
 export * from './output';
 
 // Run model selection
-export { resolveRequestModel } from './model-selection';
+export { resolveNativeModel } from './model-selection';
 export type { ResolvedRunModel } from './model-selection';
