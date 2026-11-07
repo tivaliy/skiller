@@ -128,14 +128,19 @@ describe('NativeSurface', () => {
         showGraph = vi.fn(async () => {});
         cancelRun = vi.fn();
         output = { appendLine: vi.fn(), show: vi.fn() };
-        surface = createNativeSurface({
+        surface = makeSurface();
+        run = new FakeCancellation();
+    });
+
+    function makeSurface(extra: Partial<NativeSurfaceDeps> = {}): RunSurface {
+        return createNativeSurface({
             panels: panels as unknown as NativeSurfaceDeps['panels'],
             showGraph,
             cancelRun,
             output: output as unknown as OutputChannel,
+            ...extra,
         });
-        run = new FakeCancellation();
-    });
+    }
 
     /** Start a run's progress so the surface knows the run token (as the controller does). */
     function startRun(skill: Skill = makeSkill()) {
@@ -270,32 +275,34 @@ describe('NativeSurface', () => {
             expect(new Set(ids).size).toBe(3);
         });
 
-        it('askConfirmation falls back to a QuickPick when no panel is open', async () => {
+        it('askConfirmation falls back to a modal showing the full message when no panel is open', async () => {
             startRun();
             panels.showCard.mockResolvedValue(undefined); // no panel: resolves undefined at once
-            window.showQuickPick.mockImplementation(async (items: readonly vscode.QuickPickItem[]) => items[2]);
+            window.showInformationMessage.mockResolvedValue('Cancel' as never);
             const info = pending();
 
             const choice = await surface.askConfirmation(makeSkill(), info);
 
-            expect(choice).toBe(info.options[2]);
-            expect(window.showInformationMessage).not.toHaveBeenCalled(); // no card to review
-            const [items, options, token] = window.showQuickPick.mock.calls[0];
-            expect((items as vscode.QuickPickItem[]).map(i => i.label)).toEqual(['Continue', 'Revise', 'Cancel']);
-            expect(options).toMatchObject({ ignoreFocusOut: true, placeHolder: '**Look** good?' });
-            expect(token).toBe(run.token);
+            expect(choice).toBe(info.options[2]); // by reference
+            expect(window.showInformationMessage).toHaveBeenCalledTimes(1); // the modal only: no card to review
+            expect(window.showInformationMessage).toHaveBeenCalledWith(
+                'Writer',
+                { modal: true, detail: '**Look** good?' },
+                'Continue', 'Revise', 'Cancel'
+            );
+            expect(window.showQuickPick).not.toHaveBeenCalled();
         });
 
-        it('falls back to the QuickPick when the panel closes while the card waits', async () => {
+        it('falls back to the modal when the panel closes while the card waits', async () => {
             startRun();
             const card = deferred<string | undefined>();
             panels.showCard.mockReturnValue(card.promise);
-            window.showQuickPick.mockImplementation(async (items: readonly vscode.QuickPickItem[]) => items[0]);
+            window.showInformationMessage.mockResolvedValue('Continue' as never);
             const info = pending();
 
             const choice = surface.askConfirmation(makeSkill(), info);
             await flush();
-            expect(window.showQuickPick).not.toHaveBeenCalled();
+            expect(window.showInformationMessage).not.toHaveBeenCalledWith('Writer', expect.anything(), 'Continue', 'Revise', 'Cancel');
             card.resolve(undefined); // panel disposed
 
             expect(await choice).toBe(info.options[0]);
@@ -304,7 +311,7 @@ describe('NativeSurface', () => {
         it('askConfirmation returns cancelled when the fallback is dismissed', async () => {
             startRun();
             panels.showCard.mockResolvedValue(undefined);
-            window.showQuickPick.mockResolvedValue(undefined);
+            window.showInformationMessage.mockResolvedValue(undefined);
 
             expect(await surface.askConfirmation(makeSkill(), pending())).toBe('cancelled');
         });
@@ -321,6 +328,7 @@ describe('NativeSurface', () => {
 
             expect(await choice).toBe('cancelled');
             expect(panels.clearCard).toHaveBeenCalled();
+            expect(window.showInformationMessage).not.toHaveBeenCalled();
             expect(window.showQuickPick).not.toHaveBeenCalled();
         });
     });
@@ -364,6 +372,42 @@ describe('NativeSurface', () => {
 
             window.showWarningMessage.mockResolvedValueOnce('Always allow in this workspace' as never);
             expect(await surface.approveTool(makeSkill(), call)).toBe('always');
+        });
+
+        it('uses the Skiller wording for a described tool, on the card and in the modal', async () => {
+            const describeTool = vi.fn((c: { toolName: string }) => c.toolName === 'skiller_createFile'
+                ? { title: 'Create File', markdown: 'Create file at **a.md**?' }
+                : undefined);
+            const described = makeSurface({ describeTool });
+            described.progress(makeSkill(), run.token);
+
+            panels.showCard.mockResolvedValueOnce('run');
+            expect(await described.approveTool(makeSkill(), call)).toBe('run');
+            expect(describeTool).toHaveBeenCalledWith(call);
+            const card = panels.showCard.mock.calls[0][1] as GraphCard;
+            expect(card.title).toBe('Create File');
+            expect(card.html).toContain('Create file at');
+            expect(card.html).not.toContain('"path"');
+
+            panels.showCard.mockResolvedValueOnce(undefined);
+            window.showWarningMessage.mockResolvedValueOnce('Allow' as never);
+            expect(await described.approveTool(makeSkill(), call)).toBe('once');
+            expect(window.showWarningMessage).toHaveBeenCalledWith(
+                'Create File',
+                { modal: true, detail: 'Create file at **a.md**?' },
+                'Allow', 'Allow for this run', 'Always allow in this workspace', 'Deny'
+            );
+        });
+
+        it('falls back to the generic card when the tool is not described', async () => {
+            const described = makeSurface({ describeTool: () => undefined });
+            described.progress(makeSkill(), run.token);
+            panels.showCard.mockResolvedValueOnce('deny');
+
+            expect(await described.approveTool(makeSkill(), { toolName: 'mcp_fetch', input: { url: 'x' } })).toBe('deny');
+            const card = panels.showCard.mock.calls[0][1] as GraphCard;
+            expect(card.title).toBe('Allow mcp_fetch?');
+            expect(card.html).toContain('url');
         });
 
         it('a cancelled run denies without showing the modal', async () => {

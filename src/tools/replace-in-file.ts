@@ -17,6 +17,7 @@
  */
 
 import * as vscode from 'vscode';
+import { replaceInFileApproval } from './approval-text';
 import { resolvePath } from './utils';
 
 /**
@@ -104,20 +105,11 @@ export class ReplaceInFileTool implements vscode.LanguageModelTool<ReplaceInFile
         options: vscode.LanguageModelToolInvocationPrepareOptions<ReplaceInFileInput>,
         _token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
-        const { filePath, search } = options.input;
-        const searchPreview = search && search.length > 60
-            ? `${search.substring(0, 60)}...`
-            : search || '(empty)';
+        const { title, markdown } = replaceInFileApproval(options.input);
 
         return {
-            invocationMessage: `Replacing text in: ${filePath}`,
-            confirmationMessages: {
-                title: 'Replace in File',
-                message: new vscode.MarkdownString(
-                    `Replace text in **${filePath}**?\n\n` +
-                    `Search: \`${searchPreview}\``
-                )
-            }
+            invocationMessage: `Replacing text in: ${options.input.filePath}`,
+            confirmationMessages: { title, message: new vscode.MarkdownString(markdown) }
         };
     }
 }

@@ -51,6 +51,7 @@
  */
 
 import * as vscode from 'vscode';
+import { createFileApproval } from './approval-text';
 import { resolvePath } from './utils';
 
 /**
@@ -131,20 +132,11 @@ export class CreateFileTool implements vscode.LanguageModelTool<CreateFileInput>
         options: vscode.LanguageModelToolInvocationPrepareOptions<CreateFileInput>,
         _token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
-        const { filePath, content } = options.input;
-        const contentPreview = content && content.length > 100
-            ? `${content.substring(0, 100)}...`
-            : content || '(empty)';
+        const { title, markdown } = createFileApproval(options.input);
 
         return {
-            invocationMessage: `Creating file: ${filePath}`,
-            confirmationMessages: {
-                title: 'Create File',
-                message: new vscode.MarkdownString(
-                    `Create file at **${filePath}**?\n\n` +
-                    `Content preview:\n\`\`\`\n${contentPreview}\n\`\`\``
-                )
-            }
+            invocationMessage: `Creating file: ${options.input.filePath}`,
+            confirmationMessages: { title, message: new vscode.MarkdownString(markdown) }
         };
     }
 }

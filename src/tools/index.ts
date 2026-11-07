@@ -48,6 +48,8 @@ import { WriteSkillTool, type WriteSkillDeps } from './write-skill';
 
 // Re-export utilities for potential external use
 export { resolvePath } from './utils';
+export { describeSkillerToolCall } from './approval-text';
+export type { ToolApprovalText } from './approval-text';
 
 /**
  * Tool registration entry.

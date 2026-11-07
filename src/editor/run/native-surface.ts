@@ -2,8 +2,8 @@
  * NativeSurface: the VS Code implementation of the RunSurface port.
  *
  * Inputs are asked with QuickPick / InputBox; confirmations and tool approvals
- * appear as cards in the skill's graph panel, falling back to a QuickPick or a
- * modal when no panel is open (or it closes while waiting) so a run never hangs
+ * appear as cards in the skill's graph panel, falling back to a modal when no
+ * panel is open (or it closes while waiting) so a run never hangs
  * on an invisible card. Progress, problems, warnings and results are
  * notifications; details go to the output channel.
  *
@@ -29,6 +29,8 @@ export interface NativeSurfaceDeps {
     showGraph(skill: Skill): Promise<void>;
     /** Cancel the active run (the progress notification's Cancel button). */
     cancelRun(): void;
+    /** Wording for a tool's approval (Skiller's own tools); undefined → the generic "Allow <tool>?" card. */
+    describeTool?: (call: ToolCallRequest) => { title: string; markdown: string } | undefined;
     output: vscode.OutputChannel;
 }
 
@@ -123,17 +125,13 @@ class NativeSurface implements RunSurface {
         const chosen = actionId !== undefined ? pending.options[Number(actionId)] : undefined;
         if (chosen) return chosen;
 
-        // No panel, or it closed while waiting: ask with a QuickPick instead.
-        const items: Array<PickItem<ConfirmationOption>> = pending.options.map(option => ({
-            label: option.label,
-            answer: option
-        }));
-        const picked = await vscode.window.showQuickPick(
-            items,
-            { title: `${skill.name} — ${stepTitle(skill, pending.stepId)}`, placeHolder: pending.message, ignoreFocusOut: true },
-            token
+        // No panel, or it closed while waiting: a modal, whose detail shows the whole message.
+        const label = await vscode.window.showInformationMessage(
+            skill.name,
+            { modal: true, detail: pending.message },
+            ...pending.options.map(option => option.label)
         );
-        return picked ? picked.answer : 'cancelled';
+        return pending.options.find(option => option.label === label) ?? 'cancelled';
     }
 
     // -----------------------------------------------------------------------
@@ -142,15 +140,17 @@ class NativeSurface implements RunSurface {
 
     async approveTool(skill: Skill, call: ToolCallRequest): Promise<ToolApproval> {
         const token = this.runToken;
-        const title = `Allow ${call.toolName}?`;
+        const described = this.deps.describeTool?.(call);
         const json = describeToolInput(call.input);
+        const title = described?.title ?? `Allow ${call.toolName}?`;
+        const markdown = described?.markdown ?? fenced(json, 'json');
         await this.revealGraph(skill);
 
         const actionId = await this.cardAnswer(skill, token, {
             cardId: this.nextCardId(`tool:${call.toolName}`),
             kind: 'toolApproval',
             title,
-            html: await renderCardMarkdown(fenced(json, 'json')),
+            html: await renderCardMarkdown(markdown),
             actions: APPROVAL_ACTIONS.map((action, index) => ({
                 id: action.id,
                 label: action.label,
@@ -165,7 +165,7 @@ class NativeSurface implements RunSurface {
         // No panel, or it closed while waiting: a modal with the same choices.
         const label = await vscode.window.showWarningMessage(
             title,
-            { modal: true, detail: json },
+            { modal: true, detail: described?.markdown ?? json },
             ...APPROVAL_ACTIONS.map(action => action.label)
         );
         return APPROVAL_ACTIONS.find(action => action.label === label)?.id ?? 'deny';
