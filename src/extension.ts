@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { createNativeSurface, finishSkill, registerScaffoldCommands, registerTriggers } from './editor';
+import { createNativeSurface, finishSkill, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce } from './editor';
 import { createWriteSkillDeps } from './scaffold';
 import {
     LaunchContextStore,
@@ -98,6 +98,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     });
     registerScaffoldCommands(context, { skillRegistry, extensionUri: context.extensionUri, controller });
     context.subscriptions.push(enableLiveReload());
+
+    void showMigrationNoticeOnce(
+        context.globalState,
+        (msg, ...actions) => vscode.window.showInformationMessage(msg, ...actions),
+        (cmd, ...args) => vscode.commands.executeCommand(cmd, ...args),
+        {
+            version: String(context.extension.packageJSON.version),
+            hasOwnSkills: skillRegistry.getAll().some(s => s.source.type !== 'builtin'),
+        }
+    ).catch(err => console.error('Skiller: migration notice failed', err));
 }
 
 /**
