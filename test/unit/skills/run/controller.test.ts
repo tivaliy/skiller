@@ -18,6 +18,7 @@ import type { ExecutionEvent } from '../../../../src/skills/execution-state';
 import { createModelResolver } from '../../../../src/skills/model-resolver';
 import { LaunchContextStore } from '../../../../src/skills/launch-context-store';
 import type { DeliveryOutcome, DeliveryTarget } from '../../../../src/skills/output/types';
+import * as skillValidation from '../../../../src/skills/validators/factory';
 import type {
     Skill,
     SkillStep,
@@ -78,9 +79,12 @@ class FakeSurface implements RunSurface {
     problems: Array<{ title: string; lines: string[] }> = [];
     replaceAsked: Array<{ current: string; next: string }> = [];
     progressTokens: CancellationToken[] = [];
+    inputTokens: CancellationToken[] = [];
+    warnings: string[][] = [];
 
-    async askInput(_skill: Skill, input: SkillInput, position: { index: number; total: number }) {
+    async askInput(_skill: Skill, input: SkillInput, position: { index: number; total: number }, token: CancellationToken) {
         this.calls.push(`askInput:${input.name}:${position.index}/${position.total}`);
+        this.inputTokens.push(token);
         const next = this.inputAnswers.shift();
         if (next === undefined) throw new Error(`no scripted answer for input ${input.name}`);
         if (typeof next === 'object' && 'promise' in next) return next.promise;
@@ -124,6 +128,11 @@ class FakeSurface implements RunSurface {
     showProblems(_skill: Skill, title: string, lines: string[]): void {
         this.calls.push('showProblems');
         this.problems.push({ title, lines });
+    }
+
+    showWarnings(_skill: Skill, lines: string[]): void {
+        this.calls.push('showWarnings');
+        this.warnings.push(lines);
     }
 
     async showResult(): Promise<void> {
@@ -543,5 +552,64 @@ describe('RunController', () => {
         expect(surface.calls.some(c => c.startsWith('askInput'))).toBe(false);
         expect(outcome.kind).toBe('completed');
         if (outcome.kind === 'completed') expect(outcome.result.context.inputs.topic).toBe('dogs');
+    });
+
+    it('passes the run token to askInput so a cancelled run can dismiss the picker', async () => {
+        surface.inputAnswers = [deferred<{ value: unknown } | 'cancelled'>()]; // never answered
+
+        const run = controller.run({ skill: makeSkill() });
+        await until(() => surface.inputTokens.length === 1);
+        const token = surface.inputTokens[0];
+        expect(token.isCancellationRequested).toBe(false);
+
+        controller.cancelActive();
+        expect(await run).toEqual({ kind: 'cancelled' });
+        expect(token.isCancellationRequested).toBe(true);
+    });
+
+    it('the token given to askInput is the run token later given to progress', async () => {
+        surface.inputAnswers = [{ value: 'cats' }];
+        surface.confirmationAnswers = ['Continue'];
+
+        await controller.run({ skill: makeSkill() });
+
+        expect(surface.inputTokens).toHaveLength(1);
+        expect(surface.inputTokens[0]).toBe(surface.progressTokens[0]);
+    });
+
+    it('readiness warnings are shown without stopping the run', async () => {
+        const skill = noInputSkill('warned');
+        skill.tools = { aliases: { extra: 'missing_optional_tool?' } };
+
+        const outcome = await controller.run({ skill });
+
+        expect(outcome.kind).toBe('completed');
+        expect(surface.warnings).toHaveLength(1);
+        expect(surface.warnings[0].join('\n')).toContain('missing_optional_tool');
+        expect(surface.calls.indexOf('showWarnings')).toBeLessThan(surface.calls.indexOf('progress'));
+        expect(runOrder).toEqual(['only']);
+    });
+
+    it('an unknown goto target is reported and the run continues at the next step', async () => {
+        const skill = makeSkill({
+            inputs: [],
+            steps: [
+                { id: 'draft', type: 'llm', message: 'x', output: 'draft' },
+                {
+                    id: 'review', type: 'confirmation', message: 'ok?', output: 'decision',
+                    options: [{ label: 'Jump', action: 'goto', gotoStep: 'nowhere' }],
+                },
+                { id: 'publish', type: 'llm', message: 'y', output: 'published' },
+            ],
+        });
+        surface.confirmationAnswers = ['Jump'];
+        // The validator rejects a goto to a missing step; the controller must still cope at run time.
+        vi.spyOn(skillValidation, 'validateSkill').mockResolvedValue({ valid: true, issues: [], errors: [], warnings: [], phasesRun: [], duration: 0 });
+
+        const outcome = await controller.run({ skill });
+
+        expect(outcome.kind).toBe('completed');
+        expect(surface.warnings).toEqual([['Step "nowhere" not found. Continuing from the next step.']]);
+        expect(runOrder).toEqual(['draft', 'publish']);
     });
 });

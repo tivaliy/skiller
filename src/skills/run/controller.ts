@@ -2,7 +2,7 @@
  * Run core: RunController drives one skill run end to end through the engine.
  *
  * Lifecycle of `run`:
- *   single-run lock → definition + readiness checks → inputs (resolve, ask,
+ *   single-run lock → definition + readiness checks (warnings shown) → inputs (resolve, ask,
  *   validate) → execute → confirmation loop (ask → resume) → deliver output →
  *   show result → finish.
  *
@@ -202,6 +202,9 @@ class RunSession {
 
                 const decision = resumeAfterChoice(skill, pending, choice, result.context, result.steps);
                 if (decision.kind === 'abort') return this.cancelled(pending.stepId);
+                if (decision.unknownGoto !== undefined) {
+                    surface.showWarnings(skill, [`Step "${decision.unknownGoto}" not found. Continuing from the next step.`]);
+                }
 
                 result = await this.deps.executor.execute(skill, options, decision.resume);
             }
@@ -243,6 +246,12 @@ class RunSession {
             );
             return { kind: 'notStarted', reason: readiness.errors.map(e => e.message).join('\n') };
         }
+        if (readiness.warnings.length > 0) {
+            this.deps.surface.showWarnings(
+                skill,
+                readiness.warnings.map(w => (w.suggestion ? `${w.message} — ${w.suggestion}` : w.message))
+            );
+        }
         return undefined;
     }
 
@@ -268,7 +277,7 @@ class RunSession {
         for (const [index, input] of toAsk.entries()) {
             for (;;) {
                 const answer = await untilCancelled(
-                    surface.askInput(skill, input, { index, total: toAsk.length }),
+                    surface.askInput(skill, input, { index, total: toAsk.length }, this.token),
                     this.token
                 );
                 if (answer === CANCELLED || this.token.isCancellationRequested) return CANCELLED;

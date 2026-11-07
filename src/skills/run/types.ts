@@ -20,14 +20,19 @@ import type { DeliveryOutcome, DeliveryTarget } from '../output/types';
 /**
  * Everything a run needs from the user and shows to the user.
  *
- * Waiting calls (`askInput`, `askConfirmation`, `approveTool`,
- * `confirmReplaceRun`) take no token: the controller stops waiting on its own
- * when the run is cancelled. A surface that wants to dismiss its UI on cancel
- * can watch the token it receives in `progress`.
+ * The controller stops waiting on its own when the run is cancelled. `askInput`
+ * receives the run's token so a picker can be dismissed on cancel; for the
+ * other waiting calls (`askConfirmation`, `approveTool`), which come after
+ * `progress`, a surface can watch the token it receives there.
  */
 export interface RunSurface {
-    /** Ask for one input value. `position` is 0-based within the inputs being asked. */
-    askInput(skill: Skill, input: SkillInput, position: { index: number; total: number }): Promise<{ value: unknown } | 'cancelled'>;
+    /** Ask for one input value. `position` is 0-based within the inputs being asked; `token` is the run's. */
+    askInput(
+        skill: Skill,
+        input: SkillInput,
+        position: { index: number; total: number },
+        token: CancellationToken
+    ): Promise<{ value: unknown } | 'cancelled'>;
     /** Ask which option to take at a confirmation step. Return one of `pending.options` (by reference). */
     askConfirmation(skill: Skill, pending: PendingConfirmationInfo): Promise<ConfirmationOption | 'cancelled'>;
     /** Ask whether a tool call may run. */
@@ -38,6 +43,8 @@ export interface RunSurface {
     confirmReplaceRun(current: Skill, next: Skill): Promise<boolean>;
     /** Show problems that stopped (or interrupted) a run. */
     showProblems(skill: Skill, title: string, lines: string[]): void;
+    /** Show warnings that don't stop the run (readiness warnings, an unknown goto target). */
+    showWarnings(skill: Skill, lines: string[]): void;
     /** Present the finished run. Resolve once presented; do not wait on the user. */
     showResult(skill: Skill, result: SkillResult, delivery: DeliveryOutcome): Promise<void>;
 }
