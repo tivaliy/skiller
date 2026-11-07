@@ -11,6 +11,7 @@
 
 import * as vscode from 'vscode';
 import { SkillStep, StepResult } from '../../types';
+import type { ToolInvocationToken } from '../../types';
 import type { ProgressHooks } from '../../progress-hooks';
 import { getSetting } from '../../../settings';
 import {
@@ -63,7 +64,7 @@ export async function executeToolStep(
     toolName: string,
     params: Record<string, unknown>,
     token: vscode.CancellationToken,
-    toolToken: vscode.ChatParticipantToolToken | undefined,
+    toolToken: ToolInvocationToken | undefined,
     stepStart: number,
     hooks: ProgressHooks,
     deps: Partial<ToolRunnerDeps> = {}

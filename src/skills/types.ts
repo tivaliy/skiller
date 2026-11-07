@@ -563,6 +563,13 @@ export interface DiscoveredSkills {
 // ============================================================================
 
 /**
+ * The opaque token that ties a tool invocation to its caller's context, typed via
+ * the Language Model tool API (what `vscode.lm.invokeTool` accepts) rather than the
+ * chat-participant API, so the engine carries no chat types.
+ */
+export type ToolInvocationToken = vscode.LanguageModelToolInvocationOptions<object>['toolInvocationToken'];
+
+/**
  * Options for skill execution
  */
 export interface ExecutionOptions {
@@ -583,7 +590,7 @@ export interface ExecutionOptions {
     /** Available MCP categories */
     availableMcps: string[];
     /** Tool invocation token for MCP calls */
-    toolToken?: vscode.ChatParticipantToolToken;
+    toolToken?: ToolInvocationToken;
     /** Verbose output mode for debugging (from settings) */
     verboseMode?: VerboseMode;
     /** Execution state manager for tracking progress (required, inject via DI) */

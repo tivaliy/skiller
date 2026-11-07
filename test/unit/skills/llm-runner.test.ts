@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import * as vscode from 'vscode';
 import { executeLLMStep, truncateResultContent, trimMessageHistory } from '../../../src/skills/handlers/runners/llm-runner';
 import type { LLMRunnerDeps } from '../../../src/skills/handlers/runners/llm-runner';
-import type { SkillStep } from '../../../src/skills/types';
+import type { SkillStep, ToolInvocationToken } from '../../../src/skills/types';
 import type { ProgressHooks } from '../../../src/skills/progress-hooks';
 
 const STEP: SkillStep = { id: 'analyze', type: 'llm' };
@@ -88,6 +88,15 @@ describe('executeLLMStep', () => {
 
         expect(result.success).toBe(true);
         expect(result.data).toEqual({ answer: 42 });
+    });
+
+    it('passes the caller tool token through to invokeTool unchanged', async () => {
+        // Chat's inline tool confirmations depend on the request's token reaching invokeTool.
+        const toolToken = { opaque: 1 } as unknown as ToolInvocationToken;
+        const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
+        const invokeTool = vi.fn<LLMRunnerDeps['invokeTool']>(async () => toolResult('ok'));
+        await executeLLMStep(STEP, 'p', model, TOKEN, toolToken, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool }));
+        expect(invokeTool.mock.calls[0][1]).toMatchObject({ toolInvocationToken: toolToken });
     });
 
     it('runs the tool then analyzes the result', async () => {

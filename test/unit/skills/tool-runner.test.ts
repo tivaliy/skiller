@@ -6,7 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import * as vscode from 'vscode';
 import { executeToolStep } from '../../../src/skills/handlers/runners/tool-runner';
 import type { ToolRunnerDeps } from '../../../src/skills/handlers/runners/tool-runner';
-import type { SkillStep } from '../../../src/skills/types';
+import type { SkillStep, ToolInvocationToken } from '../../../src/skills/types';
 import type { ProgressHooks } from '../../../src/skills/progress-hooks';
 
 const STEP: SkillStep = { id: 'save', type: 'tool', tool: 'create_file' };
@@ -50,6 +50,13 @@ describe('executeToolStep', () => {
         expect(invokeTool).toHaveBeenCalledOnce();
         expect(invokeTool.mock.calls[0][0]).toBe('create_file');
         expect(invokeTool.mock.calls[0][1].input).toEqual({ filePath: 'a.md' });
+    });
+
+    it('passes the caller tool token through to invokeTool unchanged', async () => {
+        const toolToken = { opaque: 1 } as unknown as ToolInvocationToken;
+        const invokeTool = vi.fn<ToolRunnerDeps['invokeTool']>(async () => toolResult('done'));
+        await executeToolStep(STEP, 'create_file', {}, TOKEN, toolToken, Date.now(), HOOKS, makeDeps({ invokeTool }));
+        expect(invokeTool.mock.calls[0][1]).toMatchObject({ toolInvocationToken: toolToken });
     });
 
     it('fails cleanly when the tool is not found', async () => {

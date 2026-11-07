@@ -7,6 +7,7 @@
 
 import * as vscode from 'vscode';
 import { SkillStep, StepResult, ToolMode } from '../../types';
+import type { ToolInvocationToken } from '../../types';
 import type { ProgressHooks } from '../../progress-hooks';
 import { tryParseJson, withTimeout, isTimeoutError } from './utils';
 import { getSetting } from '../../../settings';
@@ -193,7 +194,7 @@ export async function executeLLMStep(
     prompt: string,
     model: vscode.LanguageModelChat,
     token: vscode.CancellationToken,
-    toolToken: vscode.ChatParticipantToolToken | undefined,
+    toolToken: ToolInvocationToken | undefined,
     stepStart: number,
     tools: vscode.LanguageModelToolInformation[] = [],
     toolMode: ToolMode = 'auto',

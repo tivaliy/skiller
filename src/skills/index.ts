@@ -32,6 +32,7 @@ export type {
     PendingConfirmation,
     PendingInputCollection,
     ExecutionOptions,
+    ToolInvocationToken,
     ResumeOptions,
     VerboseMode,
     ParsedStep,
