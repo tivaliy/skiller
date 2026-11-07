@@ -337,11 +337,10 @@ describe('RunController', () => {
 
     it('runs inputs → execute → confirmation(continue) → deliver → showResult and finishes success', async () => {
         const skill = makeSkill();
-        launchStore.setTarget(skill.id, TARGET);
         surface.inputAnswers = [{ value: 'cats' }];
         surface.confirmationAnswers = ['Continue'];
 
-        const outcome = await controller.run({ skill });
+        const outcome = await controller.run({ skill, target: TARGET });
 
         expect(outcome.kind).toBe('completed');
         if (outcome.kind !== 'completed') return;
@@ -361,16 +360,6 @@ describe('RunController', () => {
         expect(finished(true)).toBe(1);
         expect(finished(false)).toBe(0);
         expect(controller.active).toBeUndefined();
-    });
-
-    it('prefers the request target over the stashed one', async () => {
-        const skill = noInputSkill('plain');
-        const requestTarget = { ...TARGET, uri: 'file:///other.md' };
-        launchStore.setTarget(skill.id, TARGET);
-
-        await controller.run({ skill, target: requestTarget });
-
-        expect(deliver).toHaveBeenCalledWith(skill, expect.anything(), undefined, requestTarget);
     });
 
     it('goto loops back and re-runs the target step', async () => {

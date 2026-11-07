@@ -179,10 +179,8 @@ describe('registerRunCommands', () => {
 
     it('runSkill stashes editor context before running and passes the delivery target with the request', async () => {
         let stashedAtRun: unknown;
-        let storedTargetAtRun: unknown;
         controller.run.mockImplementation(async () => {
             stashedAtRun = launchStore.take('greeter');
-            storedTargetAtRun = launchStore.takeTarget('greeter');
             return { kind: 'cancelled' as const };
         });
 
@@ -192,9 +190,8 @@ describe('registerRunCommands', () => {
         expect(captureSnapshotMock).toHaveBeenCalledWith(expect.anything(), new Set(['selection']));
         expect(captureDeliveryTargetMock).toHaveBeenCalledWith({ excludeDir: '/skills/greeter' });
         expect(stashedAtRun).toEqual({ selection: 'hello' });
-        // The target travels with the request, never through the shared store.
+        // The target travels with the request (the store holds only the snapshot).
         expect(controller.run).toHaveBeenCalledWith({ skill: greeter, target: TARGET });
-        expect(storedTargetAtRun).toBeUndefined();
     });
 
     it('runSkill discards the stashed context when the run does not start', async () => {
@@ -203,7 +200,6 @@ describe('registerRunCommands', () => {
         await handlerFor('skiller.runSkill')('greeter');
 
         expect(launchStore.take('greeter')).toBeUndefined();
-        expect(launchStore.hasTarget('greeter')).toBe(false);
     });
 
     it('a declined replace leaves the running skill delivering to its own launch location', async () => {
@@ -225,7 +221,6 @@ describe('registerRunCommands', () => {
         const [[firstRequest], [secondRequest]] = controller.run.mock.calls as unknown as Array<[{ target?: DeliveryTarget }]>;
         expect(firstRequest.target).toEqual(TARGET);
         expect(secondRequest.target).toEqual(TARGET_B);
-        expect(launchStore.hasTarget('greeter')).toBe(false);
 
         finishFirst();
         await first;
@@ -235,7 +230,6 @@ describe('registerRunCommands', () => {
         await handlerFor('skiller.runSkill')('summarize');
 
         expect(captureDeliveryTargetMock).not.toHaveBeenCalled();
-        expect(launchStore.hasTarget('summarize')).toBe(false);
         expect(controller.run).toHaveBeenCalledWith({ skill: builtin });
     });
 

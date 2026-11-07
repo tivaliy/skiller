@@ -3,12 +3,12 @@
  *
  * Custom VS Code Language Model tools that provide reliable functionality
  * for skill workflows. These tools are designed to work in all VS Code contexts,
- * including third-party chat participants where built-in Copilot tools may fail.
+ * including outside Copilot's own chat session, where built-in Copilot tools may fail.
  *
  * ## Why Custom Tools?
  *
  * Built-in Copilot tools have internal context requirements that make them
- * unusable from third-party chat participants:
+ * unusable outside Copilot's own chat session (for example from a Skiller run):
  *
  * - `copilot_createFile` requires `_promptContext.stream` (throws "Invalid stream")
  * - `copilot_editFiles` requires internal conversation context
@@ -20,7 +20,7 @@
  * |---------------------|--------------------------------|--------------------------|
  * | `skiller_createFile`     | Create a file with content     | `copilot_createFile`     |
  *
- * Note: `copilot_createDirectory` works fine from third-party participants
+ * Note: `copilot_createDirectory` works fine outside Copilot's own chat session
  * (no streaming required), so we don't need a custom replacement for it.
  *
  * ## Adding New Tools
@@ -76,7 +76,7 @@ const TOOLS: ToolRegistration[] = [
  *
  * This function should be called during extension activation.
  * Tools are registered with VS Code's Language Model API and become
- * available for use in chat participants and skill workflows.
+ * available to agents (such as Copilot) and skill workflows.
  *
  * @param context - VS Code extension context for subscription management
  * @param deps - Dependencies for tools that need extension state

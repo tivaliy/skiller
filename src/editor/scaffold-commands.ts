@@ -69,6 +69,8 @@ function createUi(deps: ScaffoldCommandDeps): ScaffoldUi {
                 void vscode.window.showErrorMessage(`Skiller: the ${SKILL_CREATOR_ID} skill is not available.`);
                 return;
             }
+            // Straight to the controller, skipping runSkill()'s delivery-target capture: safe
+            // only while skill-creator has no editor `output.to` (it writes via skiller_writeSkill).
             await deps.controller.run({ skill: creator, inputs: { idea } });
         },
         showErrors(errors) {

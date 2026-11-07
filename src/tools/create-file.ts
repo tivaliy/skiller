@@ -6,11 +6,11 @@
  * ## Why This Tool Exists
  *
  * Built-in Copilot tools like `copilot_createFile` have internal context requirements
- * that make them unusable from third-party chat participants. Specifically:
+ * that make them unusable outside Copilot's own chat session. Specifically:
  *
  * - `copilot_createFile` checks for `this._promptContext?.stream` before execution
  * - This internal property is only set within Copilot's native chat orchestration
- * - When invoked via `vscode.lm.invokeTool()` from a third-party participant,
+ * - When invoked via `vscode.lm.invokeTool()` outside Copilot's own chat session,
  *   even with proper `toolInvocationToken`, the internal context is not passed
  * - This results in "Invalid stream" error
  *
@@ -20,8 +20,8 @@
  * The check: `if(!this._promptContext?.stream) throw new Error("Invalid stream")`
  *
  * The stream is used by Copilot to progressively write file content as the LLM
- * generates it. Since third-party participants don't have access to this internal
- * streaming mechanism, the tool fails.
+ * generates it. Since callers outside Copilot's own chat session have no access to this
+ * internal streaming mechanism, the tool fails.
  *
  * Interestingly, `copilot_createDirectory` works because it doesn't require
  * streaming - it's a simple atomic operation.
@@ -68,7 +68,7 @@ interface CreateFileInput {
  * Language Model Tool for creating files.
  *
  * This tool provides reliable file creation that works in all VS Code contexts,
- * including third-party chat participants where built-in Copilot tools fail.
+ * including outside Copilot's own chat session, where built-in Copilot tools fail.
  *
  * Error handling follows the official VS Code extension samples pattern:
  * errors are caught and returned as LanguageModelToolResult text parts.

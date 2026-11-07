@@ -221,8 +221,7 @@ class RunSession {
             // A failed skill still ends with a result (the caller reads result.success);
             // delivery returns 'none' for it. 'failed' is for errors thrown by the run itself.
             const deliver = this.deps.deliver ?? deliverSkillOutput;
-            const target = this.req.target ?? this.deps.launchStore.takeTarget(skill.id);
-            const delivery = await deliver(skill, result, undefined, target);
+            const delivery = await deliver(skill, result, undefined, this.req.target);
             await surface.showResult(skill, result, delivery);
             this.finish(result.success);
             return { kind: 'completed', result, delivery };

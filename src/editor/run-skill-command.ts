@@ -54,7 +54,6 @@ export async function runSkill(deps: RunSkillDeps, skillId?: unknown): Promise<v
     if (outcome.kind === 'notStarted') {
         // Nothing consumed the stash; don't let it leak into the next run of this skill.
         launchStore.take(id);
-        launchStore.takeTarget(id);
     }
 }
 
