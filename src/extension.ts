@@ -137,19 +137,22 @@ function createRunController(
         }),
         newCancellation: () => new vscode.CancellationTokenSource(),
         availableMcps: () => toolCache.getDiscoveredCategories(),
-        resolveModel: () => resolveNativeModel({
+        resolveModel: (_skill, token) => resolveNativeModel({
             select: selector => vscode.lm.selectChatModels(selector),
             settingId: () => getSetting('model.default') || undefined,
             rememberedId: () => context.globalState.get<string>(LAST_PICKED_MODEL_KEY),
             remember: id => context.globalState.update(LAST_PICKED_MODEL_KEY, id),
             pick: pickModel,
-        }),
+        }, token),
     });
     return controller;
 }
 
-/** Ask which language model native runs should fall back to. */
-async function pickModel(models: vscode.LanguageModelChat[]): Promise<vscode.LanguageModelChat | undefined> {
+/** Ask which language model native runs should fall back to; the run's token dismisses the pick. */
+async function pickModel(
+    models: vscode.LanguageModelChat[],
+    token?: vscode.CancellationToken
+): Promise<vscode.LanguageModelChat | undefined> {
     const items = models.map(model => ({
         label: model.name,
         description: `${model.vendor}/${model.family}/${model.id}`,
@@ -158,7 +161,7 @@ async function pickModel(models: vscode.LanguageModelChat[]): Promise<vscode.Lan
     const picked = await vscode.window.showQuickPick(items, {
         title: 'Choose a model for Skiller runs',
         ignoreFocusOut: true,
-    });
+    }, token);
     return picked?.model;
 }
 

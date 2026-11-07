@@ -6,9 +6,9 @@
  *   validate) → execute → confirmation loop (ask → resume) → deliver output →
  *   show result → finish.
  *
- * The controller owns the run's cancellation: a dismissed picker, `cancelActive`,
- * a replacing run, or the caller's token all cancel it, and every path ends with
- * `finishExecution` and releases the lock. It talks to the user only through the
+ * The controller owns the run's cancellation: a dismissed picker (an input or the
+ * fallback model), `cancelActive`, a replacing run, or the caller's token all cancel
+ * it, and every path ends with `finishExecution` and releases the lock. It talks to the user only through the
  * RunSurface port, and references vscode as types only.
  */
 
@@ -38,8 +38,12 @@ export interface RunControllerDeps {
     executor: SkillExecutor;
     executionState: ExecutionStateManager;
     surface: RunSurface;
-    /** The run's fallback model (step and skill models take precedence). */
-    resolveModel(skill: Skill): Promise<LanguageModelChat>;
+    /**
+     * The run's fallback model (step and skill models take precedence). `token` is the
+     * run's: a picker shown here should close when it fires. Undefined means the user
+     * dismissed the picker, which cancels the run.
+     */
+    resolveModel(skill: Skill, token: CancellationToken): Promise<LanguageModelChat | undefined>;
     launchStore: LaunchContextStore;
     /** Decides when a tool call needs the user's approval. */
     toolApprovals: ToolApprovalPolicy;
@@ -170,8 +174,9 @@ class RunSession {
         const inputs = applyDefaults(skill, { ...resolved, ...answers });
         executionState.setTerminalStatus(skill.id, 'start', 'completed');
 
-        const model = await this.deps.resolveModel(skill);
-        if (this.token.isCancellationRequested) return this.cancelled();
+        // Don't trust the picker to honour the token: stop waiting as soon as the run is cancelled.
+        const model = await untilCancelled(this.deps.resolveModel(skill, this.token), this.token);
+        if (model === CANCELLED || model === undefined || this.token.isCancellationRequested) return this.cancelled();
 
         const progress = surface.progress(skill, this.token);
         try {

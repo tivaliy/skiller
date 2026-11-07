@@ -18,15 +18,21 @@ export interface NativeModelDeps {
     /** The model the user picked on a previous run. */
     rememberedId(): string | undefined;
     remember(id: string): Thenable<void>;
-    /** Ask the user to choose; undefined when dismissed. */
-    pick(models: vscode.LanguageModelChat[]): Promise<vscode.LanguageModelChat | undefined>;
+    /** Ask the user to choose; undefined when dismissed. `token` (the run's) dismisses the pick. */
+    pick(models: vscode.LanguageModelChat[], token?: vscode.CancellationToken): Promise<vscode.LanguageModelChat | undefined>;
 }
 
 /**
  * Choose the run's fallback model: setting -> remembered pick -> ask (and remember).
  * Step and skill models still take precedence inside the model resolver.
+ *
+ * Resolves undefined when the user dismisses the pick (Escape cancels the run);
+ * throws when no model is available at all.
  */
-export async function resolveNativeModel(deps: NativeModelDeps): Promise<vscode.LanguageModelChat> {
+export async function resolveNativeModel(
+    deps: NativeModelDeps,
+    token?: vscode.CancellationToken
+): Promise<vscode.LanguageModelChat | undefined> {
     const models = await deps.select();
     if (models.length === 0) {
         throw new Error(NO_MODELS_MESSAGE);
@@ -39,9 +45,9 @@ export async function resolveNativeModel(deps: NativeModelDeps): Promise<vscode.
         }
     }
 
-    const picked = await deps.pick(models);
+    const picked = await deps.pick(models, token);
     if (!picked) {
-        throw new Error('No language model selected.');
+        return undefined;
     }
     await deps.remember(picked.id);
     return picked;

@@ -567,16 +567,54 @@ describe('RunController', () => {
     it('an error thrown by the run is shown and ends the run as failed', async () => {
         const failing = new RunController({
             ...deps,
-            resolveModel: async () => { throw new Error('No language model selected.'); },
+            resolveModel: async () => { throw new Error('No language models available.'); },
         });
 
         const outcome = await failing.run({ skill: noInputSkill('plain') });
 
-        expect(outcome).toEqual({ kind: 'failed', message: 'No language model selected.' });
-        expect(surface.problems).toEqual([{ title: "Skill 'plain' failed", lines: ['No language model selected.'] }]);
+        expect(outcome).toEqual({ kind: 'failed', message: 'No language models available.' });
+        expect(surface.problems).toEqual([{ title: "Skill 'plain' failed", lines: ['No language models available.'] }]);
         expect(runOrder).toEqual([]);
         expect(finished(false)).toBe(1);
         expect(failing.active).toBeUndefined();
+    });
+
+    it('a dismissed model pick cancels the run without reporting a problem', async () => {
+        const dismissed = new RunController({ ...deps, resolveModel: async () => undefined });
+
+        const outcome = await dismissed.run({ skill: noInputSkill('plain') });
+
+        expect(outcome).toEqual({ kind: 'cancelled' });
+        expect(surface.calls).not.toContain('showProblems');
+        expect(surface.problems).toEqual([]);
+        expect(runOrder).toEqual([]);
+        expect(endCompleted()).toBe(true);
+        expect(finished(false)).toBe(1);
+        expect(dismissed.active).toBeUndefined();
+    });
+
+    it('passes the run token to the model picker, so cancelActive dismisses it', async () => {
+        let pickerToken: CancellationToken | undefined;
+        const pick = deferred<ExecutionOptions['model'] | undefined>(); // never answered by the user
+        const picking = new RunController({
+            ...deps,
+            resolveModel: (_skill, token) => { pickerToken = token; return pick.promise; },
+        });
+
+        const run = picking.run({ skill: noInputSkill('plain') });
+        await until(() => pickerToken !== undefined);
+        expect(pickerToken!.isCancellationRequested).toBe(false);
+
+        expect(picking.cancelActive()).toBe(true);
+
+        expect(pickerToken!.isCancellationRequested).toBe(true);
+        const outcome = await Promise.race([
+            run,
+            new Promise<string>(resolve => setTimeout(() => resolve('hung'), 300)),
+        ]);
+        expect(outcome).toEqual({ kind: 'cancelled' });
+        expect(surface.calls).not.toContain('showProblems');
+        expect(runOrder).toEqual([]);
     });
 
     it('explicit inputs are not asked for', async () => {

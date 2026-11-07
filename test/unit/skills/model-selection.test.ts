@@ -33,14 +33,21 @@ describe('resolveNativeModel', () => {
         const d = deps({ pick: vi.fn(async () => b) });
         expect(await resolveNativeModel(d)).toBe(b);
         expect(d.pick).toHaveBeenCalledTimes(1);
-        expect(d.pick).toHaveBeenCalledWith([a, b]);
+        expect(d.pick).toHaveBeenCalledWith([a, b], undefined);
         expect(d.remember).toHaveBeenCalledWith('b');
     });
 
-    it('throws when the user dismisses the pick', async () => {
+    it('returns undefined (the run is cancelled) when the user dismisses the pick', async () => {
         const d = deps({ pick: vi.fn(async () => undefined) });
-        await expect(resolveNativeModel(d)).rejects.toThrow('No language model selected.');
+        await expect(resolveNativeModel(d)).resolves.toBeUndefined();
         expect(d.remember).not.toHaveBeenCalled();
+    });
+
+    it('passes the run token to the pick, so cancelling the run dismisses it', async () => {
+        const token = { isCancellationRequested: false } as vscode.CancellationToken;
+        const d = deps({ pick: vi.fn(async () => b) });
+        await resolveNativeModel(d, token);
+        expect(d.pick).toHaveBeenCalledWith([a, b], token);
     });
 
     it('throws the provider error when no models exist', async () => {
