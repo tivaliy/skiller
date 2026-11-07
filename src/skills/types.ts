@@ -10,6 +10,7 @@
 
 import * as vscode from 'vscode';
 import type { ExecutionStateManager } from './execution-state';
+import type { ProgressHooks } from './progress-hooks';
 
 // ============================================================================
 // Re-export constants and types from schema module (single source of truth)
@@ -577,8 +578,8 @@ export interface ExecutionOptions {
     isAutoMode: boolean;
     /** Cancellation token */
     token: vscode.CancellationToken;
-    /** Chat stream for progress output */
-    stream?: vscode.ChatResponseStream;
+    /** Progress UI for this run, supplied by the run surface (chat stream today, native runner next) */
+    hooks: ProgressHooks;
     /** Available MCP categories */
     availableMcps: string[];
     /** Tool invocation token for MCP calls */

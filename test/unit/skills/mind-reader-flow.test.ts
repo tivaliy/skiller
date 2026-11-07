@@ -61,7 +61,7 @@ function makeOptions(executionState: ExecutionStateEmitter): ExecutionOptions {
         model: { id: 'fake-model' } as unknown as ExecutionOptions['model'],
         isAutoMode: true,
         token: { isCancellationRequested: false } as unknown as ExecutionOptions['token'],
-        stream: undefined,
+        hooks: {},
         availableMcps: [],
         executionState,
     };

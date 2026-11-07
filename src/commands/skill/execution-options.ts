@@ -9,11 +9,13 @@
 import { CommandContext } from '../types';
 import { getSetting } from '../../settings';
 import type { ExecutionOptions } from '../../skills';
+import { createStreamProgressHooks } from './stream-progress-hooks';
 
 /**
  * Build execution options from command context.
  *
- * Reads the current model/stream/token from the live request, so a resumed run
+ * Reads the current model/stream/token from the live request (the stream becomes
+ * the run's progress hooks), so a resumed run
  * intentionally uses the user's current model selection (mid-skill switching).
  */
 export function createExecutionOptions(
@@ -22,15 +24,16 @@ export function createExecutionOptions(
 ): ExecutionOptions {
     const { stream, request, token, model, isAutoMode, toolCache, executionState } = ctx;
 
+    const verboseMode = getSetting('skills.verboseMode');
     return {
         inputs,
         model,
         isAutoMode,
         token,
-        stream,
+        hooks: createStreamProgressHooks(stream, verboseMode),
         availableMcps: toolCache.getDiscoveredCategories(),
         toolToken: request.toolInvocationToken,
-        verboseMode: getSetting('skills.verboseMode'),
+        verboseMode,
         executionState
     };
 }

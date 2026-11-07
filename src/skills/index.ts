@@ -127,8 +127,6 @@ export {
     parseBoolean
 } from './validators';
 
-// Progress hooks factory
-export { createStreamProgressHooks } from './progress-hooks';
 
 // Shared helpers
 export { hasValue } from './utils';

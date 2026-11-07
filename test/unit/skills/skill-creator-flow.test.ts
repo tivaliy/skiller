@@ -90,7 +90,7 @@ function makeOptions(executionState: ExecutionStateEmitter, inputs: Record<strin
             isCancellationRequested: false,
             onCancellationRequested: () => ({ dispose: () => undefined }),
         } as unknown as ExecutionOptions['token'],
-        stream: undefined,
+        hooks: {},
         availableMcps: [],
         executionState,
     };

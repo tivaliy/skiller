@@ -31,7 +31,6 @@ import { loadSkillSteps } from './parser';
 import { interpolate, evaluateCondition } from './interpolation';
 import { buildStepInspection } from './step-inspection';
 import type { ExecutionStateManager } from './execution-state';
-import { createStreamProgressHooks } from './progress-hooks';
 import { SkillResultBuilder } from './result-builder';
 import { createToolResolver } from './tool-resolver';
 import { createModelResolver, type ModelResolver } from './model-resolver';
@@ -135,8 +134,8 @@ export class SkillExecutor {
         // Results for each step (reuse existing if resuming)
         let stepResults: StepResult[] = resumeOptions?.existingStepResults ?? [];
 
-        // Create progress hooks for UI rendering (per-execution, depends on stream/verboseMode)
-        const hooks = createStreamProgressHooks(options.stream, options.verboseMode ?? 'off');
+        // Progress UI is supplied by the run surface (never built here).
+        const hooks = options.hooks;
 
         // Use pre-computed auto mode flag from command context
         // Auto mode = skill controls model selection
