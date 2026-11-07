@@ -143,6 +143,8 @@ export { LaunchContextStore } from './launch-context-store';
 
 // Run core - chat-free launch-input logic shared by every runner
 export { coerceValue, resolveLaunchInputs, inputsToAsk, parseEnumAnswer } from './run/inputs';
+export { resumeAfterChoice } from './run/confirmation';
+export type { ConfirmationResume } from './run/confirmation';
 
 // Execution state management - DI-friendly with factory
 export {

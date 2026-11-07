@@ -11,7 +11,8 @@ import * as vscode from 'vscode';
 import { CommandContext, CommandResult } from '../types';
 import {
     PendingStateManager,
-    parseConfirmationResponse
+    parseConfirmationResponse,
+    resumeAfterChoice
 } from '../../skills';
 import { createExecutionOptions } from './execution-options';
 import { finalizeSkillRun } from './finalize';
@@ -73,39 +74,32 @@ export async function handleConfirmationResponse(ctx: CommandContext): Promise<C
         };
     }
 
-    // Capture the confirmation choice as this step's output. The executor writes
-    // it AND marks the answered step completed (single owner of resume-time
-    // context + state mutation); the command layer passes intent, not pokes.
-    const confirmationStep = pending.skill.steps[pending.pendingStepIndex];
-    const confirmationStepId = confirmationStep?.id;
-    const recordOutput = confirmationStep.output
-        ? {
-            key: confirmationStep.output,
-            value: {
-                selectedOption: selectedOption.label,
-                selectedIndex: pending.options.indexOf(selectedOption) + 1,
-                action: selectedOption.action,
-                timestamp: Date.now()
-            }
-        }
-        : undefined;
-
-    // Determine which step to resume from
-    let resumeFromStep: number;
+    // The run core decides where to resume and what to record. The executor writes
+    // the recorded output AND marks the answered step completed (single owner of
+    // resume-time context + state mutation); the command layer passes intent only.
+    const decision = resumeAfterChoice(
+        pending.skill,
+        {
+            stepIndex: pending.pendingStepIndex,
+            stepId: pending.skill.steps[pending.pendingStepIndex]?.id,
+            message: '',
+            options: pending.options
+        },
+        selectedOption,
+        pending.context,
+        pending.stepResults
+    );
+    if (decision.kind === 'abort') {
+        // Unreachable: abort is handled above. Kept to narrow the type.
+        return { handled: true, metadata: { command: 'skill_confirmation', skillId: pending.skillId, action: 'abort' } };
+    }
 
     presenter.showResuming(stream, pending.skillId);
-
-    if (selectedOption.action === 'goto' && selectedOption.gotoStep) {
-        const gotoIndex = pending.skill.steps.findIndex(s => s.id === selectedOption.gotoStep);
-        if (gotoIndex >= 0) {
-            resumeFromStep = gotoIndex;
-            presenter.showSelectedOption(stream, selectedOption.label, selectedOption.gotoStep);
-        } else {
-            presenter.showStepNotFound(stream, selectedOption.gotoStep);
-            resumeFromStep = pending.pendingStepIndex + 1;
-        }
+    if (decision.unknownGoto) {
+        presenter.showStepNotFound(stream, decision.unknownGoto);
+    } else if (selectedOption.action === 'goto' && selectedOption.gotoStep) {
+        presenter.showSelectedOption(stream, selectedOption.label, selectedOption.gotoStep);
     } else {
-        resumeFromStep = pending.pendingStepIndex + 1;
         presenter.showSelectedOption(stream, selectedOption.label);
     }
 
@@ -117,13 +111,7 @@ export async function handleConfirmationResponse(ctx: CommandContext): Promise<C
     // as part of resume preparation — no direct execution-state mutation here.
     const executionOptions = createExecutionOptions(ctx, pending.context.inputs);
 
-    const resumeOptions = {
-        startFromStep: resumeFromStep,
-        existingContext: pending.context,
-        existingStepResults: pending.stepResults,
-        recordOutput,
-        completedStepId: confirmationStepId
-    };
+    const resumeOptions = decision.resume;
 
     try {
         const result = await skillExecutor.execute(pending.skill, executionOptions, resumeOptions);
