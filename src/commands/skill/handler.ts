@@ -16,83 +16,15 @@ import {
     applyDefaults,
     checkReadiness,
     parseSkill,
-    resolveContextInputs,
-    resolveInputs,
-    validateSingleInput,
+    resolveLaunchInputs,
+    inputsToAsk,
     captureDeliveryTarget,
-    outputNeedsTarget,
-    hasValue
+    outputNeedsTarget
 } from '../../skills';
-import type { Skill, EditorContextSnapshot, LaunchContextStore } from '../../skills';
-import { parseArgs, mapPositionalArgs, coerceValue } from './argument-parser';
+import { parseArgs, mapPositionalArgs } from './argument-parser';
 import { createExecutionOptions } from './execution-options';
 import { finalizeSkillRun } from './finalize';
 import * as presenter from './presenter';
-
-/**
- * Resolve editor-context inputs at launch: prefer a snapshot stashed by an
- * editor trigger (captured at trigger time, before chat focus moved); otherwise
- * capture live (the chat-typed path). `captureLive` is injectable for tests.
- */
-export async function resolveLaunchInputs(
-    skill: Skill,
-    inputs: Record<string, unknown>,
-    launchContextStore?: LaunchContextStore,
-    captureLive: (skill: Skill, inputs: Record<string, unknown>) => Promise<Record<string, unknown>>
-        = resolveContextInputs,
-): Promise<Record<string, unknown>> {
-    const stashed: EditorContextSnapshot | undefined = launchContextStore?.take(skill.id);
-    const resolved = stashed
-        ? resolveInputs(skill, inputs, stashed)
-        : await captureLive(skill, inputs);
-    return normalizeContextInputs(skill, inputs, resolved);
-}
-
-/**
- * Reconcile `from:`-filled values with their input definition:
- *  - coerce a raw context string to the input's declared type (number/boolean/array), and
- *  - drop a context value the input would reject (enum/pattern/type) so a triggered run
- *    falls back to its normal prompt/skip flow instead of hard-failing validation for data
- *    the user never typed.
- * Only values the context actually supplied (the input was originally empty) are touched —
- * an explicit arg or a default always wins.
- */
-function normalizeContextInputs(
-    skill: Skill,
-    original: Record<string, unknown>,
-    resolved: Record<string, unknown>
-): Record<string, unknown> {
-    const out = { ...resolved };
-    for (const input of skill.inputs) {
-        if (!input.from) continue;
-        if (hasValue(original[input.name])) continue; // explicit arg / default wins
-        let value = out[input.name];
-        if (!hasValue(value)) continue; // context supplied nothing
-        if (typeof value === 'string') {
-            // Validate the RAW context string before coercing. validateSingleInput is
-            // coercion-aware (a numeric/boolean string passes, a junk string fails), so a
-            // code selection bound to a number/boolean/enum input is dropped here rather
-            // than being silently mangled by coerceValue (which turns any non-boolean into
-            // `false` and any string into an array — values that would then always validate).
-            // Arrays are the exception: the validator has no string→array rule, so the
-            // comma-split happens up front and the resulting array is validated below.
-            if (input.type === 'array') {
-                value = coerceValue(value, 'array');
-            } else if (!validateSingleInput(input, value).valid) {
-                delete out[input.name];
-                continue;
-            } else {
-                value = coerceValue(value, input.type);
-            }
-        }
-        if (validateSingleInput(input, value).valid) {
-            out[input.name] = value;
-        } else {
-            delete out[input.name];
-        }
-    }
-    return out;
-}
 
 /**
  * Handle /skill command - execute a skill
@@ -207,21 +139,7 @@ export async function runSkillById(
     }
 
     // Determine which inputs need to be prompted
-    const inputsToPrompt = skill.inputs.filter(input => {
-        const value = inputsWithDefaults[input.name];
-        const wasExplicitlyProvided = input.name in mappedInputs;
-        const present = hasValue(value);
-
-        if (input.required && !present) {
-            return true;
-        }
-
-        // A from:-bound input filled from editor context counts as provided —
-        // don't re-prompt for data the trigger already captured.
-        const filledFromContext = !!input.from && !wasExplicitlyProvided && present;
-
-        return !!(input.prompt && !wasExplicitlyProvided && !filledFromContext);
-    });
+    const inputsToPrompt = inputsToAsk(skill, mappedInputs, inputsWithDefaults);
 
     // If there are inputs to prompt, start interactive collection
     if (inputsToPrompt.length > 0) {

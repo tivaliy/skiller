@@ -8,7 +8,9 @@
  */
 
 import type { Skill } from '../../skills';
-import { parseBoolean } from '../../skills';
+import { coerceValue } from '../../skills';
+
+export { coerceValue };
 
 /**
  * Parsed arguments result
@@ -124,37 +126,4 @@ export function mapPositionalArgs(
     }
 
     return result;
-}
-
-/**
- * Coerce string value to appropriate type
- *
- * Returns the original string if coercion fails (e.g., invalid number).
- * Validation will catch type mismatches downstream.
- *
- * @param value - String value to coerce
- * @param type - Target type (number, boolean, array, or string)
- * @returns Coerced value or original string
- */
-export function coerceValue(value: string, type?: string): unknown {
-    if (!type) return value;
-
-    switch (type) {
-        case 'number': {
-            const num = Number(value);
-            // Return original string if NaN - validation will catch the type mismatch
-            if (Number.isNaN(num)) {
-                return value;
-            }
-            return num;
-        }
-        case 'boolean':
-            // Shared vocabulary with the input validator; unrecognized → false
-            // (validation surfaces a clearer error for non-boolean strings).
-            return parseBoolean(value) ?? false;
-        case 'array':
-            return value.split(',').map(s => s.trim());
-        default:
-            return value;
-    }
 }

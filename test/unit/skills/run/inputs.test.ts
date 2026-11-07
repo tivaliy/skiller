@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { resolveLaunchInputs } from '../../../../src/commands/skill/handler';
+import { resolveLaunchInputs, inputsToAsk, parseEnumAnswer } from '../../../../src/skills/run/inputs';
 import type { Skill } from '../../../../src/skills';
 import { LaunchContextStore } from '../../../../src/skills';
+import { createMockSkill, createMockInput } from '../../../helpers/mocks/skill';
 
 function skill(): Skill {
   return {
@@ -59,5 +60,25 @@ describe('resolveLaunchInputs', () => {
     store.set('greeter', { selection: 'true' });
     const out = await resolveLaunchInputs(s, {}, store);
     expect(out.flag).toBe(true);
+  });
+});
+
+describe('inputsToAsk', () => {
+  it('asks for a required empty input and a prompted non-explicit one, not context-filled ones', () => {
+    const s = createMockSkill({ inputs: [
+      createMockInput({ name: 'a', required: true }),
+      createMockInput({ name: 'b', required: false, prompt: 'B?' }),
+      createMockInput({ name: 'c', required: false, prompt: 'C?', from: 'selection' }),
+    ] });
+    expect(inputsToAsk(s, {}, { c: 'picked' }).map(i => i.name)).toEqual(['a', 'b']);
+  });
+});
+
+describe('parseEnumAnswer', () => {
+  it('parses enum answers by number or exact value', () => {
+    const input = createMockInput({ name: 'tone', enum: ['short', 'long'] });
+    expect(parseEnumAnswer(input, '2')).toEqual({ value: 'long' });
+    expect(parseEnumAnswer(input, 'short')).toEqual({ value: 'short' });
+    expect(parseEnumAnswer(input, '3')).toHaveProperty('error');
   });
 });

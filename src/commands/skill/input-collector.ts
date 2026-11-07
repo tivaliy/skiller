@@ -14,9 +14,10 @@ import {
     SkillInput,
     validateInputs,
     validateSingleInput,
-    applyDefaults
+    applyDefaults,
+    coerceValue,
+    parseEnumAnswer
 } from '../../skills';
-import { coerceValue } from './argument-parser';
 import { createExecutionOptions } from './execution-options';
 import { finalizeSkillRun } from './finalize';
 import * as presenter from './presenter';
@@ -167,18 +168,12 @@ function parseEnumValue(
     userResponse: string,
     skillId: string
 ): { value: unknown; error?: CommandResult } {
-    const enumValues = input.enum!;
-    const numResponse = parseInt(userResponse, 10);
-
-    if (!isNaN(numResponse) && numResponse >= 1 && numResponse <= enumValues.length) {
-        return { value: enumValues[numResponse - 1] };
+    const parsed = parseEnumAnswer(input, userResponse);
+    if ('value' in parsed) {
+        return { value: parsed.value };
     }
 
-    if (enumValues.includes(userResponse)) {
-        return { value: userResponse };
-    }
-
-    presenter.showInvalidEnumError(stream, enumValues.length);
+    presenter.showInvalidEnumError(stream, input.enum!.length);
     presenter.showInputPrompt(stream, input);
 
     return {

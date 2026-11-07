@@ -141,6 +141,9 @@ export { PendingStateManager } from './PendingStateManager';
 // it through the shared engine rather than reaching into the editor layer).
 export { LaunchContextStore } from './launch-context-store';
 
+// Run core - chat-free launch-input logic shared by every runner
+export { coerceValue, resolveLaunchInputs, inputsToAsk, parseEnumAnswer } from './run/inputs';
+
 // Execution state management - DI-friendly with factory
 export {
     ExecutionStateEmitter,
