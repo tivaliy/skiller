@@ -8,12 +8,15 @@
  * Results are always returned as text (never thrown). Success starts with
  * `Skill written:`, failure with `Skill not written:`; neither may match
  * the runner's isToolResultError, or it would treat them as tool failures.
- * No confirmationMessages: the user already asked for the skill.
+ * Confirmation: only Skiller's own built-in skill-creator run writes without a
+ * prompt (the user already asked for the skill). Any other caller, such as an
+ * agent that was handed this tool, is asked first.
  *
  * @module tools/write-skill
  */
 
 import * as vscode from 'vscode';
+import { writeSkillApproval } from './approval-text';
 import type { CommitResult, CreatedSkill, SkillFileEntries } from '../scaffold/types';
 
 export interface WriteSkillInput {
@@ -25,6 +28,8 @@ export interface WriteSkillDeps {
     /** Files as sent (a repeated path is reported by the commit as a duplicate). */
     commit(id: string, files: SkillFileEntries): Promise<CommitResult>;
     finish(result: CreatedSkill): Promise<void>;
+    /** True while Skiller's built-in skill-creator is the active run. */
+    isSkillCreatorRun(): boolean;
 }
 
 function text(value: string): vscode.LanguageModelToolResult {
@@ -83,6 +88,15 @@ export class WriteSkillTool implements vscode.LanguageModelTool<WriteSkillInput>
         options: vscode.LanguageModelToolInvocationPrepareOptions<WriteSkillInput>,
         _token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
-        return { invocationMessage: `Writing skill: ${options.input?.id ?? ''}` };
+        const invocationMessage = `Writing skill: ${options.input?.id ?? ''}`;
+        const input: unknown = options.input;
+        if (this.deps.isSkillCreatorRun() || !isValidInput(input)) {
+            return { invocationMessage };
+        }
+        const { title, markdown } = writeSkillApproval(input);
+        return {
+            invocationMessage,
+            confirmationMessages: { title, message: new vscode.MarkdownString(markdown) }
+        };
     }
 }

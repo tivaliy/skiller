@@ -119,7 +119,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const controller = createRunController(context, toolApprovals, showGraph);
 
     registerTools(context, {
-        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri })),
+        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri }), controller),
         listSkills: { skills: () => skillRegistry.getAll() },
         runSkill: {
             find: id => skillRegistry.getById(id),

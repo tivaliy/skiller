@@ -15,7 +15,7 @@ describe('createWriteSkillDeps', () => {
             getAll: () => ids.map(id => ({ id }))
         };
         const finish = vi.fn().mockResolvedValue(undefined);
-        const deps = createWriteSkillDeps(registry as never, finish);
+        const deps = createWriteSkillDeps(registry as never, finish, { active: undefined });
         const files = new Map<string, string>();
 
         await deps.commit('x', files);
@@ -36,5 +36,19 @@ describe('createWriteSkillDeps', () => {
         const finishes = finish.mock.calls;
         expect(finishes).toHaveLength(1);
         expect(finishes[0][0]).toEqual({ id: 'x', dir: '/user/skills/x', tier: 'user' });
+    });
+
+    it('isSkillCreatorRun is true only for the built-in skill-creator being run', () => {
+        const registry = { getWorkspaceSkillsPath: () => undefined, getUserSkillsPath: () => '/u', getAll: () => [] };
+        const skill = (id: string, type: string) => ({ skill: { id, source: { type } } });
+        let active: unknown;
+        const deps = createWriteSkillDeps(registry as never, vi.fn(), { get active() { return active as never; } });
+        expect(deps.isSkillCreatorRun()).toBe(false);
+        active = skill('skill-creator', 'builtin');
+        expect(deps.isSkillCreatorRun()).toBe(true);
+        active = skill('skill-creator', 'user');
+        expect(deps.isSkillCreatorRun()).toBe(false);
+        active = skill('other', 'builtin');
+        expect(deps.isSkillCreatorRun()).toBe(false);
     });
 });

@@ -12,6 +12,7 @@ function make(overrides: Partial<WriteSkillDeps> = {}) {
     const deps: WriteSkillDeps = {
         commit: vi.fn().mockResolvedValue({ ok: true, id: 'my-skill', dir: '/ws/.skiller/skills/my-skill', tier: 'workspace' }),
         finish: vi.fn().mockResolvedValue(undefined),
+        isSkillCreatorRun: () => false,
         ...overrides
     };
     return { deps, tool: new WriteSkillTool(deps) };
@@ -76,10 +77,18 @@ describe('WriteSkillTool', () => {
         expect(isToolResultError(text)).toBe(false);
     });
 
-    it('has no confirmation messages', async () => {
-        const { tool } = make();
+    it('asks for confirmation when called outside the skill-creator run', async () => {
+        const { tool } = make({ isSkillCreatorRun: () => false });
         const prepared = await tool.prepareInvocation({ input } as never, token);
-        expect(prepared).not.toHaveProperty('confirmationMessages');
+        const confirmation = prepared.confirmationMessages as { title: string; message: { value: string } };
+        expect(confirmation.title).toBe('Write Skiller skill');
+        expect(confirmation.message.value).toBe('Write skill **my-skill** with files: `skill.yaml`?');
+    });
+
+    it("does not ask during Skiller's own skill-creator run", async () => {
+        const { tool } = make({ isSkillCreatorRun: () => true });
+        const prepared = await tool.prepareInvocation({ input } as never, token);
+        expect(prepared).toEqual({ invocationMessage: 'Writing skill: my-skill' });
     });
 
     it('returns Skill not written for malformed input', async () => {
