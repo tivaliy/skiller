@@ -21,6 +21,14 @@ export class LanguageModelTextPart {
 export class MarkdownString {
     isTrusted?: boolean | { readonly enabledCommands: readonly string[] };
     constructor(public value = '') {}
+    appendText(text: string): this {
+        this.value += text.replace(/[\\`*_{}[\]()#+\-.!<>|]/g, '\\$&').replace(/\n/g, '&nbsp;\n\n');
+        return this;
+    }
+    appendMarkdown(markdown: string): this {
+        this.value += markdown;
+        return this;
+    }
 }
 
 export class LanguageModelToolResult {

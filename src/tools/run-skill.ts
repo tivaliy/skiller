@@ -29,6 +29,8 @@ export interface RunSkillDeps {
     ids(): string[];
     run(req: RunRequest): Promise<RunOutcome>;
     captureTarget(skill: Skill): DeliveryTarget | undefined;
+    /** A fresh cancellation source for one run (the run's own, so it can outlive the tool call). */
+    newCancellation(): { token: vscode.CancellationToken; cancel(): void; dispose(): void };
     /** How long invoke waits for the run before handing over to VS Code (600_000). */
     waitCapMs: number;
 }
@@ -37,6 +39,10 @@ const CAP_TEXT = 'The run continues in VS Code; see the graph panel for the resu
 
 function text(value: string): vscode.LanguageModelToolResult {
     return new vscode.LanguageModelToolResult([new vscode.LanguageModelTextPart(value)]);
+}
+
+function longestBacktickRun(s: string): number {
+    return Math.max(0, ...(s.match(/`+/g) ?? []).map(r => r.length));
 }
 
 function describeDelivery(delivery: DeliveryOutcome): string {
@@ -76,9 +82,16 @@ export class RunSkillTool implements vscode.LanguageModelTool<RunSkillInput> {
             return text(`Unknown skill "${String(id)}". Valid ids: ${this.deps.ids().join(', ') || '(none)'}.`);
         }
 
+        // The run gets its own token, mirrored from the tool's until the wait cap fires:
+        // past the cap the run keeps going even if the harness cancels the finished tool call.
+        const source = this.deps.newCancellation();
+        const mirror = token.isCancellationRequested
+            ? (source.cancel(), undefined)
+            : token.onCancellationRequested(() => source.cancel());
         let timer: ReturnType<typeof setTimeout> | undefined;
         try {
-            const run = this.deps.run({ skill, inputs, target: this.deps.captureTarget(skill), token });
+            const run = this.deps.run({ skill, inputs, target: this.deps.captureTarget(skill), token: source.token });
+            void run.then(() => source.dispose(), () => source.dispose());
             const cap = new Promise<'cap'>(resolve => { timer = setTimeout(() => resolve('cap'), this.deps.waitCapMs); });
             const winner = await Promise.race([run, cap]);
             return text(winner === 'cap' ? CAP_TEXT : describeOutcome(winner));
@@ -86,6 +99,7 @@ export class RunSkillTool implements vscode.LanguageModelTool<RunSkillInput> {
             return text(`The run could not be completed: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             if (timer) { clearTimeout(timer); }
+            mirror?.dispose();
         }
     }
 
@@ -96,12 +110,19 @@ export class RunSkillTool implements vscode.LanguageModelTool<RunSkillInput> {
         const id = options.input?.id;
         const skill = typeof id === 'string' ? this.deps.find(id) : undefined;
         const name = skill?.name ?? String(id);
-        const given = Object.entries(options.input?.inputs ?? {});
-        const lines = given.map(([k, v]) => `- \`${k}\`: ${typeof v === 'string' ? v : JSON.stringify(v)}`);
-        const markdown = `Run **${name}**?` + (lines.length ? `\n\nInputs:\n${lines.join('\n')}` : '');
+        const message = new vscode.MarkdownString()
+            .appendMarkdown('Run **').appendText(name).appendMarkdown('**?');
+        const given = options.input?.inputs ?? {};
+        if (Object.keys(given).length > 0) {
+            // Agent-supplied values are shown only as JSON inside a fence longer than any
+            // backtick run in it, so nothing in them can render as Markdown or end the block.
+            const json = JSON.stringify(given, null, 2);
+            const fence = '`'.repeat(Math.max(3, longestBacktickRun(json) + 1));
+            message.appendMarkdown(`\n\nInputs:\n\n${fence}json\n${json}\n${fence}\n`);
+        }
         return {
             invocationMessage: `Running Skiller skill ${name}…`,
-            confirmationMessages: { title: 'Run Skiller skill', message: new vscode.MarkdownString(markdown) }
+            confirmationMessages: { title: 'Run Skiller skill', message }
         };
     }
 }

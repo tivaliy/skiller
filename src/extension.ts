@@ -128,6 +128,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
             captureTarget: skill => outputNeedsTarget(skill.output?.to)
                 ? captureDeliveryTarget({ excludeDir: skill.source.path })
                 : undefined,
+            newCancellation: () => new vscode.CancellationTokenSource(),
             waitCapMs: 600_000,
         },
     });
