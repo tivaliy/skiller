@@ -9,6 +9,8 @@
  * a workspace or user skill using one cannot run. Built-ins such as
  * skill-creator and greeter stay listed. A skill that references a chat-only
  * tool (chatOnlyToolsUsedBy) is never listed: no Skiller run has a chat session.
+ * Nor is a skill that references skiller_runSkill or skiller_listSkills
+ * (notFromRunToolsUsedBy): those can't be used inside a Skiller run.
  *
  * @module tools/list-skills
  */
@@ -16,7 +18,7 @@
 import * as vscode from 'vscode';
 import type { Skill } from '../skills/types';
 import { builtinOnlyToolsUsedBy } from '../skills/reserved-tools';
-import { chatOnlyToolsUsedBy } from '../skills/tool-policy';
+import { chatOnlyToolsUsedBy, notFromRunToolsUsedBy } from '../skills/tool-policy';
 import { outputNeedsTarget } from '../skills/output';
 
 export interface ListSkillsDeps {
@@ -35,6 +37,7 @@ export class ListSkillsTool implements vscode.LanguageModelTool<Record<string, n
             const listed = this.deps.skills()
                 .filter(s => s.source.type === 'builtin' || builtinOnlyToolsUsedBy(s).length === 0)
                 .filter(s => chatOnlyToolsUsedBy(s).length === 0)
+                .filter(s => notFromRunToolsUsedBy(s).length === 0)
                 .map(s => ({
                     id: s.id,
                     name: s.name,

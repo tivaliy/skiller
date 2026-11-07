@@ -28,6 +28,8 @@ describe('tools source', () => {
       { name: 'copilot_createFile', description: '…' },
       { name: 'search_subagent', description: '…' },
       { name: 'skiller_writeSkill', description: '…' },
+      { name: 'skiller_runSkill', description: '…' },
+      { name: 'skiller_listSkills', description: '…' },
     ]);
     expect(out).toBe('x_tool — Does X');
   });

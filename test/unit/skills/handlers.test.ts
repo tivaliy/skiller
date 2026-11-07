@@ -467,6 +467,52 @@ describe('LLMStepHandler built-in-only tools (runtime gate)', () => {
     });
 });
 
+describe('Run-refused tools (runtime gate)', () => {
+    const llmCtx = (sourceType: 'builtin' | 'workspace', frontmatterTools: string[], aliases: Record<string, string> = {}) => ({
+        skill: { source: { type: sourceType }, tools: { aliases }, onError: 'continue' },
+        // Declared only in the step file's frontmatter, so readiness never saw them.
+        step: { id: 's1', type: 'llm', file: 'steps/01.md' },
+        parsedStep: { meta: { tools: frontmatterTools }, prompt: 'do it' },
+        resolvedModel: { model: {} },
+        context: createMockExecutionContext(),
+        token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) }
+    } as unknown as StepContext);
+
+    const resolver = () => {
+        const resolve = vi.fn(() => []);
+        return { resolve, resolver: { resolve, findTool: () => undefined, validateReferences: vi.fn() } as unknown as ToolResolver };
+    };
+
+    it.each([
+        ['workspace', ['skiller_runSkill'], {}, "Tool 'skiller_runSkill' can't be used inside a Skiller run."],
+        ['builtin', ['skiller_listSkills?'], {}, "Tool 'skiller_listSkills' can't be used inside a Skiller run."],
+        ['workspace', ['run'], { run: 'skiller_runSkill' }, "Tool 'skiller_runSkill' can't be used inside a Skiller run."],
+        ['workspace', ['search_subagent'], {}, "Tool 'search_subagent' only works inside VS Code chat sessions."],
+        ['builtin', ['copilot_editFiles?'], {}, "Tool 'copilot_editFiles' only works inside VS Code chat sessions."],
+    ] as const)('refuses a %s LLM step whose frontmatter offers %j', async (source, tools, aliases, message) => {
+        const { resolve, resolver: r } = resolver();
+        const result = await new LLMStepHandler(r).handle(llmCtx(source, [...tools], aliases), {});
+        expect(result.stepResult?.success).toBe(false);
+        expect(result.stepResult?.error).toContain(message);
+        expect(resolve).not.toHaveBeenCalled();
+    });
+
+    it('refuses a built-in tool step calling skiller_runSkill before resolving it', async () => {
+        const validateReferences = vi.fn();
+        const r = { resolve: () => [], findTool: () => undefined, validateReferences } as unknown as ToolResolver;
+        const ctx = {
+            skill: { source: { type: 'builtin' }, tools: { aliases: {} }, onError: 'continue' },
+            step: { id: 's1', type: 'tool', tool: 'skiller_runSkill' },
+            context: {},
+            token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) }
+        } as unknown as StepContext;
+        const result = await new ToolStepHandler(r).handle(ctx, {});
+        expect(result.stepResult?.success).toBe(false);
+        expect(result.stepResult?.error).toContain("Tool 'skiller_runSkill' can't be used inside a Skiller run.");
+        expect(validateReferences).not.toHaveBeenCalled();
+    });
+});
+
 describe('LLMStepHandler approval gate', () => {
     it('passes ctx.approveTool to the runner: a declined tool call is not invoked', async () => {
         vi.mocked(vscode.lm.invokeTool).mockClear();

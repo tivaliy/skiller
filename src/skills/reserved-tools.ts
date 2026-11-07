@@ -4,7 +4,8 @@
  * untrusted repository) must not reach them. Enforced by:
  * - BuiltinOnlyToolsCheck: an early readiness error for references in skill.yaml.
  * - assertMayUseTools: the runtime gate in the LLM and tool step handlers, which also
- *   covers tools declared in a step file's frontmatter.
+ *   covers tools declared in a step file's frontmatter. The same gate refuses
+ *   chat-only and not-from-run tools (tool-policy.ts) for every skill, built-ins included.
  * - The native ToolApprovalPolicy wiring (RunController), which skips the prompt only
  *   for a built-in skill's call.
  * - skiller_writeSkill's own origin check, which confirms writes that don't come
@@ -17,7 +18,15 @@
  * Pure: no vscode import.
  */
 import type { Skill } from './types';
-import { BUILTIN_ONLY_TOOLS, toolsAmong, toolsUsedBy } from './tool-policy';
+import {
+    BUILTIN_ONLY_TOOLS,
+    CHAT_ONLY_TOOLS,
+    NOT_FROM_RUN_TOOLS,
+    chatOnlyToolMessage,
+    notFromRunToolMessage,
+    toolsAmong,
+    toolsUsedBy,
+} from './tool-policy';
 
 export { BUILTIN_ONLY_TOOLS };
 
@@ -35,13 +44,19 @@ export function builtinOnlyToolMessage(name: string): string {
     return `Tool '${name}' can only be used by Skiller's built-in skills.`;
 }
 
-/** Runtime gate: throw if a non-built-in skill is about to offer or call a built-in-only tool. */
+/**
+ * Runtime gate: throw if a step is about to offer or call a tool no Skiller run may use
+ * (chat-only or not-from-run, for any skill), or a built-in-only tool from a skill that
+ * is not built-in. Catches what readiness can't see, such as step-file frontmatter.
+ */
 export function assertMayUseTools(skill: Pick<Skill, 'source' | 'tools'>, refs: readonly string[]): void {
-    if (skill.source.type === 'builtin') {
-        return;
-    }
-    const refused = toolsAmong(refs, skill.tools.aliases, BUILTIN_ONLY_TOOLS);
-    if (refused.length > 0) {
-        throw new Error(refused.map(builtinOnlyToolMessage).join(' '));
+    const { aliases } = skill.tools;
+    const messages = [
+        ...toolsAmong(refs, aliases, CHAT_ONLY_TOOLS).map(chatOnlyToolMessage),
+        ...toolsAmong(refs, aliases, NOT_FROM_RUN_TOOLS).map(notFromRunToolMessage),
+        ...(skill.source.type === 'builtin' ? [] : toolsAmong(refs, aliases, BUILTIN_ONLY_TOOLS).map(builtinOnlyToolMessage)),
+    ];
+    if (messages.length > 0) {
+        throw new Error(messages.join(' '));
     }
 }

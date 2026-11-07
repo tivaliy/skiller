@@ -59,4 +59,13 @@ describe('ListSkillsTool', () => {
         ]);
         expect(out.map((s: { id: string }) => s.id)).toEqual(['ok']);
     });
+
+    it('excludes skills that use skiller_runSkill or skiller_listSkills, built-ins included: no nested runs', async () => {
+        const out = await list([
+            skill({ id: 'chain', tools: { aliases: { r: 'skiller_runSkill' } } }),
+            skill({ id: 'lister', source: { type: 'builtin', path: '/b' }, steps: [{ id: 's', type: 'tool', tool: 'skiller_listSkills?' }] as Skill['steps'] }),
+            skill({ id: 'ok' })
+        ]);
+        expect(out.map((s: { id: string }) => s.id)).toEqual(['ok']);
+    });
 });

@@ -6,7 +6,7 @@
  */
 
 import type { ContextSource, EditorContextSnapshot } from './types';
-import { BUILTIN_ONLY_TOOLS, CHAT_ONLY_TOOLS } from '../tool-policy';
+import { BUILTIN_ONLY_TOOLS, CHAT_ONLY_TOOLS, NOT_FROM_RUN_TOOLS } from '../tool-policy';
 
 const CONTEXT_SOURCES: Record<string, ContextSource> = {
     'selection': s => s.selection,
@@ -37,9 +37,13 @@ export const FILE_CONTENT_SOURCES: ReadonlySet<string> = new Set(['activeFile', 
  */
 export const AMBIENT_SOURCES: ReadonlySet<string> = new Set(['tools']);
 
-/** Tools hidden from the `from: tools` list: they need a chat session, or are reserved for built-ins (both enforced by readiness). */
+/**
+ * Tools hidden from the `from: tools` list: they need a chat session, can't be used
+ * inside a run, or are reserved for built-ins (all enforced by readiness and at runtime).
+ */
 const TOOLS_UNUSABLE_FROM_SKILLS: ReadonlySet<string> = new Set([
     ...CHAT_ONLY_TOOLS,
+    ...NOT_FROM_RUN_TOOLS,
     ...BUILTIN_ONLY_TOOLS,
 ]);
 
