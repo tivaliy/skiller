@@ -214,6 +214,39 @@ export const workspace = {
         copy: vi.fn().mockResolvedValue(undefined),
         createDirectory: vi.fn().mockResolvedValue(undefined),
     },
+    openTextDocument: vi.fn(),
+};
+
+// Window namespace: notifications, pickers, progress, documents
+export const window = {
+    showQuickPick: vi.fn(),
+    showInputBox: vi.fn(),
+    showInformationMessage: vi.fn(),
+    showWarningMessage: vi.fn(),
+    showErrorMessage: vi.fn(),
+    withProgress: vi.fn(),
+    createOutputChannel: vi.fn(),
+    showTextDocument: vi.fn(),
+};
+
+// Commands namespace
+export const commands = {
+    executeCommand: vi.fn(),
+};
+
+// ProgressLocation enum (matches vscode.ProgressLocation)
+export enum ProgressLocation {
+    SourceControl = 1,
+    Window = 10,
+    Notification = 15,
+}
+
+// Env namespace (clipboard)
+export const env = {
+    clipboard: {
+        readText: vi.fn(),
+        writeText: vi.fn(),
+    },
 };
 
 // Export default for module resolution
@@ -232,4 +265,8 @@ export default {
     FileSystemError,
     Uri,
     workspace,
+    window,
+    commands,
+    ProgressLocation,
+    env,
 };
