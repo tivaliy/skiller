@@ -38,6 +38,16 @@ function isVscodeImport(spec: string): boolean {
     return spec === 'vscode';
 }
 
+/** Every `.ts` file under `dir`, recursively ([] if the directory is missing). */
+function walkTs(dir: string): string[] {
+    if (!fs.existsSync(dir)) {
+        return [];
+    }
+    return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walkTs(path.join(dir, e.name)) : e.name.endsWith('.ts') ? [path.join(dir, e.name)] : [],
+    );
+}
+
 const SKILLS = path.resolve(process.cwd(), 'src/skills');
 const CONTEXT = path.join(SKILLS, 'context');
 const OUTPUT = path.join(SKILLS, 'output');
@@ -177,19 +187,10 @@ describe('editor-output vscode-isolation guard', () => {
 describe('scaffold vscode-isolation guard', () => {
     const SCAFFOLD = path.resolve(process.cwd(), 'src/scaffold');
 
-    function walk(dir: string): string[] {
-        if (!fs.existsSync(dir)) {
-            return [];
-        }
-        return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
-            e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith('.ts') ? [path.join(dir, e.name)] : [],
-        );
-    }
-
     const listed = ['types.ts', 'ids.ts', 'commit.ts', 'flow.ts', 'kinds.ts', 'target.ts', 'sources/registry.ts', 'sources/templates.ts'].map((f) =>
         path.join(SCAFFOLD, f),
     );
-    const pureFiles = [...new Set([...listed, ...walk(path.join(SCAFFOLD, 'sources'))])];
+    const pureFiles = [...new Set([...listed, ...walkTs(path.join(SCAFFOLD, 'sources'))])];
 
     it.each(listed.map((abs) => path.relative(SCAFFOLD, abs)))('scaffold/%s exists', (rel) => {
         expect(fs.existsSync(path.join(SCAFFOLD, rel))).toBe(true);
@@ -198,6 +199,31 @@ describe('scaffold vscode-isolation guard', () => {
     for (const abs of pureFiles) {
         it(`scaffold/${path.relative(SCAFFOLD, abs)} does not import the vscode runtime`, () => {
             expect(importSpecifiers(abs).filter(isVscodeImport)).toEqual([]);
+        });
+    }
+});
+
+/**
+ * The chat-participant API is deprecated (not supported in the Copilot harness).
+ * The engine, scaffold, editor surfaces and tools must not depend on it; only the
+ * chat command layer (src/commands/, removed in phase 4) may.
+ */
+describe('chat-participant isolation guard', () => {
+    const CHAT_API =
+        /\bvscode\.(ChatResponseStream|ChatParticipantToolToken|ChatRequest|ChatContext|ChatResult|ChatRequestTurn|ChatResponseTurn|ChatFollowup)\b|\bchat\.createChatParticipant\b/;
+    const codeOnly = (text: string): string =>
+        text.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
+
+    it('the detector has teeth', () => {
+        expect(CHAT_API.test('stream?: vscode.ChatResponseStream;')).toBe(true);
+        expect(CHAT_API.test('vscode.chat.createChatParticipant(id, handler)')).toBe(true);
+        expect(CHAT_API.test(codeOnly(' * uses vscode.ChatRequest in docs'))).toBe(false);
+    });
+
+    const roots = ['src/skills', 'src/scaffold', 'src/editor', 'src/tools'].map((r) => path.resolve(process.cwd(), r));
+    for (const file of roots.flatMap(walkTs)) {
+        it(`${path.relative(process.cwd(), file)} uses no chat-participant API`, () => {
+            expect(codeOnly(fs.readFileSync(file, 'utf8'))).not.toMatch(CHAT_API);
         });
     }
 });
