@@ -7,6 +7,15 @@ import { runNewSkillFlow, type ScaffoldUi } from '../scaffold/flow';
 import { COPY_SKILL_COMMAND, NEW_SKILL_COMMAND, NEW_SKILL_KINDS, type NewSkillKind } from '../scaffold/kinds';
 import { copyableBuiltins, type ScaffoldKind, type ScaffoldSource, type SourceEnv } from '../scaffold/sources/registry';
 import { validateStagedSkill } from '../scaffold/validate-staged';
+import type { RunController } from '../skills/run';
+
+/** The built-in skill that writes a new skill from a described idea. */
+const SKILL_CREATOR_ID = 'skill-creator';
+
+export interface ScaffoldCommandDeps extends FinishDeps {
+    /** Runs the skill-creator for New Skill → Describe. */
+    controller: Pick<RunController, 'run'>;
+}
 
 const KIND_ITEMS: Array<vscode.QuickPickItem & { flow: NewSkillKind }> = NEW_SKILL_KINDS.map((k) => ({
     flow: k.kind,
@@ -20,7 +29,7 @@ const SOURCE_GROUPS: Record<ScaffoldSource['kind'], string> = {
     builtin: 'Built-in skills',
 };
 
-function createUi(): ScaffoldUi {
+function createUi(deps: ScaffoldCommandDeps): ScaffoldUi {
     return {
         async pickKind() {
             return (await vscode.window.showQuickPick(KIND_ITEMS, { title: 'New Skill', placeHolder: 'How do you want to start?' }))?.flow;
@@ -47,9 +56,7 @@ function createUi(): ScaffoldUi {
             });
         },
         async openDescribe() {
-            // Ask for the idea in an input box, then submit `/new <idea>` so the
-            // skill-creator starts right away. Prefilling the chat input proved
-            // unreliable (no visible effect when chat is already open).
+            // Ask for the idea, then run the skill-creator natively with it as input.
             const idea = (await vscode.window.showInputBox({
                 title: 'New Skill — describe it',
                 prompt: 'Describe the workflow you want Skiller to run',
@@ -57,7 +64,12 @@ function createUi(): ScaffoldUi {
                 ignoreFocusOut: true,
             }))?.trim();
             if (!idea) return; // dismissed or empty: do nothing
-            await vscode.commands.executeCommand('workbench.action.chat.open', { query: `@skiller /new ${idea}` });
+            const creator = deps.skillRegistry.getById(SKILL_CREATOR_ID);
+            if (!creator) {
+                void vscode.window.showErrorMessage(`Skiller: the ${SKILL_CREATOR_ID} skill is not available.`);
+                return;
+            }
+            await deps.controller.run({ skill: creator, inputs: { idea } });
         },
         showErrors(errors) {
             void vscode.window.showErrorMessage(`Skill not created: ${errors.join(' ')}`);
@@ -76,7 +88,7 @@ async function listDirs(dir: string): Promise<string[]> {
     }
 }
 
-export function registerScaffoldCommands(context: vscode.ExtensionContext, deps: FinishDeps): void {
+export function registerScaffoldCommands(context: vscode.ExtensionContext, deps: ScaffoldCommandDeps): void {
     const { skillRegistry } = deps;
     const run = async (kind?: NewSkillKind, sourceId?: string, sourceKind?: ScaffoldKind): Promise<void> => {
         const env: SourceEnv = {
@@ -87,7 +99,7 @@ export function registerScaffoldCommands(context: vscode.ExtensionContext, deps:
         const target = resolveTarget(skillRegistry);
         await runNewSkillFlow(
             {
-                ui: createUi(),
+                ui: createUi(deps),
                 env,
                 fs: createVsCodeScaffoldFs(),
                 target,

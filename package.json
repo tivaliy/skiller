@@ -114,6 +114,26 @@
         "command": "skiller.copySkill",
         "title": "Copy Skill to Workspace…",
         "category": "Skiller"
+      },
+      {
+        "command": "skiller.showSkills",
+        "title": "Show Skills",
+        "category": "Skiller"
+      },
+      {
+        "command": "skiller.cancelRun",
+        "title": "Cancel Run",
+        "category": "Skiller"
+      },
+      {
+        "command": "skiller.reloadSkills",
+        "title": "Reload Skills",
+        "category": "Skiller"
+      },
+      {
+        "command": "skiller.resetToolApprovals",
+        "title": "Reset Tool Approvals",
+        "category": "Skiller"
       }
     ],
     "menus": {
@@ -162,16 +182,6 @@
           "type": "boolean",
           "default": false,
           "description": "Allow Skiller's file tools (createFile / replaceInFile) to write outside the workspace folder. When false (default), target paths that resolve outside the workspace are refused. Enable only if a skill legitimately needs to write to absolute paths beyond the workspace."
-        },
-        "skiller.skills.runSurface": {
-          "type": "string",
-          "enum": ["adaptive", "chat"],
-          "enumDescriptions": [
-            "Open chat with the @skiller command prefilled and wait for you to submit (default)",
-            "Submit immediately and watch the run stream"
-          ],
-          "default": "adaptive",
-          "description": "How a skill launched from the editor (Command Palette, context menu, or code action) enters chat. 'adaptive' prefills the command so you can review and launch it; 'chat' runs immediately."
         },
         "skiller.model.default": {
           "type": "string",

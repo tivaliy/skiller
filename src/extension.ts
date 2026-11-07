@@ -6,7 +6,7 @@ import {
     handleInputResponse,
     checkPendingInputCollection
 } from './commands';
-import { finishSkill, registerScaffoldCommands, registerTriggers } from './editor';
+import { createNativeSurface, finishSkill, registerScaffoldCommands, registerTriggers } from './editor';
 import { createWriteSkillDeps } from './scaffold';
 import {
     PendingStateManager,
@@ -18,18 +18,28 @@ import {
     createExecutionState,
     ExecutionStateManager,
     panelManager,
+    showSkillGraph,
     StepInspectionDocumentProvider,
     STEP_INSPECTION_SCHEME
 } from './skills';
-import type { SkillExecutor } from './skills';
+import type { Skill, SkillExecutor } from './skills';
 import { ToolCache } from './ToolCache';
 import { resolveRequestModel } from './skills';
+import { resolveNativeModel } from './skills/model-selection';
+import { RunController, ToolApprovalPolicy } from './skills/run';
 import { registerTools } from './tools';
+import { describeSkillerToolCall } from './tools/approval-text';
+import { getSetting } from './settings';
 
 const PARTICIPANT_ID = 'tivaliy.skiller';
 
 /** Commands allowed to run even while a skill is awaiting input/confirmation. */
 const CONTROL_COMMANDS = new Set(['cancel', 'reset', 'status']);
+
+/** Workspace-state key: names of tools the user chose to always allow in native runs. */
+const ALWAYS_ALLOWED_TOOLS_KEY = 'skiller.toolApprovals.always';
+/** Global-state key: the model id picked for native runs when no setting names one. */
+const LAST_PICKED_MODEL_KEY = 'skiller.model.lastPicked';
 
 let toolCache!: ToolCache;
 let pendingStateManager!: PendingStateManager;
@@ -101,14 +111,83 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri })),
     });
     registerSkillCodeLens(context);
-    registerTriggers(context, skillRegistry, launchContextStore);
-    registerScaffoldCommands(context, { skillRegistry, extensionUri: context.extensionUri });
+
+    const showGraph = (skill: Skill): Promise<void> =>
+        showSkillGraph(skill, context.extensionUri, { webview: { preserveFocus: true } }).then(() => undefined);
+    const toolApprovals = new ToolApprovalPolicy({
+        get: () => context.workspaceState.get<string[]>(ALWAYS_ALLOWED_TOOLS_KEY, []),
+        set: names => context.workspaceState.update(ALWAYS_ALLOWED_TOOLS_KEY, names),
+    });
+    const controller = createRunController(context, toolApprovals, showGraph);
+
+    registerTriggers(context, {
+        controller,
+        registry: skillRegistry,
+        policy: toolApprovals,
+        launchStore: launchContextStore,
+        showGraph,
+        reloadTools: () => toolCache.refresh(),
+    });
+    registerScaffoldCommands(context, { skillRegistry, extensionUri: context.extensionUri, controller });
     context.subscriptions.push(enableLiveReload());
 
     const participant = vscode.chat.createChatParticipant(PARTICIPANT_ID, handleRequest);
     participant.iconPath = vscode.Uri.joinPath(context.extensionUri, 'resources', 'icon.png');
 
     context.subscriptions.push(participant);
+}
+
+/**
+ * The native runner: a RunController talking to the user through the native surface.
+ * The surface's Cancel button cancels the controller's run, so the surface refers
+ * back to the controller lazily.
+ */
+function createRunController(
+    context: vscode.ExtensionContext,
+    toolApprovals: ToolApprovalPolicy,
+    showGraph: (skill: Skill) => Promise<void>
+): RunController {
+    const output = vscode.window.createOutputChannel('Skiller');
+    context.subscriptions.push(output);
+
+    const controller: RunController = new RunController({
+        executor: skillExecutor,
+        executionState,
+        launchStore: launchContextStore,
+        toolApprovals,
+        surface: createNativeSurface({
+            panels: panelManager,
+            showGraph,
+            output,
+            cancelRun: () => { controller.cancelActive(); },
+            describeTool: call => describeSkillerToolCall(call.toolName, call.input),
+        }),
+        newCancellation: () => new vscode.CancellationTokenSource(),
+        availableMcps: () => toolCache.getDiscoveredCategories(),
+        verboseMode: () => getSetting('skills.verboseMode'),
+        resolveModel: () => resolveNativeModel({
+            select: selector => vscode.lm.selectChatModels(selector),
+            settingId: () => getSetting('model.default') || undefined,
+            rememberedId: () => context.globalState.get<string>(LAST_PICKED_MODEL_KEY),
+            remember: id => context.globalState.update(LAST_PICKED_MODEL_KEY, id),
+            pick: pickModel,
+        }),
+    });
+    return controller;
+}
+
+/** Ask which language model native runs should fall back to. */
+async function pickModel(models: vscode.LanguageModelChat[]): Promise<vscode.LanguageModelChat | undefined> {
+    const items = models.map(model => ({
+        label: model.name,
+        description: `${model.vendor}/${model.family}/${model.id}`,
+        model,
+    }));
+    const picked = await vscode.window.showQuickPick(items, {
+        title: 'Choose a model for Skiller runs',
+        ignoreFocusOut: true,
+    });
+    return picked?.model;
 }
 
 async function handleRequest(

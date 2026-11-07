@@ -232,6 +232,7 @@ export const window = {
 // Commands namespace
 export const commands = {
     executeCommand: vi.fn(),
+    registerCommand: vi.fn(),
 };
 
 // ProgressLocation enum (matches vscode.ProgressLocation)

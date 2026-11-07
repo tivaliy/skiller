@@ -11,7 +11,7 @@ export interface ScaffoldUi {
     pickKind(): Promise<NewSkillKind | undefined>;
     pickSource(sources: ScaffoldSource[]): Promise<ScaffoldSource | undefined>;
     askId(suggested: string, validate: (id: string) => string | undefined): Promise<string | undefined>;
-    /** Asks for the idea, then starts the skill-creator with `/new <idea>` in chat. */
+    /** Asks for the idea, then runs the skill-creator with it. */
     openDescribe(): Promise<void>;
     showErrors(errors: string[]): void;
 }

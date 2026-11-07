@@ -7,4 +7,6 @@ export { resumeAfterChoice } from './confirmation';
 export type { ConfirmationResume } from './confirmation';
 export { RunController } from './controller';
 export type { RunControllerDeps, RunCancellation } from './controller';
+export { ToolApprovalPolicy } from './tool-approvals';
+export type { AlwaysAllowedStore } from './tool-approvals';
 export type { RunSurface, ToolCallRequest, ToolApproval, RunRequest, RunOutcome } from './types';

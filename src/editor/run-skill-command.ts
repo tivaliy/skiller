@@ -1,61 +1,58 @@
 /**
- * Run Skill command
+ * Run Skill
  *
- * Registers `skiller.runSkill`. Invoked with a skill id (from a code action)
- * runs it directly; invoked with none (palette/context-menu/keybinding) shows a
- * QuickPick. Either way it captures the editor snapshot NOW (before chat opens
- * moves focus), stashes it, and opens chat via launchSkill.
+ * The `skiller.runSkill` flow. Invoked with a skill id (from a code action or
+ * Show Skills) it runs that skill; invoked with none (palette/context-menu/
+ * keybinding) it shows a QuickPick. Either way it captures the editor snapshot
+ * and delivery target NOW — before the run's pickers move focus — stashes them
+ * in the launch store, and runs the skill natively through the RunController.
  */
 
 import * as vscode from 'vscode';
 import type { SkillRegistry, LaunchContextStore } from '../skills';
+import type { RunController } from '../skills/run';
 import { captureSnapshot, contextSourcesOf, createVsCodeContextAccessors, captureDeliveryTarget, outputNeedsTarget } from '../skills';
-import { getSetting } from '../settings';
-import { launchSkill } from './launch';
 
-export function registerRunSkillCommand(
-    context: vscode.ExtensionContext,
-    skillRegistry: SkillRegistry,
-    launchContextStore: LaunchContextStore
-): void {
-    const disposable = vscode.commands.registerCommand(
-        'skiller.runSkill',
-        async (skillId?: unknown) => {
-            // A code action passes the skill id (string). The editor context menu
-            // invokes the command with the document Uri as the first arg, so only
-            // treat a string as an id — anything else falls through to the picker.
-            const explicitId = typeof skillId === 'string' ? skillId : undefined;
-            const id = explicitId ?? (await pickSkill(skillRegistry));
-            if (!id) return; // user dismissed the QuickPick
-
-            const skill = skillRegistry.getById(id);
-            // Capture only the editor state this skill binds — a selection-only skill
-            // shouldn't spawn the git-diff subprocesses it would never read.
-            const snapshot = await captureSnapshot(
-                createVsCodeContextAccessors(),
-                skill ? contextSourcesOf(skill) : undefined,
-            );
-            // Capture the editor location too, so a write-back sink lands where the skill
-            // was launched even after chat opens and moves focus — only such sinks need it.
-            if (skill && outputNeedsTarget(skill.output?.to)) {
-                const target = captureDeliveryTarget({ excludeDir: skill.source.path });
-                if (target) launchContextStore.setTarget(id, target);
-            }
-
-            await launchSkill(id, snapshot, {
-                stashContext: (sid, snap) => launchContextStore.set(sid, snap),
-                getRunSurface: () => getSetting('skills.runSurface'),
-                openChat: async (query, isPartialQuery) => {
-                    await vscode.commands.executeCommand('workbench.action.chat.open', { query, isPartialQuery });
-                },
-            });
-        }
-    );
-    context.subscriptions.push(disposable);
+export interface RunSkillDeps {
+    controller: RunController;
+    registry: SkillRegistry;
+    launchStore: LaunchContextStore;
 }
 
-async function pickSkill(skillRegistry: SkillRegistry): Promise<string | undefined> {
-    const items = skillRegistry.getAll().map(skill => ({
+/**
+ * Run a skill natively. A code action passes the skill id (string); the editor
+ * context menu passes the document Uri, so only a string is treated as an id —
+ * anything else falls through to the picker.
+ */
+export async function runSkill(deps: RunSkillDeps, skillId?: unknown): Promise<void> {
+    const { controller, registry, launchStore } = deps;
+    const explicitId = typeof skillId === 'string' ? skillId : undefined;
+    const id = explicitId ?? (await pickSkill(registry));
+    if (!id) return; // user dismissed the QuickPick
+
+    const skill = registry.getById(id);
+    if (!skill) {
+        void vscode.window.showErrorMessage(`Skiller: skill '${id}' not found.`);
+        return;
+    }
+
+    // Capture only the editor state this skill binds — a selection-only skill
+    // shouldn't spawn the git-diff subprocesses it would never read.
+    const snapshot = await captureSnapshot(createVsCodeContextAccessors(), contextSourcesOf(skill));
+    launchStore.set(id, snapshot);
+    // Capture the editor location too, so a write-back sink lands where the skill
+    // was launched even after the run's pickers move focus — only such sinks need it.
+    if (outputNeedsTarget(skill.output?.to)) {
+        const target = captureDeliveryTarget({ excludeDir: skill.source.path });
+        if (target) launchStore.setTarget(id, target);
+    }
+
+    await controller.run({ skill });
+}
+
+/** Ask which skill to run (or show). Resolves to its id, or undefined when dismissed. */
+export async function pickSkill(registry: SkillRegistry, placeHolder = 'Select a skill to run'): Promise<string | undefined> {
+    const items = registry.getAll().map(skill => ({
         label: skill.name,
         description: skill.id,
         detail: skill.description || undefined,
@@ -64,6 +61,6 @@ async function pickSkill(skillRegistry: SkillRegistry): Promise<string | undefin
         void vscode.window.showInformationMessage('Skiller: no skills found.');
         return undefined;
     }
-    const picked = await vscode.window.showQuickPick(items, { placeHolder: 'Select a skill to run' });
+    const picked = await vscode.window.showQuickPick(items, { placeHolder });
     return picked?.description; // description holds the skill id
 }

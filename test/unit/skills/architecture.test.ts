@@ -122,15 +122,15 @@ describe('editor-context vscode-isolation guard', () => {
 
 /**
  * The editor-native integration layer (src/editor/) splits into a pure-logic core
- * and a thin VS Code glue layer. The pure helpers — launch, matching — operate only
- * on the captured snapshot and injected dependencies, so they must stay free of any
+ * and a thin VS Code glue layer. The pure helper — matching — operates only
+ * on the captured snapshot and injected dependencies, so it must stay free of any
  * `vscode` import and unit-test without a VS Code host. The glue files
- * (run-skill-command, code-action-provider, index) are the sanctioned boundary and
+ * (run-skill-command, run/, code-action-provider, scaffold-*, index) are the sanctioned boundary and
  * are expected to touch the runtime, so they are NOT asserted here. If someone
  * reaches for `vscode` inside a pure helper, the core stops being host-free and its
  * unit tests would silently depend on the editor runtime — this test fails loudly first.
  *
- * `LaunchContextStore` is the launch→/skill hand-off; it was hoisted into src/skills/
+ * `LaunchContextStore` is the launch→run hand-off; it was hoisted into src/skills/
  * (shared CommandContext session state, the same kind as PendingStateManager). It is
  * vscode-free by design and is guarded below alongside the editor pure helpers.
  */
@@ -139,7 +139,7 @@ describe('editor-layer vscode-isolation guard', () => {
     // they unit-test without a VS Code host. Add new pure-helper modules here as
     // the module grows; leave the glue files (run-skill-command, code-action-
     // provider, index) out — they are the sanctioned vscode boundary.
-    const pureHelpers = ['launch.ts', 'matching.ts'];
+    const pureHelpers = ['matching.ts'];
 
     for (const rel of pureHelpers) {
         it(`editor/${rel} does not import the vscode runtime`, () => {
