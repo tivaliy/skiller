@@ -180,7 +180,23 @@ export type WebviewMessage =
     /** Open the captured prompt/response for a step as a read-only document. */
     | { type: 'openStepInspection'; stepId: string }
     /** Copy the captured prompt for a step to the clipboard. */
-    | { type: 'copyStepInspection'; stepId: string };
+    | { type: 'copyStepInspection'; stepId: string }
+    /** Clicked a button on the interactive card currently shown in the panel. */
+    | { type: 'cardAction'; cardId: string; actionId: string };
+
+/**
+ * An interactive card docked at the bottom of the graph panel
+ * (confirmation, tool approval, run result). `html` is host-rendered markdown
+ * inserted as-is; the webview CSP blocks any script in it.
+ */
+export interface GraphCard {
+    cardId: string;
+    kind: 'confirmation' | 'toolApproval' | 'result';
+    stepId?: string;
+    title: string;
+    html: string;
+    actions: Array<{ id: string; label: string; primary?: boolean }>;
+}
 
 /**
  * Messages sent from extension to webview
@@ -196,4 +212,7 @@ export type ExtensionMessage =
     | { type: 'setModelOverride'; model: string | null }
     | { type: 'updateStepModel'; stepId: string; model: string; source: ModelSource }
     /** Response to requestStepInspection — the captured I/O for a step, or null if none. */
-    | { type: 'stepInspection'; stepId: string; data: StepInspection | null };
+    | { type: 'stepInspection'; stepId: string; data: StepInspection | null }
+    /** Show an interactive card (replaces any card already shown). */
+    | { type: 'showCard'; card: GraphCard }
+    | { type: 'clearCard'; cardId: string };

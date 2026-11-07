@@ -102,6 +102,9 @@ export class ElkWebviewRenderer {
         </div>
     </div>
 
+    <!-- Interactive card (confirmation / tool approval / result) docked at the bottom -->
+    <div id="card-dock" class="card-dock is-hidden"></div>
+
     <!-- Hover inspector popover for executed nodes (positioned at runtime) -->
     <div id="inspection-popover" class="node-popover is-hidden"></div>
 
@@ -144,6 +147,34 @@ body {
     overflow: hidden;
 }
 .is-hidden { display: none !important; }
+
+.card-dock {
+    flex: 0 0 auto;
+    max-height: 45%;
+    overflow: auto;
+    padding: 10px 14px;
+    border-top: 1px solid var(--vscode-panel-border, transparent);
+    background: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+    color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground));
+}
+.card-title { font-weight: 600; margin-bottom: 6px; }
+.card-body { margin-bottom: 8px; }
+.card-body pre { overflow: auto; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.card-actions button {
+    font: inherit;
+    padding: 4px 12px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    color: var(--vscode-button-secondaryForeground);
+    background: var(--vscode-button-secondaryBackground);
+}
+.card-actions button.primary {
+    color: var(--vscode-button-foreground);
+    background: var(--vscode-button-background);
+}
+.card-actions button:disabled { opacity: 0.5; cursor: default; }
 
 .toolbar {
     display: flex;
@@ -1055,6 +1086,46 @@ const CLIENT = `
         hoverHideTimer = setTimeout(hideInspectionPopover, HOVER_HIDE_DELAY);
     }
 
+    // ---- Interactive card ----------------------------------------------------
+
+    var cardDock = document.getElementById('card-dock');
+    var currentCardId = null;
+
+    function clearCard() {
+        currentCardId = null;
+        cardDock.textContent = '';
+        hide(cardDock);
+    }
+
+    function showCard(card) {
+        clearCard();
+        currentCardId = card.cardId;
+        var title = document.createElement('div');
+        title.className = 'card-title';
+        title.textContent = card.title || '';
+        var body = document.createElement('div');
+        body.className = 'card-body';
+        // Host-rendered markdown; the nonce CSP prevents any script in it from running.
+        body.innerHTML = card.html || '';
+        var actions = document.createElement('div');
+        actions.className = 'card-actions';
+        (card.actions || []).forEach(function (action) {
+            var button = document.createElement('button');
+            button.textContent = action.label;
+            if (action.primary) { button.className = 'primary'; }
+            button.addEventListener('click', function () {
+                if (currentCardId !== card.cardId) { return; }
+                Array.prototype.forEach.call(actions.children, function (b) { b.disabled = true; });
+                vscodeApi.postMessage({ type: 'cardAction', cardId: card.cardId, actionId: action.id });
+            });
+            actions.appendChild(button);
+        });
+        cardDock.appendChild(title);
+        cardDock.appendChild(body);
+        cardDock.appendChild(actions);
+        show(cardDock);
+    }
+
     // ---- Messages ----------------------------------------------------------
 
     window.addEventListener('message', function (event) {
@@ -1089,6 +1160,8 @@ const CLIENT = `
                 errorEl.textContent = (msg.title ? msg.title + ': ' : '') + (msg.message || '');
                 show(errorEl);
                 break;
+            case 'showCard': showCard(msg.card); break;
+            case 'clearCard': if (msg.cardId === currentCardId) { clearCard(); } break;
             case 'warning': showWarning(msg.title, msg.message, msg.count); break;
             case 'clearError': hide(errorEl); hide(warningEl); break;
             default: break;

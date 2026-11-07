@@ -10,7 +10,7 @@
 
 import * as vscode from 'vscode';
 import type { Skill, ModelSource } from '../types';
-import type { ExtensionMessage, RenderOptions, SkillGraph, WebviewMessage } from './types';
+import type { ExtensionMessage, GraphCard, RenderOptions, SkillGraph, WebviewMessage } from './types';
 import { getGraphRenderer } from './renderer';
 import type { ExecutionStateManager, StepStatus, TerminalStatus, StepInspection } from '../execution-state';
 
@@ -18,6 +18,12 @@ import type { ExecutionStateManager, StepStatus, TerminalStatus, StepInspection 
  * Callback for handling webview messages
  */
 export type MessageHandler = (message: WebviewMessage) => void;
+
+/** A card awaiting a user click. */
+interface PendingCard {
+    card: GraphCard;
+    resolve: (actionId: string | undefined) => void;
+}
 
 /**
  * Managed panel entry with metadata
@@ -52,6 +58,9 @@ export class SkillGraphPanelManager {
     /** Unsubscribe for the current execution-state subscription (idempotency guard) */
     private executionUnsubscribe?: () => void;
 
+    /** Cards awaiting a click, by skill ID then card ID */
+    private pendingCards = new Map<string, Map<string, PendingCard>>();
+
     /**
      * Register a new panel for a skill
      *
@@ -78,6 +87,9 @@ export class SkillGraphPanelManager {
             // Resync execution state when webview becomes ready after tab switch
             if (message.type === 'ready') {
                 this.resyncExecutionState(skillId);
+                this.repostPendingCards(skillId);
+            } else if (message.type === 'cardAction') {
+                this.resolveCard(skillId, message.cardId, message.actionId);
             }
             // Always forward to original handler
             onMessage(message);
@@ -92,6 +104,7 @@ export class SkillGraphPanelManager {
             if (entry?.panel === panel) {
                 entry.messageDisposable.dispose();
                 this.panels.delete(skillId);
+                this.resolveAllCards(skillId);
             }
         });
 
@@ -218,6 +231,68 @@ export class SkillGraphPanelManager {
             entry.messageDisposable.dispose();
             entry.panel.dispose();
             this.panels.delete(skillId);
+            this.resolveAllCards(skillId);
+        }
+    }
+
+    /**
+     * Show an interactive card in a skill's panel.
+     *
+     * @returns the clicked action id; undefined if no panel is open, or the
+     *          panel closes / the card is cleared / replaced while waiting.
+     */
+    showCard(skillId: string, card: GraphCard): Promise<string | undefined> {
+        const entry = this.panels.get(skillId);
+        if (!entry) {
+            return Promise.resolve(undefined);
+        }
+        // A new card replaces the one shown (the webview docks a single card).
+        this.resolveAllCards(skillId);
+        return new Promise(resolve => {
+            let cards = this.pendingCards.get(skillId);
+            if (!cards) {
+                cards = new Map();
+                this.pendingCards.set(skillId, cards);
+            }
+            cards.set(card.cardId, { card, resolve });
+            void entry.panel.webview.postMessage({ type: 'showCard', card } satisfies ExtensionMessage);
+        });
+    }
+
+    /** Remove a card from the panel; a waiting showCard resolves undefined. */
+    clearCard(skillId: string, cardId: string): void {
+        const pending = this.pendingCards.get(skillId)?.get(cardId);
+        pending?.resolve(undefined);
+        this.pendingCards.get(skillId)?.delete(cardId);
+        const entry = this.panels.get(skillId);
+        if (entry) {
+            void entry.panel.webview.postMessage({ type: 'clearCard', cardId } satisfies ExtensionMessage);
+        }
+    }
+
+    private resolveCard(skillId: string, cardId: string, actionId: string): void {
+        const cards = this.pendingCards.get(skillId);
+        const pending = cards?.get(cardId);
+        if (!pending) {
+            return; // stale click for a card that is no longer pending
+        }
+        cards?.delete(cardId);
+        pending.resolve(actionId);
+    }
+
+    private resolveAllCards(skillId: string): void {
+        const cards = this.pendingCards.get(skillId);
+        this.pendingCards.delete(skillId);
+        for (const pending of cards?.values() ?? []) {
+            pending.resolve(undefined);
+        }
+    }
+
+    /** The webview loses its DOM on tab switch; restore any card still waiting. */
+    private repostPendingCards(skillId: string): void {
+        const entry = this.panels.get(skillId);
+        for (const { card } of this.pendingCards.get(skillId)?.values() ?? []) {
+            void entry?.panel.webview.postMessage({ type: 'showCard', card } satisfies ExtensionMessage);
         }
     }
 
