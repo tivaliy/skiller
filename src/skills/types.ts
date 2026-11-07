@@ -39,15 +39,6 @@ import type {
 export type { InputType, StepType, ToolMode, ConfirmationAction, ErrorStrategy };
 
 /**
- * Verbose mode options for skill execution output
- * - 'off': No streaming output shown
- * - 'rendered': Show prompt (code block) and response (rendered markdown)
- * - 'raw': Show prompt and response as plain text (for debugging)
- */
-export const VERBOSE_MODES = ['off', 'rendered', 'raw'] as const;
-export type VerboseMode = (typeof VERBOSE_MODES)[number];
-
-/**
  * Input parameter definition for a skill
  */
 export interface SkillInput {
@@ -547,8 +538,6 @@ export interface ExecutionOptions {
     availableMcps: string[];
     /** Asks before a tool runs (native runs); absent means no gate */
     approveTool?: ToolApprover;
-    /** Verbose output mode for debugging (from settings) */
-    verboseMode?: VerboseMode;
     /** Execution state manager for tracking progress (required, inject via DI) */
     executionState: ExecutionStateManager;
 }

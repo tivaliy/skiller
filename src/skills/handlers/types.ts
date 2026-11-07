@@ -35,13 +35,11 @@
  * - onSkillComplete, onSkillError
  * - onNoHandler, onModelFallback
  *
- * **Handlers own (phase/content hooks):**
- * - onPromptDisplay (show interpolated prompt)
+ * **Handlers own (content hooks):**
  * - onConfirmationRequired (confirmation handler only)
  *
  * **Runners own (fine-grained progress):**
  * - onPhaseStart, onPhaseComplete
- * - onStreamChunk, onStreamEnd
  *
  * Handlers should NOT call lifecycle hooks - the executor handles those.
  * modelUsed is added by executor for handlers with usesLLM: true.
@@ -56,7 +54,6 @@ import type {
     StepResult,
     SkillResult,
     PendingConfirmationInfo,
-    VerboseMode,
     ResolvedModel
 } from '../types';
 import type { ParsedStep, ToolApprover } from '../types';
@@ -135,9 +132,6 @@ export interface StepContext {
      * don't use models, so this will be undefined.
      */
     readonly resolvedModel: ResolvedModel | undefined;
-
-    /** Verbose mode setting */
-    readonly verboseMode: VerboseMode;
 
     /** Execution start time (for duration calculation) */
     readonly startTime: number;
@@ -311,7 +305,6 @@ export interface StepContextFactory {
             approveTool?: ToolApprover;
             model: vscode.LanguageModelChat;
             resolvedModel: ResolvedModel | undefined;
-            verboseMode: VerboseMode;
         },
         startTime: number,
         stepResults: StepResult[]

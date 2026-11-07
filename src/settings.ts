@@ -31,22 +31,9 @@ import * as vscode from 'vscode';
 // ============================================================================
 
 /**
- * Verbose mode options for skill execution output
- */
-export type VerboseMode = 'off' | 'rendered' | 'raw';
-
-/**
  * Skills-related settings
  */
 export interface SkillsSettings {
-    /**
-     * Control verbose output during skill execution.
-     * - 'off': No streaming output shown (default)
-     * - 'rendered': Show prompt (code block) and response (rendered markdown)
-     * - 'raw': Show prompt and response as plain text (for debugging)
-     */
-    verboseMode: VerboseMode;
-
     /**
      * Timeout (ms) for MCP tool invocations within skill steps.
      * Increase for slow MCP servers or complex operations.
@@ -133,7 +120,6 @@ export interface QASettings {
  */
 const DEFAULTS: QASettings = {
     skills: {
-        verboseMode: 'off',
         toolInvocationTimeout: 60_000,
         maxToolIterations: 10,
         allowOutsideWorkspaceWrites: false,
@@ -176,7 +162,6 @@ export function getSettings(): QASettings {
 
     return {
         skills: {
-            verboseMode: config.get<VerboseMode>('skills.verboseMode', DEFAULTS.skills.verboseMode),
             toolInvocationTimeout: config.get<number>('skills.toolInvocationTimeout', DEFAULTS.skills.toolInvocationTimeout),
             maxToolIterations: config.get<number>('skills.maxToolIterations', DEFAULTS.skills.maxToolIterations),
             allowOutsideWorkspaceWrites: config.get<boolean>('skills.allowOutsideWorkspaceWrites', DEFAULTS.skills.allowOutsideWorkspaceWrites),
@@ -201,7 +186,6 @@ export function getSettings(): QASettings {
  * Maps dotted path to actual config path.
  */
 type SettingPath =
-    | 'skills.verboseMode'
     | 'skills.toolInvocationTimeout'
     | 'skills.maxToolIterations'
     | 'skills.allowOutsideWorkspaceWrites'
@@ -214,7 +198,6 @@ type SettingPath =
  * Type mapping for setting paths to their value types
  */
 type SettingType<P extends SettingPath> =
-    P extends 'skills.verboseMode' ? VerboseMode :
     P extends 'skills.toolInvocationTimeout' ? number :
     P extends 'skills.maxToolIterations' ? number :
     P extends 'skills.allowOutsideWorkspaceWrites' ? boolean :
@@ -228,7 +211,6 @@ type SettingType<P extends SettingPath> =
  * Default values indexed by path
  */
 const DEFAULT_BY_PATH: Record<SettingPath, unknown> = {
-    'skills.verboseMode': DEFAULTS.skills.verboseMode,
     'skills.toolInvocationTimeout': DEFAULTS.skills.toolInvocationTimeout,
     'skills.maxToolIterations': DEFAULTS.skills.maxToolIterations,
     'skills.allowOutsideWorkspaceWrites': DEFAULTS.skills.allowOutsideWorkspaceWrites,
@@ -250,7 +232,7 @@ const DEFAULT_BY_PATH: Record<SettingPath, unknown> = {
  * @example
  * ```typescript
  * const timeout = getSetting('skills.toolInvocationTimeout'); // number
- * const mode = getSetting('skills.verboseMode'); // VerboseMode
+ * const model = getSetting('model.default'); // string
  * ```
  */
 export function getSetting<P extends SettingPath>(path: P): SettingType<P> {

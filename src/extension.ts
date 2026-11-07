@@ -137,7 +137,6 @@ function createRunController(
         }),
         newCancellation: () => new vscode.CancellationTokenSource(),
         availableMcps: () => toolCache.getDiscoveredCategories(),
-        verboseMode: () => getSetting('skills.verboseMode'),
         resolveModel: () => resolveNativeModel({
             select: selector => vscode.lm.selectChatModels(selector),
             settingId: () => getSetting('model.default') || undefined,

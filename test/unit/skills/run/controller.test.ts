@@ -260,7 +260,6 @@ describe('RunController', () => {
             launchStore,
             toolApprovals: new ToolApprovalPolicy({ get: () => [], set: async () => {} }),
             availableMcps: () => [],
-            verboseMode: () => 'off',
             deliver: deliver as unknown as RunControllerDeps['deliver'],
             newCancellation: () => new FakeCancellation(),
         };

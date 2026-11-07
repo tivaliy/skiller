@@ -83,7 +83,6 @@ export class ToolStepHandler implements StepHandler {
             // If an optional tool is missing, skip the step
             if (!exists && optional) {
                 const reason = `Optional tool '${step.tool}' (${toolName}) is not available`;
-                hooks.onPromptDisplay?.(`⏭️ Skipping: ${reason}`);
                 return buildSkippedHandlerResult(ctx, reason);
             }
 
@@ -91,10 +90,6 @@ export class ToolStepHandler implements StepHandler {
             const interpolatedParams = step.params
                 ? interpolateObject(step.params, context)
                 : {};
-
-            // Display description for debugging
-            const description = step.description || `Invoking ${toolName}`;
-            hooks.onPromptDisplay?.(description);
 
             // Execute pure tool call (reports "tool not found" if a required tool is
             // missing). Forward the injected resolver's lookup so the existence

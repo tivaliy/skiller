@@ -52,26 +52,6 @@ export interface ProgressHooks {
     onPhaseComplete?: (phase: string) => void;
 
     /**
-     * Called when LLM streams a text chunk.
-     * @param chunk - Text chunk from LLM stream
-     * @param isFirst - True if this is the first chunk (for UI initialization)
-     */
-    onStreamChunk?: (chunk: string, isFirst: boolean) => void;
-
-    /**
-     * Called when LLM streaming completes.
-     * Allows UI to finalize streaming display.
-     */
-    onStreamEnd?: () => void;
-
-    /**
-     * Called to display the interpolated prompt before LLM execution.
-     * Only invoked when verbose mode is enabled.
-     * @param prompt - The interpolated prompt text
-     */
-    onPromptDisplay?: (prompt: string) => void;
-
-    /**
      * Called when skill execution completes successfully.
      * @param duration - Total execution time in milliseconds
      * @param summary - Optional summary from skill output template

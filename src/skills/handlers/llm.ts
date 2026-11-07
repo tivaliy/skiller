@@ -115,9 +115,6 @@ export class LLMStepHandler implements StepHandler {
         const stepStart = Date.now();
 
         try {
-            // Display prompt via hook
-            hooks.onPromptDisplay?.(prompt);
-
             // Resolve tools for LLM step (agentic tool use)
             // Note: parsedStep may be undefined for inline message steps
             const stepTools = this.resolveStepTools(step, parsedStep, skill);

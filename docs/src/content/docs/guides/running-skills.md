@@ -119,6 +119,7 @@ Skiller 0.5.0 removed the `@skiller` chat participant. Here is where each comman
 | `@skiller /tools`, `/help` | No replacement. A skill that names a tool that isn't available refuses to start and names the tool. |
 | The chat model dropdown overriding a skill's models | Gone: skills use the models they name, and the fallback model above for the rest. |
 | `skiller.skills.runSurface` | Removed: every entry point runs the skill directly. |
+| `skiller.skills.verboseMode` | Removed: hover a step in the graph to see its prompt and response — see [Debug a skill](../debugging/). |
 
 ## Related
 

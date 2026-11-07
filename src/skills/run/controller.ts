@@ -13,7 +13,7 @@
  */
 
 import type { CancellationToken, LanguageModelChat } from 'vscode';
-import type { Skill, SkillInput, ExecutionOptions, VerboseMode } from '../types';
+import type { Skill, SkillInput, ExecutionOptions } from '../types';
 import type { SkillExecutor } from '../SkillExecutor';
 import type { ExecutionStateManager } from '../execution-state';
 import type { LaunchContextStore } from '../launch-context-store';
@@ -44,7 +44,6 @@ export interface RunControllerDeps {
     /** Decides when a tool call needs the user's approval. */
     toolApprovals: ToolApprovalPolicy;
     availableMcps(): string[];
-    verboseMode(): VerboseMode;
     /** Output delivery (injectable for tests). */
     deliver?: typeof deliverSkillOutput;
     newCancellation(): RunCancellation;
@@ -182,7 +181,6 @@ class RunSession {
                 token: this.token,
                 hooks: progress,
                 availableMcps: this.deps.availableMcps(),
-                verboseMode: this.deps.verboseMode(),
                 executionState,
                 approveTool: this.deps.toolApprovals.approverFor(async call => {
                     // Built-in-only tools in a built-in run (the skill-creator's write) were

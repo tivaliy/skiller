@@ -225,9 +225,6 @@ export async function executeLLMStep(
         hooks.onPhaseStart?.('Processing');
     }
 
-    // Track whether streaming is active for proper cleanup
-    let streamingActive = false;
-
     try {
         while (iterations < maxToolIterations) {
             iterations++;
@@ -252,7 +249,6 @@ export async function executeLLMStep(
             const response = await model.sendRequest(messages, requestOptions, token);
 
             let resultText = '';
-            let isFirstChunk = true;
             const toolCalls: Array<{
                 callId: string;
                 name: string;
@@ -260,33 +256,19 @@ export async function executeLLMStep(
             }> = [];
 
             // Process response - handle both text and tool calls
-            try {
-                for await (const part of response.stream) {
-                    if (token.isCancellationRequested) {
-                        throw new Error('Cancelled');
-                    }
-
-                    if (part instanceof vscode.LanguageModelTextPart) {
-                        resultText += part.value;
-                        // Stream chunk to UI (verbose mode handles visibility)
-                        hooks.onStreamChunk?.(part.value, isFirstChunk);
-                        if (isFirstChunk) {
-                            streamingActive = true;
-                            isFirstChunk = false;
-                        }
-                    } else if (part instanceof vscode.LanguageModelToolCallPart) {
-                        toolCalls.push({
-                            callId: part.callId,
-                            name: part.name,
-                            input: part.input as Record<string, unknown>
-                        });
-                    }
+            for await (const part of response.stream) {
+                if (token.isCancellationRequested) {
+                    throw new Error('Cancelled');
                 }
-            } finally {
-                // Always signal end of streaming to prevent UI stuck in streaming state
-                if (streamingActive) {
-                    hooks.onStreamEnd?.();
-                    streamingActive = false;
+
+                if (part instanceof vscode.LanguageModelTextPart) {
+                    resultText += part.value;
+                } else if (part instanceof vscode.LanguageModelToolCallPart) {
+                    toolCalls.push({
+                        callId: part.callId,
+                        name: part.name,
+                        input: part.input as Record<string, unknown>
+                    });
                 }
             }
 
@@ -436,10 +418,5 @@ export async function executeLLMStep(
             prompt,
             toolsUsed: toolsInvoked.length > 0 ? toolsInvoked : undefined
         };
-    } finally {
-        // Ensure streaming is always closed even on unexpected errors
-        if (streamingActive) {
-            hooks.onStreamEnd?.();
-        }
     }
 }

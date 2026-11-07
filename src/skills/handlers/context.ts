@@ -11,7 +11,6 @@ import type {
     SkillStep,
     ExecutionContext,
     StepResult,
-    VerboseMode,
     ResolvedModel
 } from '../types';
 import type { ParsedStep, ToolApprover } from '../types';
@@ -33,7 +32,6 @@ class StepContextImpl implements StepContext {
     readonly approveTool: ToolApprover | undefined;
     readonly model: vscode.LanguageModelChat;
     readonly resolvedModel: ResolvedModel | undefined;
-    readonly verboseMode: VerboseMode;
     readonly startTime: number;
     readonly stepResults: readonly StepResult[];
 
@@ -48,7 +46,6 @@ class StepContextImpl implements StepContext {
             approveTool?: ToolApprover;
             model: vscode.LanguageModelChat;
             resolvedModel: ResolvedModel | undefined;
-            verboseMode: VerboseMode;
         },
         startTime: number,
         stepResults: StepResult[]
@@ -63,7 +60,6 @@ class StepContextImpl implements StepContext {
         this.approveTool = options.approveTool;
         this.model = options.model;
         this.resolvedModel = options.resolvedModel;
-        this.verboseMode = options.verboseMode;
         this.startTime = startTime;
         // Freeze the array to prevent mutations
         this.stepResults = Object.freeze([...stepResults]);
@@ -85,7 +81,6 @@ export const stepContextFactory: StepContextFactory = {
             approveTool?: ToolApprover;
             model: vscode.LanguageModelChat;
             resolvedModel: ResolvedModel | undefined;
-            verboseMode: VerboseMode;
         },
         startTime: number,
         stepResults: StepResult[]

@@ -31,7 +31,6 @@ export type {
     PendingConfirmationInfo,
     ExecutionOptions,
     ResumeOptions,
-    VerboseMode,
     ParsedStep,
     StepMeta,
     ParseError,
@@ -70,8 +69,7 @@ export {
     INPUT_TYPES,
     STEP_TYPES,
     CONFIRMATION_ACTIONS,
-    ERROR_STRATEGIES,
-    VERBOSE_MODES
+    ERROR_STRATEGIES
 } from './types';
 
 // Parser exports

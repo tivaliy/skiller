@@ -100,21 +100,6 @@
     "configuration": {
       "title": "Skiller",
       "properties": {
-        "skiller.skills.verboseMode": {
-          "type": "string",
-          "enum": [
-            "off",
-            "rendered",
-            "raw"
-          ],
-          "enumDescriptions": [
-            "Don't show prompt/response during execution (default)",
-            "Show prompt (code block) and response (rendered markdown)",
-            "Show prompt and response as plain text (for debugging)"
-          ],
-          "default": "off",
-          "description": "Control verbose output during skill execution. Useful for debugging skills and understanding template variable substitution."
-        },
         "skiller.skills.toolInvocationTimeout": {
           "type": "number",
           "default": 60000,

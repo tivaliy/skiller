@@ -5,13 +5,12 @@ sidebar:
   order: 4
 ---
 
-Skiller contributes eight settings under the `skiller.*` namespace. Set them in your
+Skiller contributes seven settings under the `skiller.*` namespace. Set them in your
 User or Workspace `settings.json`, or through the Settings UI (search for "Skiller").
 
 | Setting | Default | Effect / when to change |
 | ------- | ------- | ----------------------- |
 | `skiller.model.default` | `""` | Fallback model id for steps whose skill names no model. Empty: you're asked once and your pick is remembered. |
-| `skiller.skills.verboseMode` | `"off"` | `"off"`, `"rendered"`, or `"raw"`. Not shown by native runs yet — see below. |
 | `skiller.skills.toolInvocationTimeout` | `60000` | Milliseconds before a tool invocation in a step times out. Raise for slow MCP servers. |
 | `skiller.skills.maxToolIterations` | `10` | Maximum tool-use iterations per `llm` step. Caps runaway agentic loops. |
 | `skiller.skills.allowOutsideWorkspaceWrites` | `false` | Lets the built-in file tools write outside the workspace. A security control — leave off unless required. |
@@ -26,13 +25,6 @@ The model id native runs fall back to for steps whose skill names no model (no s
 model for Skiller runs**, then remembers your pick; set it to make the choice explicit or to change
 it later. An id that isn't installed is ignored. See
 [Use & override models](../../guides/models/#the-fallback-model).
-
-## `skiller.skills.verboseMode`
-
-This setting printed each step's prompt and response into the `@skiller` chat, which Skiller 0.5.0
-removed. Native runs don't show that output yet. To see what a step sent and received, hover it in
-the [live execution graph](../../concepts/execution-graph/#hover-inspection) — see
-[Debug a skill](../../guides/debugging/).
 
 ## `skiller.skills.allowOutsideWorkspaceWrites`
 

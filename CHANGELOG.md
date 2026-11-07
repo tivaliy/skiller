@@ -32,6 +32,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 
 - The `@skiller` chat participant and all its slash commands (`/skill`, `/new`, `/skills`, `/help`, `/tools`, `/models`, `/reload`, `/cancel`, `/reset`, `/status`). See the docs' [Running skills](https://tivaliy.github.io/skiller/guides/running-skills/#coming-from-the-skiller-chat-commands) page for where each one went.
 - The `skiller.skills.runSurface` setting: every entry point now runs the skill directly.
+- The `skiller.skills.verboseMode` setting. It printed each step's prompt and response into the `@skiller` chat; to see what a step sent and received, hover it in the live execution graph (**Open ↗** shows both in a read-only document).
 - The chat model-dropdown override of a skill's models, and the graph's model-override banner.
 
 ### Fixed

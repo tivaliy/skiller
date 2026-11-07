@@ -473,8 +473,7 @@ export class SkillExecutor {
                     token: ctx.options.token,
                     approveTool: ctx.options.approveTool,
                     model: ctx.options.model,
-                    resolvedModel,
-                    verboseMode: ctx.options.verboseMode ?? 'off'
+                    resolvedModel
                 },
                 ctx.context.startTime,
                 ctx.stepResults
