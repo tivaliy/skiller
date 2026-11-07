@@ -99,13 +99,14 @@ class FakeSurface implements RunSurface {
         return option;
     }
 
-    approvalAnswer: ToolApproval = 'deny';
+    approvalAnswer: ToolApproval | Deferred<ToolApproval> = 'deny';
     approvalAsked: Array<{ skill: string; tool: string }> = [];
 
     async approveTool(skill: Skill, call: ToolCallRequest): Promise<ToolApproval> {
         this.calls.push('approveTool');
         this.approvalAsked.push({ skill: skill.id, tool: call.toolName });
-        return this.approvalAnswer;
+        const answer = this.approvalAnswer;
+        return typeof answer === 'object' ? answer.promise : answer;
     }
 
     progress(_skill: Skill, token: CancellationToken) {
@@ -267,6 +268,27 @@ describe('RunController', () => {
 
         expect(surface.approvalAsked).toEqual([{ skill: 'gate', tool: 'mytool' }]);
         expect(runOrder).toContain('gated:true');
+    });
+
+    it('cancelling while an approval is pending ends the run, and a stale approval never lets the tool run', async () => {
+        const pending = deferred<ToolApproval>();
+        surface.approvalAnswer = pending;
+        const skill = noInputSkill('gate');
+        skill.steps = [{ id: 'gated', type: 'llm', message: 'hi', output: 'o' }];
+
+        const run = controller.run({ skill });
+        await until(() => surface.calls.includes('approveTool'));
+        expect(controller.cancelActive()).toBe(true);
+
+        const outcome = await Promise.race([
+            run,
+            new Promise<string>(resolve => setTimeout(() => resolve('hung'), 300)),
+        ]);
+        expect(outcome).toEqual({ kind: 'cancelled' });
+
+        pending.resolve('once'); // the user clicks Allow on the stale card
+        await new Promise(resolve => setTimeout(resolve, 10));
+        expect(runOrder).not.toContain('gated:true');
     });
 
     it('runs inputs → execute → confirmation(continue) → deliver → showResult and finishes success', async () => {

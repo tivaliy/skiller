@@ -184,7 +184,12 @@ class RunSession {
                 availableMcps: this.deps.availableMcps(),
                 verboseMode: this.deps.verboseMode(),
                 executionState,
-                approveTool: this.deps.toolApprovals.approverFor(call => surface.approveTool(skill, call))
+                approveTool: this.deps.toolApprovals.approverFor(async call => {
+                    // A card left open when the run is cancelled must not hold the engine
+                    // or let the tool start if the user answers later.
+                    const answer = await untilCancelled(surface.approveTool(skill, call), this.token);
+                    return answer === CANCELLED ? 'deny' : answer;
+                })
             };
 
             let result = await this.deps.executor.execute(skill, options);

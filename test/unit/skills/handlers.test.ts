@@ -17,7 +17,19 @@ import type { StepHandler, StepContext, HandlerResult } from '../../../src/skill
 import type { SkillStep, StepType } from '../../../src/skills/types';
 import type { ProgressHooks } from '../../../src/skills/progress-hooks';
 import type { ToolResolver } from '../../../src/skills/tool-resolver';
+import * as vscode from 'vscode';
 import { createMockExecutionContext } from '../../helpers/mocks/execution-context';
+
+// The vscode mock has no configuration values; give the runners usable settings.
+vi.mock('../../../src/settings', () => ({
+    getSetting: (key: string) => ({
+        'skills.maxToolIterations': 10,
+        'skills.toolInvocationTimeout': 1000,
+        'llm.maxHistoryTurns': 20,
+        'llm.maxToolResponseLength': 4000,
+        'llm.maxToolResponses': 10
+    } as Record<string, number>)[key]
+}));
 
 // Mock executionState
 vi.mock('../../../src/skills/execution-state', () => ({
@@ -375,6 +387,32 @@ describe('ToolStepHandler', () => {
         });
     });
 
+    describe('approval gate', () => {
+        it('passes ctx.approveTool to the runner: a declined tool step is not invoked', async () => {
+            vi.mocked(vscode.lm.invokeTool).mockClear();
+            const resolver = {
+                resolve: () => [],
+                findTool: () => ({ name: 'fake_tool', description: '', inputSchema: {} }),
+                validateReferences: () => ({ valid: true, resolved: [{ toolName: 'fake_tool', optional: false }], missing: [] })
+            } as unknown as ToolResolver;
+            const approveTool = vi.fn(async () => false);
+            const ctx = {
+                skill: { source: { type: 'workspace' }, tools: { aliases: {} }, onError: 'continue' },
+                step: { id: 's1', type: 'tool', tool: 'fake_tool' },
+                context: {},
+                token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
+                toolToken: undefined,
+                approveTool
+            } as unknown as StepContext;
+
+            const result = await new ToolStepHandler(resolver).handle(ctx, {});
+
+            expect(approveTool).toHaveBeenCalledWith({ toolName: 'fake_tool', input: {} });
+            expect(vscode.lm.invokeTool).not.toHaveBeenCalled();
+            expect(result.stepResult?.error).toContain('The user declined to run this tool.');
+        });
+    });
+
     describe('built-in-only tools (runtime gate)', () => {
         const toolCtx = (sourceType: 'builtin' | 'workspace', tool: string, aliases: Record<string, string> = {}) => ({
             skill: { source: { type: sourceType }, tools: { aliases }, onError: 'continue' },
@@ -430,6 +468,45 @@ describe('LLMStepHandler built-in-only tools (runtime gate)', () => {
         expect(result.stepResult?.success).toBe(false);
         expect(result.stepResult?.error).toContain("can only be used by Skiller's built-in skills");
         expect(resolve).not.toHaveBeenCalled();
+    });
+});
+
+describe('LLMStepHandler approval gate', () => {
+    it('passes ctx.approveTool to the runner: a declined tool call is not invoked', async () => {
+        vi.mocked(vscode.lm.invokeTool).mockClear();
+        // The real API normalizes Assistant(content) to a parts array; make the mock faithful.
+        vi.mocked(vscode.LanguageModelChatMessage.Assistant).mockImplementation(
+            (content) => ({ role: 'assistant', content: Array.isArray(content) ? content : [] }) as unknown as vscode.LanguageModelChatMessage
+        );
+        const tool = { name: 'mytool', description: 'd', inputSchema: {}, tags: [] };
+        const resolver = { resolve: () => [tool], findTool: () => tool, validateReferences: vi.fn() } as unknown as ToolResolver;
+        let sent = 0;
+        const model = {
+            id: 'fake',
+            sendRequest: vi.fn(async () => {
+                const parts = sent++ === 0
+                    ? [new vscode.LanguageModelToolCallPart('c1', 'mytool', { q: 1 })]
+                    : [new vscode.LanguageModelTextPart('ok')];
+                return { stream: (async function* () { for (const p of parts) yield p; })(), text: (async function* () {})() };
+            })
+        };
+        const approveTool = vi.fn(async () => false);
+        const ctx = {
+            skill: { source: { type: 'workspace' }, tools: { aliases: {} }, onError: 'continue' },
+            step: { id: 's1', type: 'llm', message: 'do it', tools: ['mytool'] },
+            parsedStep: undefined,
+            resolvedModel: { model },
+            context: createMockExecutionContext(),
+            token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
+            toolToken: undefined,
+            approveTool
+        } as unknown as StepContext;
+
+        const result = await new LLMStepHandler(resolver).handle(ctx, {});
+
+        expect(approveTool).toHaveBeenCalledWith({ toolName: 'mytool', input: { q: 1 } });
+        expect(vscode.lm.invokeTool).not.toHaveBeenCalled();
+        expect(result.stepResult?.error).toContain('The user declined to run this tool.');
     });
 });
 
