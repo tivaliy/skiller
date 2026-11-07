@@ -38,7 +38,7 @@ export function replaceInFileApproval(input: { filePath: string; search?: string
     };
 }
 
-/** skiller_writeSkill asks no confirmation in chat today; Task 11's origin check will reuse this. */
+/** The approval wording for skiller_writeSkill, used by the tool's confirmation and the runner's card. */
 export function writeSkillApproval(input: { id: string; files: Array<{ path: string }> }): ToolApprovalText {
     const files = input.files.map(f => `\`${f.path}\``).join(', ');
     return {

@@ -88,6 +88,8 @@ export class WriteSkillTool implements vscode.LanguageModelTool<WriteSkillInput>
         options: vscode.LanguageModelToolInvocationPrepareOptions<WriteSkillInput>,
         _token: vscode.CancellationToken
     ): Promise<vscode.PreparedToolInvocation> {
+        // Trust follows the active run: while the built-in skill-creator runs, any caller's
+        // write skips the prompt (a spec-accepted residual risk).
         const invocationMessage = `Writing skill: ${options.input?.id ?? ''}`;
         const input: unknown = options.input;
         if (this.deps.isSkillCreatorRun() || !isValidInput(input)) {

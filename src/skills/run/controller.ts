@@ -25,6 +25,7 @@ import { validateSkill, formatValidationResult } from '../validators/factory';
 import { validateSingleInput, applyDefaults } from '../validators/input-validator';
 import { resolveLaunchInputs, inputsToAsk, coerceValue, parseEnumAnswer } from './inputs';
 import { resumeAfterChoice } from './confirmation';
+import { BUILTIN_ONLY_TOOLS } from '../reserved-tools';
 import type { RunSurface, RunRequest, RunOutcome } from './types';
 
 /** A cancellation source; the extension passes `() => new vscode.CancellationTokenSource()`. */
@@ -185,6 +186,10 @@ class RunSession {
                 verboseMode: this.deps.verboseMode(),
                 executionState,
                 approveTool: this.deps.toolApprovals.approverFor(async call => {
+                    // Built-in-only tools in a built-in run (the skill-creator's write) were
+                    // approved with the run and its own confirmation step: no second prompt.
+                    // 'once' is not remembered, so nothing is persisted.
+                    if (skill.source.type === 'builtin' && BUILTIN_ONLY_TOOLS.has(call.toolName)) return 'once';
                     // A card left open when the run is cancelled must not hold the engine
                     // or let the tool start if the user answers later.
                     const answer = await untilCancelled(surface.approveTool(skill, call), this.token);

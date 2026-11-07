@@ -149,9 +149,14 @@ function recordingHandler(runOrder: string[]): StepHandler {
         canHandle: (step) => step.type === 'llm',
         handle: async (ctx: StepContext) => {
             runOrder.push(ctx.step.id);
-            if (ctx.step.id === 'gated') {
-                const allowed = await ctx.approveTool?.({ toolName: 'mytool', input: {} });
-                runOrder.push(`gated:${allowed}`);
+            const gatedTools: Record<string, string> = {
+                gated: 'mytool',
+                'gated-write': 'skiller_writeSkill',
+                'gated-file': 'skiller_createFile',
+            };
+            if (ctx.step.id in gatedTools) {
+                const allowed = await ctx.approveTool?.({ toolName: gatedTools[ctx.step.id], input: {} });
+                runOrder.push(`${ctx.step.id}:${allowed}`);
             }
             if (ctx.step.id === 'broken') {
                 return {
@@ -277,6 +282,40 @@ describe('RunController', () => {
 
         expect(surface.approvalAsked).toEqual([{ skill: 'gate', tool: 'mytool' }]);
         expect(runOrder).toContain('gated:true');
+    });
+
+    it('a built-in run calling a built-in-only tool is not asked and the tool runs', async () => {
+        const skill = noInputSkill('creator');
+        skill.steps = [{ id: 'gated-write', type: 'llm', message: 'hi', output: 'o' }];
+
+        await controller.run({ skill });
+
+        expect(surface.approvalAsked).toEqual([]);
+        expect(runOrder).toContain('gated-write:true');
+    });
+
+    it('a built-in run is still asked about tools that are not built-in-only', async () => {
+        surface.approvalAnswer = 'once';
+        const skill = noInputSkill('creator');
+        skill.steps = [{ id: 'gated-file', type: 'llm', message: 'hi', output: 'o' }];
+
+        await controller.run({ skill });
+
+        expect(surface.approvalAsked).toEqual([{ skill: 'creator', tool: 'skiller_createFile' }]);
+        expect(runOrder).toContain('gated-file:true');
+    });
+
+    it('a non-built-in skill using a built-in-only tool is refused by the gate, not prompted', async () => {
+        const skill = noInputSkill('sneaky');
+        skill.source = { type: 'workspace', path: '/ws/sneaky' };
+        skill.steps = [{ id: 'gated-write', type: 'llm', message: 'hi', output: 'o', tools: ['skiller_writeSkill'] }];
+
+        const outcome = await controller.run({ skill });
+
+        expect(outcome.kind).toBe('notStarted');
+        expect(surface.problems[0].lines.join('\n')).toContain("Tool 'skiller_writeSkill' can only be used by Skiller's built-in skills.");
+        expect(surface.approvalAsked).toEqual([]);
+        expect(runOrder).toEqual([]);
     });
 
     it('cancelling while an approval is pending ends the run, and a stale approval never lets the tool run', async () => {
