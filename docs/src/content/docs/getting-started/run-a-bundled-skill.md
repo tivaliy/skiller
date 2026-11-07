@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-Skiller ships with two **built-in example skills** — `greeter` and `mind-reader` — so you can run a
+Skiller ships with built-in skills — this walkthrough uses `greeter` and `mind-reader` (a third, `skill-creator`, [writes new skills for you](../create-a-skill/)) — so you can run a
 real workflow before writing one. This walkthrough has you list them, run each, and watch the
 [live execution graph](../../concepts/execution-graph/) react as the steps fire.
 
@@ -17,7 +17,7 @@ Open the Chat view and ask `@skiller` what it can run:
 @skiller /skills
 ```
 
-You'll see `greeter` and `mind-reader` (plus any skills you've added in your workspace or user
+You'll see `greeter`, `mind-reader`, and `skill-creator` (plus any skills you've added in your workspace or user
 folder), each with **Run** and **View** actions:
 
 ![The @skiller chat participant responding to /skills with the built-in greeter and mind-reader skills, each offering Run and View actions.](../../../assets/skills-list.png)
@@ -61,7 +61,7 @@ is the surface the graph is built to make visible.
 
 ## Commands
 
-`/skills`, `/skill`, and `/reload` are three of nine `@skiller` slash commands. For the full set —
+`/skills`, `/skill`, and `/reload` are three of ten `@skiller` slash commands. For the full set —
 including the `/status`, `/cancel`, and `/reset` control commands — see the
 [Commands reference](../../reference/commands/).
 
@@ -70,4 +70,4 @@ free-form chat.
 
 ---
 
-Ready to build your own? [Write your first skill →](../write-your-first-skill/)
+Ready to build your own? [Create a skill →](../create-a-skill/) — describe it, start from a template, or copy one of these.

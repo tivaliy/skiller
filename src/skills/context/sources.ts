@@ -6,6 +6,7 @@
  */
 
 import type { ContextSource, EditorContextSnapshot } from './types';
+import { BUILTIN_ONLY_TOOLS } from '../reserved-tools';
 
 const CONTEXT_SOURCES: Record<string, ContextSource> = {
     'selection': s => s.selection,
@@ -16,6 +17,7 @@ const CONTEXT_SOURCES: Record<string, ContextSource> = {
     'git.staged': s => s.gitStaged,
     'git.working': s => s.gitWorking,
     'diagnostics': s => s.diagnostics,
+    'tools': s => s.tools,
 };
 
 /** All recognized `from:` source names. */
@@ -28,6 +30,45 @@ export const KNOWN_CONTEXT_SOURCES = new Set(Object.keys(CONTEXT_SOURCES));
  * binds one of these (path / language / selection / diagnostics are all cheap).
  */
 export const FILE_CONTENT_SOURCES: ReadonlySet<string> = new Set(['activeFile', 'activeFile.content']);
+
+/**
+ * Sources that describe the environment rather than what the user is looking at.
+ * They never trigger a contextual code action and don't count as "binding context".
+ */
+export const AMBIENT_SOURCES: ReadonlySet<string> = new Set(['tools']);
+
+/**
+ * Copilot's editor-file writers: they need Copilot's own chat session and fail when a
+ * skill calls them (Skiller ships skiller_createFile / skiller_replaceInFile instead).
+ * VS Code exposes no flag for this, so the names are listed here.
+ */
+const COPILOT_SESSION_ONLY_TOOLS: readonly string[] = ['copilot_createFile', 'copilot_editFiles'];
+
+/** Tools hidden from the `from: tools` list: unusable from skills, or reserved for built-ins (enforced by readiness). */
+const TOOLS_UNUSABLE_FROM_SKILLS: ReadonlySet<string> = new Set([
+    ...COPILOT_SESSION_ONLY_TOOLS,
+    ...BUILTIN_ONLY_TOOLS,
+]);
+
+const TOOL_DESCRIPTION_MAX = 160;
+
+/** Format installed tools into one `name — description` line each; undefined when none remain. */
+export function formatToolList(
+    tools: ReadonlyArray<{ name: string; description: string }>
+): string | undefined {
+    const lines = tools
+        .filter(t => !TOOLS_UNUSABLE_FROM_SKILLS.has(t.name))
+        .map(t => {
+            // One line per tool: collapse whitespace runs first, then cut by
+            // code points so a surrogate pair is never split.
+            const chars = Array.from(t.description.replace(/\s+/g, ' ').trim());
+            const d = chars.length > TOOL_DESCRIPTION_MAX
+                ? `${chars.slice(0, TOOL_DESCRIPTION_MAX).join('')}…`
+                : chars.join('');
+            return `${t.name} — ${d}`;
+        });
+    return lines.length > 0 ? lines.join('\n') : undefined;
+}
 
 /** Resolve a `from:` expression against a snapshot; undefined if unknown/absent. */
 export function resolveSource(from: string, snapshot: EditorContextSnapshot): string | undefined {

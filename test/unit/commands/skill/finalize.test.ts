@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { finalizeSkillRun } from '../../../../src/commands/skill/finalize';
 import type { CommandContext } from '../../../../src/commands/types';
 import type { Skill, SkillResult } from '../../../../src/skills';
+import * as skills from '../../../../src/skills';
 
 function skill(to?: string): Skill {
   return {
@@ -27,6 +28,20 @@ function fakeCtx() {
 }
 
 describe('finalizeSkillRun', () => {
+  it('says the output opened in a new tab when the editor sink had nowhere safe to write', async () => {
+    const spy = vi.spyOn(skills, 'deliverSkillOutput')
+      .mockResolvedValue({ kind: 'delivered', sink: { kind: 'insert' }, fellBack: true });
+    try {
+      const { ctx, md } = fakeCtx();
+      await finalizeSkillRun(ctx, skill('editor.insert'), result('PRIVIT'));
+      const all = md.join('');
+      expect(all).toContain('new tab');
+      expect(all).not.toContain('inserted at the cursor');
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
   it('echoes the summary as a fallback when the sink is unrecognized, so the output is not lost', async () => {
     const { ctx, md, finishExecution } = fakeCtx();
     await finalizeSkillRun(ctx, skill('bogus'), result('THE GENERATED OUTPUT'));

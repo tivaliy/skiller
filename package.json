@@ -42,6 +42,7 @@
     "onChatParticipant:tivaliy.skiller",
     "onLanguageModelTool:skiller_createFile",
     "onLanguageModelTool:skiller_replaceInFile",
+    "onLanguageModelTool:skiller_writeSkill",
     "workspaceContains:**/skill.yaml",
     "workspaceContains:**/skills/**/*.yaml"
   ],
@@ -76,6 +77,10 @@
             "description": "List available skills"
           },
           {
+            "name": "new",
+            "description": "Create a new skill"
+          },
+          {
             "name": "skill",
             "description": "Run a skill"
           },
@@ -99,11 +104,23 @@
         "command": "skiller.runSkill",
         "title": "Run Skill…",
         "category": "Skiller"
+      },
+      {
+        "command": "skiller.newSkill",
+        "title": "New Skill…",
+        "category": "Skiller"
+      },
+      {
+        "command": "skiller.copySkill",
+        "title": "Copy Skill to Workspace…",
+        "category": "Skiller"
       }
     ],
     "menus": {
       "commandPalette": [
-        { "command": "skiller.runSkill" }
+        { "command": "skiller.runSkill" },
+        { "command": "skiller.newSkill" },
+        { "command": "skiller.copySkill", "when": "false" }
       ],
       "editor/context": [
         { "command": "skiller.runSkill", "when": "editorTextFocus", "group": "skiller@1" }
@@ -242,6 +259,52 @@
             "filePath",
             "search",
             "replace"
+          ]
+        }
+      },
+      {
+        "name": "skiller_writeSkill",
+        "tags": [
+          "skiller"
+        ],
+        "toolReferenceName": "writeSkill",
+        "displayName": "Write Skill",
+        "modelDescription": "Writes a complete new Skiller skill folder atomically. Validates the skill before writing; on failure it returns the errors to fix and nothing is written.",
+        "userDescription": "Write a validated Skiller skill folder",
+        "canBeReferencedInPrompt": false,
+        "icon": "$(new-folder)",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "The skill id (letters, digits, - and _, starting with a letter). Becomes the folder name."
+            },
+            "files": {
+              "type": "array",
+              "description": "Every file of the skill folder, including skill.yaml.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "File path relative to the skill folder, e.g. skill.yaml or prompts/main.md."
+                  },
+                  "content": {
+                    "type": "string",
+                    "description": "The full file content."
+                  }
+                },
+                "required": [
+                  "path",
+                  "content"
+                ]
+              }
+            }
+          },
+          "required": [
+            "id",
+            "files"
           ]
         }
       }

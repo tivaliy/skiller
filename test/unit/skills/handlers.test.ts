@@ -17,6 +17,7 @@ import type { StepHandler, StepContext, HandlerResult } from '../../../src/skill
 import type { SkillStep, StepType } from '../../../src/skills/types';
 import type { ProgressHooks } from '../../../src/skills/progress-hooks';
 import type { ToolResolver } from '../../../src/skills/tool-resolver';
+import { createMockExecutionContext } from '../../helpers/mocks/execution-context';
 
 // Mock executionState
 vi.mock('../../../src/skills/execution-state', () => ({
@@ -357,7 +358,7 @@ describe('ToolStepHandler', () => {
 
             const h = new ToolStepHandler(fakeResolver);
             const ctx = {
-                skill: { tools: { aliases: {} }, onError: 'continue' },
+                skill: { source: { type: 'workspace' }, tools: { aliases: {} }, onError: 'continue' },
                 step: { id: 's1', type: 'tool', tool: 'fake_tool' },
                 context: {},
                 token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
@@ -372,6 +373,63 @@ describe('ToolStepHandler', () => {
             expect(result.stepResult?.success).toBe(false);
             expect(result.stepResult?.error).toContain('Tool not found');
         });
+    });
+
+    describe('built-in-only tools (runtime gate)', () => {
+        const toolCtx = (sourceType: 'builtin' | 'workspace', tool: string, aliases: Record<string, string> = {}) => ({
+            skill: { source: { type: sourceType }, tools: { aliases }, onError: 'continue' },
+            step: { id: 's1', type: 'tool', tool },
+            context: {},
+            token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
+            toolToken: undefined
+        } as unknown as StepContext);
+
+        const resolverFor = (toolName: string) => ({
+            resolve: () => [],
+            findTool: vi.fn(() => undefined),
+            validateReferences: vi.fn(() => ({ valid: true, resolved: [{ toolName, optional: false }], missing: [] }))
+        }) as unknown as ToolResolver & { validateReferences: ReturnType<typeof vi.fn> };
+
+        it.each([
+            ['directly', 'skiller_writeSkill', {}],
+            ['through an alias', 'w', { w: 'skiller_writeSkill' }],
+            ['with the optional marker', 'skiller_writeSkill?', {}],
+        ])('refuses a workspace tool step naming skiller_writeSkill %s', async (_how, tool, aliases) => {
+            const resolver = resolverFor('skiller_writeSkill');
+            const result = await new ToolStepHandler(resolver).handle(toolCtx('workspace', tool, aliases), {});
+            expect(result.stepResult?.success).toBe(false);
+            expect(result.stepResult?.error).toContain("can only be used by Skiller's built-in skills");
+            expect(resolver.validateReferences).not.toHaveBeenCalled();
+        });
+
+        it('lets a built-in tool step reach skiller_writeSkill', async () => {
+            const resolver = resolverFor('skiller_writeSkill');
+            const result = await new ToolStepHandler(resolver).handle(toolCtx('builtin', 'skiller_writeSkill'), {});
+            expect(resolver.validateReferences).toHaveBeenCalled();
+            expect(result.stepResult?.error ?? '').not.toContain('built-in skills');
+        });
+    });
+});
+
+describe('LLMStepHandler built-in-only tools (runtime gate)', () => {
+    const llmCtx = (sourceType: 'builtin' | 'workspace', frontmatterTools: string[]) => ({
+        skill: { source: { type: sourceType }, tools: { aliases: {} }, onError: 'continue' },
+        // Declared only in the step file's frontmatter, not in skill.yaml.
+        step: { id: 's1', type: 'llm', file: 'steps/01.md' },
+        parsedStep: { meta: { tools: frontmatterTools }, prompt: 'do it' },
+        resolvedModel: { model: {} },
+        context: createMockExecutionContext(),
+        token: { isCancellationRequested: false, onCancellationRequested: () => ({ dispose() {} }) },
+        toolToken: undefined
+    } as unknown as StepContext);
+
+    it('refuses a workspace LLM step whose step-file frontmatter offers skiller_writeSkill', async () => {
+        const resolve = vi.fn(() => []);
+        const resolver = { resolve, findTool: () => undefined, validateReferences: vi.fn() } as unknown as ToolResolver;
+        const result = await new LLMStepHandler(resolver).handle(llmCtx('workspace', ['skiller_writeSkill']), {});
+        expect(result.stepResult?.success).toBe(false);
+        expect(result.stepResult?.error).toContain("can only be used by Skiller's built-in skills");
+        expect(resolve).not.toHaveBeenCalled();
     });
 });
 

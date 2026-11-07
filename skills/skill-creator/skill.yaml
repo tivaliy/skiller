@@ -1,0 +1,74 @@
+id: skill-creator
+name: Skill Creator
+description: Describe a workflow in one line — Skiller drafts a plan, lets you refine it, then writes the new skill for you.
+version: "1.0.0"
+
+inputs:
+  # Pre-filled by `@skiller /new <text>`; asked for otherwise.
+  - name: idea
+    type: string
+    description: The workflow the new skill should run
+    required: true
+    prompt: "Describe the workflow you want Skiller to run"
+
+  # Filled silently with the installed language-model tools (one
+  # `name — description` per line) so the plan only uses tools that exist.
+  # No `prompt`: the user is never asked for it.
+  - name: available_tools
+    type: string
+    description: Installed tools the new skill may use
+    required: false
+    from: tools
+
+steps:
+  # 1. Turn the idea into a short, human-readable markdown plan. On a revision
+  #    pass the prompt reads the previous plan and the chosen change.
+  - id: plan
+    type: llm
+    description: Draft a plan for the new skill
+    file: steps/01-plan.md
+    output: plan
+
+  # 2. Show the plan. Revisions loop back to `plan`; Build it moves on.
+  - id: review
+    type: confirmation
+    description: Review the plan
+    message: |
+      ## Proposed skill
+
+      {{ outputs.plan }}
+
+      ---
+
+      Build it as planned, or ask for a change.
+
+      Not what you meant? Cancel and run `/new` again with a sharper description.
+    options:
+      - label: "Build it"
+        action: continue
+      - label: "Make it simpler"
+        action: goto
+        goto_step: plan
+      - label: "Add a review step before anything is applied"
+        action: goto
+        goto_step: plan
+      - label: "Cancel"
+        action: abort
+    output: review
+
+  # 3. Write skill.yaml + step files and save them with skiller_writeSkill.
+  #    The tool validates the skill; on errors the model fixes them and calls
+  #    it again (bounded by skiller.skills.maxToolIterations).
+  - id: build
+    type: llm
+    description: Write the skill files
+    file: steps/02-build.md
+    tools: [skiller_writeSkill]
+    tool_mode: required
+    output: build
+
+on_error: abort
+
+# Neutral on purpose: the tool's own success path announces what was created.
+output:
+  summary: "Skill creator finished."

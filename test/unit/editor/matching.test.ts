@@ -55,3 +55,16 @@ describe('anySkillBindsFileContent', () => {
     expect(anySkillBindsFileContent([skill([{ name: 'plain' }])])).toBe(false);
   });
 });
+
+describe('ambient tools source', () => {
+  it('never counts as context binding or a match on its own', () => {
+    const s = skill([{ name: 'tools', from: 'tools' }]);
+    expect(anySkillBindsContext([s])).toBe(false);
+    expect(skillMatchesContext(s, { tools: 'x' })).toBe(false);
+  });
+  it('matches on a non-ambient source alongside tools', () => {
+    const s = skill([{ name: 'tools', from: 'tools' }, { name: 'code', from: 'selection' }]);
+    expect(anySkillBindsContext([s])).toBe(true);
+    expect(skillMatchesContext(s, { selection: 'S', tools: 'x' })).toBe(true);
+  });
+});

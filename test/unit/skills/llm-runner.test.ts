@@ -59,6 +59,9 @@ const text = (s: string) => new vscode.LanguageModelTextPart(s);
 const call = (id: string, name: string, input: Record<string, unknown> = {}) =>
     new vscode.LanguageModelToolCallPart(id, name, input);
 
+/** The tools offered to the step; the runner only invokes tools from this list. */
+const OFFERED = [{ name: 'mytool', description: 'd', inputSchema: {}, tags: [] }] as unknown as vscode.LanguageModelToolInformation[];
+
 describe('executeLLMStep', () => {
     beforeEach(() => {
         // The real API normalizes Assistant(content) to a parts array (the runner
@@ -91,7 +94,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('final answer')]]);
         const invokeTool = vi.fn(async () => toolResult('tool says hi'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(result.success).toBe(true);
@@ -104,7 +107,7 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
         const invokeTool = vi.fn(async () => toolResult('Error calling tool mytool: nope'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(result.success).toBe(false);
@@ -115,18 +118,40 @@ describe('executeLLMStep', () => {
         const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
         const invokeTool = vi.fn(async () => toolResult('Error: 0 results found'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps({ invokeTool })
+            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
         );
 
         expect(result.success).toBe(true);
         expect(result.data).toBe('done');
     });
 
+    it('refuses a tool the step did not offer: never invokes it, tells the model, fails the step', async () => {
+        const model = fakeModel([[call('c1', 'skiller_writeSkill', { id: 'x' })], [text('done')]]);
+        const invokeTool = vi.fn(async () => toolResult('should not run'));
+        const result = await executeLLMStep(
+            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool })
+        );
+
+        expect(invokeTool).not.toHaveBeenCalled();
+        expect(result.success).toBe(false);
+        expect(result.error).toContain("skiller_writeSkill: Tool 'skiller_writeSkill' is not available in this step");
+        expect(result.toolsUsed).toBeUndefined();
+        const sent = vi.mocked(model.sendRequest).mock.calls[1][0] as unknown as Array<{ content: unknown }>;
+        expect(JSON.stringify(sent)).toContain("Tool 'skiller_writeSkill' is not available in this step");
+    });
+
+    it('refuses every tool call when the step offers no tools', async () => {
+        const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
+        const invokeTool = vi.fn(async () => toolResult('x'));
+        await executeLLMStep(STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS, makeDeps({ invokeTool }));
+        expect(invokeTool).not.toHaveBeenCalled();
+    });
+
     it('stops at the iteration cap when the model keeps calling tools', async () => {
         const model = fakeModel([[call('c1', 'mytool')]]); // always a tool call
         const invokeTool = vi.fn(async () => toolResult('again'));
         const result = await executeLLMStep(
-            STEP, 'p', model, TOKEN, undefined, Date.now(), [], 'auto', HOOKS,
+            STEP, 'p', model, TOKEN, undefined, Date.now(), OFFERED, 'auto', HOOKS,
             makeDeps({ invokeTool, settings: { maxToolIterations: 2, toolInvocationTimeout: 1000, maxHistoryTurns: 20, maxToolResponseLength: 4000, maxToolResponses: 10 } })
         );
 

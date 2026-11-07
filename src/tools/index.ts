@@ -44,6 +44,7 @@
 import * as vscode from 'vscode';
 import { CreateFileTool } from './create-file';
 import { ReplaceInFileTool } from './replace-in-file';
+import { WriteSkillTool, type WriteSkillDeps } from './write-skill';
 
 // Re-export utilities for potential external use
 export { resolvePath } from './utils';
@@ -74,14 +75,19 @@ const TOOLS: ToolRegistration[] = [
  * available for use in chat participants and skill workflows.
  *
  * @param context - VS Code extension context for subscription management
+ * @param deps - Dependencies for tools that need extension state
  */
-export function registerTools(context: vscode.ExtensionContext): void {
-    for (const { name, tool } of TOOLS) {
+export function registerTools(context: vscode.ExtensionContext, deps: { writeSkill: WriteSkillDeps }): void {
+    const tools: ToolRegistration[] = [
+        ...TOOLS,
+        { name: 'skiller_writeSkill', tool: new WriteSkillTool(deps.writeSkill) }
+    ];
+    for (const { name, tool } of tools) {
         context.subscriptions.push(
             vscode.lm.registerTool(name, tool)
         );
         console.log(`[Skiller Tools] Registered: ${name}`);
     }
 
-    console.log(`[Skiller Tools] Registered ${TOOLS.length} custom tools`);
+    console.log(`[Skiller Tools] Registered ${tools.length} custom tools`);
 }

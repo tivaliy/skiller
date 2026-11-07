@@ -16,6 +16,7 @@ const fakeAccessors: ContextAccessors = {
   getActiveFile: () => ({ path: '/a.ts', content: 'C', languageId: 'ts', selection: 'SEL' }),
   getGitDiff: async () => undefined,
   getDiagnostics: () => undefined,
+  getTools: () => undefined,
 };
 
 describe('resolveContextInputs', () => {

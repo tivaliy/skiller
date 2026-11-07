@@ -63,6 +63,13 @@ export const SNAPSHOT_PROVIDERS: readonly SnapshotProvider[] = [
             return diagnostics ? { diagnostics } : {};
         },
     },
+    {
+        owns: ['tools'],
+        capture(accessors) {
+            const tools = accessors.getTools();
+            return tools ? { tools } : {};
+        },
+    },
 ];
 
 /**

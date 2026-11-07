@@ -6,13 +6,15 @@
  */
 
 import type { Skill, EditorContextSnapshot } from '../skills';
-import { resolveSource, hasValue, FILE_CONTENT_SOURCES } from '../skills';
+import { resolveSource, hasValue, FILE_CONTENT_SOURCES, AMBIENT_SOURCES } from '../skills';
+
+/** An input bound to editor context (not an ambient source such as `tools`, which is always present). */
+function bindsEditorContext(input: Skill['inputs'][number]): input is Skill['inputs'][number] & { from: string } {
+    return !!input.from && !AMBIENT_SOURCES.has(input.from);
+}
 
 export function skillMatchesContext(skill: Skill, snapshot: EditorContextSnapshot): boolean {
-    return skill.inputs.some(input => {
-        if (!input.from) return false;
-        return hasValue(resolveSource(input.from, snapshot));
-    });
+    return skill.inputs.some(input => bindsEditorContext(input) && hasValue(resolveSource(input.from, snapshot)));
 }
 
 /**
@@ -21,7 +23,7 @@ export function skillMatchesContext(skill: Skill, snapshot: EditorContextSnapsho
  * snapshotting the document — which copies the whole file — on every cursor move.
  */
 export function anySkillBindsContext(skills: readonly Skill[]): boolean {
-    return skills.some(skill => skill.inputs.some(input => !!input.from));
+    return skills.some(skill => skill.inputs.some(bindsEditorContext));
 }
 
 /**

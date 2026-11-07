@@ -24,6 +24,7 @@ orchestrates your MCP tools with review and input steps.
 - \`/reload\` - Reload tools and skills
 - \`/skills\` - List available skills
 - \`/skill <name> [params]\` - Run a skill
+- \`/new\` - Create a skill (describe it, template, or copy an example)
 - \`/status\` - Show whether a skill is awaiting input or confirmation
 - \`/cancel\` - Cancel the skill awaiting input or confirmation
 - \`/reset\` - Clear all Skiller state

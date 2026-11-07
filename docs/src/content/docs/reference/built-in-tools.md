@@ -1,14 +1,15 @@
 ---
 title: Built-in tools
-description: The skiller_createFile and skiller_replaceInFile language-model tools.
+description: The skiller_createFile, skiller_replaceInFile, and skiller_writeSkill language-model tools.
 sidebar:
   order: 5
 ---
 
-Skiller ships two language-model tools that write to the filesystem: `skiller_createFile` and
-`skiller_replaceInFile`. They are always available — no MCP server to configure — so a skill can
-produce files with **zero setup**. Use them from a `tool` step in a skill, or reference them
-directly in chat (e.g. `@skiller #createFile`).
+Skiller ships three language-model tools that write to the filesystem: the file tools
+`skiller_createFile` and `skiller_replaceInFile`, and [`skiller_writeSkill`](#skiller_writeskill),
+which writes a whole new skill. They are always available — no MCP server to configure — so a skill
+can produce files with **zero setup**. Use the file tools from a `tool` step in a skill, or reference
+them directly in chat (e.g. `@skiller #createFile`).
 
 ## Why these exist
 
@@ -20,7 +21,7 @@ skill's `tool` step and when invoked from chat.
 
 ## Workspace confinement
 
-By default, both tools refuse to write **outside the open workspace folder**. A path that escapes the
+By default, both file tools refuse to write **outside the open workspace folder**. A path that escapes the
 workspace — via `..`, an absolute path elsewhere, or a different drive — is rejected, which guards
 against a shared or forked skill targeting arbitrary paths like `~/.ssh/config`.
 
@@ -93,12 +94,38 @@ steps:
     output: filled
 ```
 
+## `skiller_writeSkill`
+
+Writes a complete new skill folder in one step. It is the tool the built-in `skill-creator` skill
+uses, and **among skills, only Skiller's built-in skills may use it**: a workspace or user skill
+that references it (in `tools.aliases` or a step) fails its readiness check and does not run, and
+a step that offers or calls it anyway (for example through a step file's frontmatter `tools:`) fails
+when it runs. It is not referenceable from chat prompts. Like any registered tool, other VS Code extensions can still
+call it programmatically.
+Skiller validates the skill with the same checks as `/skill` first — if anything fails, **nothing is
+written** and the errors come back as text so the model can fix them and call again.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | `string` | yes | The skill id: letters, digits, `-` and `_`, starting with a letter. Becomes the folder name. |
+| `files` | `array` | yes | Every file of the skill, as `{ path, content }` with `path` relative to the skill folder (for example `skill.yaml` or `prompts/main.md`). |
+
+File paths must be relative to the skill folder: no absolute paths, no `..`, no empty segments, no
+characters Windows forbids (`< > : " | ? *`), no reserved Windows names (`CON`, `NUL`, `COM1`, …),
+and each path only once. Only `.yaml`, `.yml`, and `.md` files are accepted, and `skill.yaml` is
+required.
+
+On success it returns `Skill written: …`; on failure, `Skill not written:` followed by the problems.
+The folder lands in `.skiller/skills/<id>/` (the user folder when no workspace is open), and the
+ids must be unique across tiers. It asks no confirmation, since you already asked for the skill;
+that is why skills other than the built-ins may not call it.
+
 ## Where to use them
 
 - **In a skill** — alias a tool under [`tools.aliases`](../skill-yaml/) and call it from a `tool`
   step. The step's `params` are Liquid-interpolated, so you can wire in `{{ inputs.* }}` and
   `{{ outputs.* }}` values.
-- **In chat** — both tools are referenceable in a prompt (`#createFile`, `#replaceInFile`), so the
+- **In chat** — both file tools are referenceable in a prompt (`#createFile`, `#replaceInFile`), so the
   model can call them while answering a request.
 
 ## Related

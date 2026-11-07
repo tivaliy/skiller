@@ -8,7 +8,7 @@ import { parseSkillFromContent } from '../../../src/skills/parser';
 import { createMockSkillSource } from '../../helpers/mocks/skill';
 
 const SKILLS_DIR = path.join(__dirname, '../../../skills');
-const DEMOS = ['greeter', 'mind-reader'];
+const DEMOS = ['greeter', 'mind-reader', 'skill-creator'];
 
 describe('bundled demo skills', () => {
     const source = createMockSkillSource();

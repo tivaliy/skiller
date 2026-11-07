@@ -28,7 +28,7 @@ const TOOL_ERROR_PATTERNS = [
 /**
  * Check if a tool result indicates an error
  */
-function isToolResultError(resultText: string): boolean {
+export function isToolResultError(resultText: string): boolean {
     return TOOL_ERROR_PATTERNS.some(pattern => pattern.test(resultText));
 }
 
@@ -206,6 +206,7 @@ export async function executeLLMStep(
 
     const toolsInvoked: string[] = [];
     const toolErrors: string[] = []; // Track tool errors for failure detection
+    const offeredToolNames = new Set(tools.map(t => t.name));
     const {
         maxToolIterations,
         toolInvocationTimeout,
@@ -332,8 +333,29 @@ export async function executeLLMStep(
             }
             messages.push(assistantMessage);
 
+            /** Record a failed call and send the model an error tool result in its place. */
+            const failCall = (call: { callId: string; name: string }, errorText: string, phase: string, resultText = errorText) => {
+                toolErrors.push(`${call.name}: ${errorText}`);
+                hooks.onPhaseComplete?.(`${phase}: ${call.name}`);
+                messages.push(
+                    vscode.LanguageModelChatMessage.User([
+                        new vscode.LanguageModelToolResultPart(call.callId, [
+                            new vscode.LanguageModelTextPart(resultText)
+                        ])
+                    ])
+                );
+            };
+
             // Execute each tool and collect results
             for (const call of toolCalls) {
+                // Only run tools this step offered. A model can name any tool (hallucinated,
+                // or steered by prompt content), and invokeTool would run any registered one,
+                // including tools reserved for built-in skills (see skills/reserved-tools.ts).
+                if (!offeredToolNames.has(call.name)) {
+                    failCall(call, `Tool '${call.name}' is not available in this step.`, 'Refused');
+                    continue;
+                }
+
                 hooks.onPhaseStart?.(`Calling ${call.name}`);
                 toolsInvoked.push(call.name);
 
@@ -380,16 +402,7 @@ export async function executeLLMStep(
                     const errorText = isTimeoutError(toolError)
                         ? `Timed out after ${toolError.timeoutMs}ms`
                         : (toolError instanceof Error ? toolError.message : String(toolError));
-                    toolErrors.push(`${call.name}: ${errorText}`);
-                    hooks.onPhaseComplete?.(`Failed: ${call.name}`);
-
-                    messages.push(
-                        vscode.LanguageModelChatMessage.User([
-                            new vscode.LanguageModelToolResultPart(call.callId, [
-                                new vscode.LanguageModelTextPart(`Error calling tool '${call.name}': ${errorText}`)
-                            ])
-                        ])
-                    );
+                    failCall(call, errorText, 'Failed', `Error calling tool '${call.name}': ${errorText}`);
                 }
             }
 

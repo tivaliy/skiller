@@ -78,9 +78,11 @@ export function showInputPrompt(stream: vscode.ChatResponseStream, input: SkillI
 // Output delivery UI
 // ============================================================================
 
-/** Confirm where a completed skill's output was delivered. */
-export function showOutputDelivered(stream: vscode.ChatResponseStream, sink: OutputSink): void {
-    stream.markdown(`\n✓ Output ${describeSink(sink)}.\n`);
+/** Confirm where a completed skill's output was delivered (`fellBack`: an editor sink opened a new tab instead). */
+export function showOutputDelivered(stream: vscode.ChatResponseStream, sink: OutputSink, fellBack = false): void {
+    stream.markdown(fellBack
+        ? '\n✓ Output opened in a new tab — there was no safe place to write it in the editor.\n'
+        : `\n✓ Output ${describeSink(sink)}.\n`);
 }
 
 /** The run completed but its `output.to` didn't match a known sink. */

@@ -85,7 +85,7 @@ export const inputDefinitionSchema = z.object({
      */
     from: z.string()
         .refine(v => KNOWN_CONTEXT_SOURCES.has(v), {
-            message: 'input.from must be a known context source (e.g. selection, activeFile, activeFile.path, activeFile.content, activeFile.language, git.staged, git.working, diagnostics)'
+            message: `input.from must be a known context source (${[...KNOWN_CONTEXT_SOURCES].join(', ')})`
         })
         .optional()
 }).strict();

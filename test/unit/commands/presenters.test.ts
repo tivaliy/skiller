@@ -6,10 +6,10 @@
 
 import { describe, it, expect } from 'vitest';
 import type * as vscode from 'vscode';
-import { formatSkillList, formatSkillDetails, formatToolStatus } from '../../../src/commands/presenters';
+import { formatSkillList, formatSkillDetails, formatToolStatus, formatNewSkillMenu } from '../../../src/commands/presenters';
 import { ToolCache, ToolsProvider } from '../../../src/ToolCache';
 import type { Skill, SkillRegistry, DiscoveredSkills } from '../../../src/skills';
-import { createMockSkill } from '../../helpers/mocks/skill';
+import { createMockSkill, createMockStep } from '../../helpers/mocks/skill';
 
 function toolCacheWith(names: string[]): ToolCache {
     const tools = names.map(name => ({
@@ -96,5 +96,49 @@ describe('formatSkillDetails', () => {
         expect(output).toContain('Built-in');
         expect(output).toContain('greet');
         expect(output).toContain('conditional step'); // legend appears for `when` steps
+    });
+});
+
+describe('formatSkillList copy action', () => {
+    it('offers Copy only on built-in skills', () => {
+        const mk = (id: string, type: 'builtin' | 'user' | 'workspace') =>
+            createMockSkill({ id, source: { type, path: `/x/${id}` } });
+        const out = formatSkillList(fakeRegistry([mk('b1', 'builtin'), mk('u1', 'user'), mk('w1', 'workspace')]));
+        const line = (id: string) => out.split('\n').find(l => l.includes(`\`${id}\``))!;
+        expect(line('b1')).toContain('command:skiller.copySkill');
+        expect(line('u1')).not.toContain('command:skiller.copySkill');
+        expect(line('w1')).not.toContain('command:skiller.copySkill');
+    });
+
+    it('does not offer Copy on a built-in that uses a built-in-only tool', () => {
+        const creator = createMockSkill({
+            id: 'creator',
+            source: { type: 'builtin', path: '/x/creator' },
+            steps: [createMockStep({ id: 'w', tools: ['skiller_writeSkill'] })],
+        });
+        const out = formatSkillList(fakeRegistry([creator]));
+        expect(out.split('\n').find(l => l.includes('`creator`'))).not.toContain('command:skiller.copySkill');
+    });
+});
+
+describe('formatNewSkillMenu', () => {
+    const link = (label: string, kind: string) =>
+        `[${label}](command:skiller.newSkill?${encodeURIComponent(JSON.stringify([kind]))} `;
+
+    it('renders one escaped link row in the /skills action style', () => {
+        const out = formatNewSkillMenu();
+        const row = out.split('\n').find(l => l.startsWith('\\['))!;
+        expect(row).toContain(link('✎ Describe it', 'describe'));
+        expect(row).toContain(link('▤ From a template', 'template'));
+        expect(row).toContain(link('⎘ Copy a skill', 'copy'));
+        expect(row.endsWith('\\]')).toBe(true);
+        expect(row.split(' | ')).toHaveLength(3);
+    });
+
+    it('has a header and a typed-usage hint, and no emoji that means something else', () => {
+        const out = formatNewSkillMenu();
+        expect(out).toContain('**Create a skill**');
+        expect(out).toContain('`@skiller /new ');
+        expect(out).not.toContain('📦');
     });
 });

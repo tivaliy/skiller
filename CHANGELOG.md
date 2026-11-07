@@ -5,6 +5,20 @@ All notable changes to the **Skiller** extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Create skills without a blank file: `@skiller /new` (describe it, start from a template, or copy a skill; `/new <idea>` runs the new built-in `skill-creator` skill) and the Command Palette's `Skiller: New Skill…`. New skills are validated before they are written to `.skiller/skills/<id>/`.
+- Five starter templates (`basic`, `approval`, `loop`, `tool`, `editor`) and three copyable examples (`change-map`, `shell-it`, `smell-refactor`); built-in skills gain a **Copy** action in `/skills` that forks them into the workspace.
+- The `from: tools` input binding, which fills an input with the installed language-model tools.
+- The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. Only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
+
+### Fixed
+
+- An editor write-back skill (`editor.replaceSelection`, `editor.insert`, `diff`) no longer writes into its own `skill.yaml` or step files when one of them is the active editor at launch — for example right after creating the skill, when its `skill.yaml` is open. The result opens in a new tab instead.
+- When an editor write-back sink falls back to a new tab (no launch editor, or the document changed since launch), chat now says so instead of reporting an in-place write.
+
 ## [0.4.0] - 2026-06-23
 
 ### Added

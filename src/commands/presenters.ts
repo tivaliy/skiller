@@ -8,6 +8,8 @@
 
 import type { Skill, SkillRegistry } from '../skills';
 import type { ToolCache } from '../ToolCache';
+import { COPY_SKILL_COMMAND, NEW_SKILL_COMMAND, NEW_SKILL_KINDS } from '../scaffold/kinds';
+import { isCopyableBuiltin } from '../skills/reserved-tools';
 
 /** Icon + label for each skill source, keyed by source type (single source of truth). */
 const SOURCE_META: Record<Skill['source']['type'], { icon: string; label: string }> = {
@@ -60,10 +62,17 @@ function formatCommandLink(
     return `[${displayText}](command:workbench.action.chat.open?${args} "${tooltip}")`;
 }
 
+/** Markdown link that runs a Skiller command with JSON-encoded arguments. */
+function formatSkillerCommandLink(command: string, args: unknown[], label: string, tooltip: string): string {
+    const encoded = encodeURIComponent(JSON.stringify(args));
+    return `[${label}](command:${command}?${encoded} "${tooltip}")`;
+}
+
 /**
- * Format action links for a skill: [ ▶ Run | ◉ View ]
+ * Format action links for a skill: [ ▶ Run | ◉ View ] (+ ⎘ Copy for built-ins)
  */
-function formatSkillActions(skillId: string): string {
+function formatSkillActions(skill: Skill): string {
+    const skillId = skill.id;
     const runLink = formatCommandLink(
         `@skiller /skill ${skillId}`,
         '▶',
@@ -76,11 +85,35 @@ function formatSkillActions(skillId: string): string {
         'View',
         `View ${skillId} details`
     );
+    const links = [runLink, detailsLink];
+    // Built-ins using built-in-only tools are not copyable: a copy could not run.
+    if (isCopyableBuiltin(skill)) {
+        links.push(formatSkillerCommandLink(COPY_SKILL_COMMAND, [skillId], '⎘ Copy', `Copy ${skillId} to edit`));
+    }
     // Escape the outer brackets so they render as literal decoration.
     // Unescaped `[ ... ]` around the inner command links nests brackets,
     // which VS Code's chat markdown sanitizer mis-parses (it swaps in a
     // placeholder href like https://microsoft.com on the trailing bracket).
-    return `\\[ ${runLink} | ${detailsLink} \\]`;
+    return `\\[ ${links.join(' | ')} \\]`;
+}
+
+/** The command the /new menu links run; callers must trust it on the MarkdownString. */
+export { NEW_SKILL_COMMAND, COPY_SKILL_COMMAND };
+
+/**
+ * Format the `/new` menu: a header, one action row in the same `\[ a | b \]`
+ * style as the skill actions, and a hint for passing the idea directly.
+ */
+export function formatNewSkillMenu(): string {
+    const links = NEW_SKILL_KINDS.map(k =>
+        formatSkillerCommandLink(NEW_SKILL_COMMAND, [k.kind], `${k.glyph} ${k.label}`, k.description));
+    return [
+        '**Create a skill**: how do you want to start?',
+        '',
+        `\\[ ${links.join(' | ')} \\]`,
+        '',
+        '_Or type it: `@skiller /new summarize my staged diff`_',
+    ].join('\n');
 }
 
 /**
@@ -95,7 +128,7 @@ export function formatSkillList(registry: SkillRegistry): string {
         lines.push('📦 **Built-in:**');
         for (const skill of bySource.builtin) {
             const override = skill.source.overrides ? ' *(overridden)*' : '';
-            const actions = formatSkillActions(skill.id);
+            const actions = formatSkillActions(skill);
             lines.push(`  • \`${skill.id}\` ${actions}${override}`);
             lines.push(`    ${skill.description}`);
         }
@@ -108,7 +141,7 @@ export function formatSkillList(registry: SkillRegistry): string {
             const override = skill.source.overrides
                 ? ` *[overrides ${skill.source.overrides}]*`
                 : '';
-            const actions = formatSkillActions(skill.id);
+            const actions = formatSkillActions(skill);
             lines.push(`  • \`${skill.id}\` ${actions}${override}`);
             lines.push(`    ${skill.description}`);
         }
@@ -121,7 +154,7 @@ export function formatSkillList(registry: SkillRegistry): string {
             const override = skill.source.overrides
                 ? ` *[overrides ${skill.source.overrides}]*`
                 : '';
-            const actions = formatSkillActions(skill.id);
+            const actions = formatSkillActions(skill);
             lines.push(`  • \`${skill.id}\` ${actions}${override}`);
             lines.push(`    ${skill.description}`);
         }

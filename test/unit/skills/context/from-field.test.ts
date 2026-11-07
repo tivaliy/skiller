@@ -37,4 +37,13 @@ describe('input.from field', () => {
     const result = parseSkillFromContent(yaml, '/skills/t', SOURCE);
     expect(result.success).toBe(false);
   });
+
+  it('lists every known source in the error, including tools', () => {
+    const yaml = YAML.replace('from: selection', 'from: tool');
+    const result = parseSkillFromContent(yaml, '/skills/t', SOURCE);
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.error).toContain('tools');
+    expect(result.error.error).toContain('diagnostics');
+  });
 });

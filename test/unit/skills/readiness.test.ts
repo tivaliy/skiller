@@ -464,7 +464,7 @@ describe('Factory Functions', () => {
     describe('createReadinessEngine', () => {
         it('creates engine with default checks', () => {
             const engine = createReadinessEngine();
-            expect(engine.getCheckCount()).toBe(1); // ToolAvailability only
+            expect(engine.getCheckCount()).toBe(2); // ToolAvailability + BuiltinOnlyTools
         });
     });
 

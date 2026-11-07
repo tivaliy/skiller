@@ -18,6 +18,15 @@ export class LanguageModelTextPart {
     constructor(public readonly value: string) {}
 }
 
+export class MarkdownString {
+    isTrusted?: boolean | { readonly enabledCommands: readonly string[] };
+    constructor(public value = '') {}
+}
+
+export class LanguageModelToolResult {
+    constructor(public readonly content: unknown[]) {}
+}
+
 export class LanguageModelToolCallPart {
     constructor(
         public readonly callId: string,
@@ -213,6 +222,8 @@ export default {
     LanguageModelTextPart,
     LanguageModelToolCallPart,
     LanguageModelToolResultPart,
+    LanguageModelToolResult,
+    MarkdownString,
     LanguageModelChatToolMode,
     lm,
     CancellationTokenSource,

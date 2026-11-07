@@ -39,7 +39,8 @@ and carries it through the run, rather than guessing at completion time.
 
 `from:` binds an input to a piece of editor state. The [full source list is in the
 reference](../../reference/skill-yaml/#binding-inputs-to-editor-context) — `selection`, `activeFile`
-and its `.path` / `.content` / `.language`, `git.staged`, `git.working`, and `diagnostics`.
+and its `.path` / `.content` / `.language`, `git.staged`, `git.working`, `diagnostics`, and `tools` (the installed language-model tools, one per line; an ambient
+source that never triggers a code action).
 
 The binding is a *fallback*, not an override: an explicit launch argument or a `default` always wins,
 and the context only fills an input that would otherwise be empty. So a `from: selection` input is

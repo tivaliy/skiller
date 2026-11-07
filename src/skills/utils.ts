@@ -34,6 +34,28 @@ export function fence(text: string): string {
 }
 
 /**
+ * Strip one markdown code fence that wraps the whole content (LLMs routinely wrap
+ * output in ```lang despite prompting). Content made of two separate fenced blocks,
+ * or with a fence only inside, is returned unchanged. CRLF-aware: inner line endings
+ * are kept, and the line break before the closing fence is dropped with it.
+ */
+export function stripCodeFence(content: string): string {
+    const lines = content.split('\n'); // a CRLF line keeps its trailing '\r'
+    let start = 0;
+    let end = lines.length - 1;
+    while (start <= end && lines[start].trim() === '') start++;
+    while (end >= start && lines[end].trim() === '') end--;
+    if (end <= start || !lines[start].trim().startsWith('```') || lines[end].trim() !== '```') {
+        return content;
+    }
+    const inner = lines.slice(start + 1, end);
+    if (inner.some((l) => l.trimStart().startsWith('```'))) {
+        return content;
+    }
+    return inner.join('\n').replace(/\r$/, '');
+}
+
+/**
  * Calculate Levenshtein distance between two strings
  *
  * Used for typo detection and suggesting similar keys/values.

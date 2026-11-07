@@ -13,17 +13,9 @@ import type { OutputDeps, DeliveryOutcome, DeliveryTarget } from './types';
 import { parseSink, deliverOutput } from './sinks';
 import { createVsCodeOutputDeps } from './accessors';
 import { interpolate } from '../interpolation';
+import { stripCodeFence } from '../utils';
 
-/**
- * Strip a single wrapping markdown code fence when the whole content is fenced.
- * CRLF-aware: the info-string match excludes `\r` and the close is preceded by an
- * optional `\r?\n`, so a CRLF-fenced block does not leave a dangling `\r` on the
- * last line (which would otherwise be written verbatim into the editor/file).
- */
-export function stripCodeFence(content: string): string {
-    const match = content.match(/^\s*```[^\r\n]*\r?\n([\s\S]*?)\r?\n?```\s*$/);
-    return match ? match[1] : content;
-}
+export { stripCodeFence };
 
 export async function deliverSkillOutput(
     skill: Skill,
@@ -48,8 +40,8 @@ export async function deliverSkillOutput(
     if (content.trim() === '') return { kind: 'none' };
 
     try {
-        await deliverOutput(content, sink, deps, target);
-        return { kind: 'delivered', sink };
+        const where = await deliverOutput(content, sink, deps, target);
+        return where === 'newDocument' ? { kind: 'delivered', sink, fellBack: true } : { kind: 'delivered', sink };
     } catch (error) {
         return { kind: 'failed', message: error instanceof Error ? error.message : String(error) };
     }

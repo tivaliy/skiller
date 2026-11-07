@@ -15,6 +15,7 @@
 
 import * as vscode from 'vscode';
 import { resolvePath } from '../../tools/utils';
+import * as path from 'path';
 import type { OutputDeps, DeliveryTarget } from './types';
 import { stageInTerminal } from './terminal-staging';
 import type { TerminalStager } from './terminal-staging';
@@ -52,10 +53,22 @@ function vsCodeTerminalStager(): TerminalStager {
     };
 }
 
-/** Capture the active editor as a delivery target at launch (uri + version + selection). */
-export function captureDeliveryTarget(): DeliveryTarget | undefined {
+/** `file` is inside `dir` (not `dir` itself, not a sibling sharing its name as a prefix). */
+function isInside(file: string, dir: string): boolean {
+    const rel = path.relative(dir, file);
+    return rel !== '' && !rel.startsWith('..') && !path.isAbsolute(rel);
+}
+
+/**
+ * Capture the active editor as a delivery target at launch (uri + version + selection).
+ * `excludeDir` is the running skill's own folder: a run never writes into its own
+ * definition (e.g. the skill.yaml the create flow just opened), so an editor there
+ * yields no target and the sink opens the result in a new tab instead.
+ */
+export function captureDeliveryTarget(opts: { excludeDir?: string } = {}): DeliveryTarget | undefined {
     const editor = vscode.window.activeTextEditor;
     if (!editor) return undefined;
+    if (opts.excludeDir && isInside(editor.document.uri.fsPath, opts.excludeDir)) return undefined;
     const sel = editor.selection;
     return {
         uri: editor.document.uri.toString(),
@@ -148,21 +161,23 @@ export function createVsCodeOutputDeps(): OutputDeps {
         async replaceSelection(content, target) {
             const loc = await resolveWritableTarget(content, target,
                 'Skiller: the document changed since the skill was launched — opened the result in a new tab instead of overwriting your selection.');
-            if (!loc) return;
+            if (!loc) return 'newDocument';
             // Empty range ⇒ inserts at the caret; non-empty ⇒ replaces the selection.
             await applyEdit(loc.doc.uri, edit => edit.replace(loc.doc.uri, loc.range, content));
+            return 'inEditor';
         },
 
         async insertAtCursor(content, target) {
             const loc = await resolveWritableTarget(content, target,
                 'Skiller: the document changed since the skill was launched — opened the result in a new tab instead of inserting.');
-            if (!loc) return;
+            if (!loc) return 'newDocument';
             await applyEdit(loc.doc.uri, edit => edit.insert(loc.doc.uri, loc.range.start, content));
+            return 'inEditor';
         },
 
         async showDiff(content, target) {
             const loc = await resolveTarget(target);
-            if (!loc) return openNewDocument(content); // nothing to diff against
+            if (!loc) { await openNewDocument(content); return 'newDocument'; } // nothing to diff against
             // A selection-scoped proposal splices content at the offsets captured at
             // launch; if the document changed since then those offsets are stale and the
             // splice would garble unrelated code. Fall back to a new tab — consistent
@@ -170,7 +185,8 @@ export function createVsCodeOutputDeps(): OutputDeps {
             // whole-file case, empty range, needs no offsets, so it is unaffected.)
             if (loc.changed && !loc.range.isEmpty) {
                 void vscode.window.showWarningMessage('Skiller: the document changed since the skill was launched — opened the proposed result in a new tab instead of diffing against a stale selection.');
-                return openNewDocument(content);
+                await openNewDocument(content);
+                return 'newDocument';
             }
             const current = loc.doc;
             const currentText = current.getText();
@@ -191,7 +207,7 @@ export function createVsCodeOutputDeps(): OutputDeps {
                 `Apply Skiller's changes to ${vscode.workspace.asRelativePath(current.uri)}?`,
                 { modal: true }, 'Apply',
             );
-            if (choice !== 'Apply') return;
+            if (choice !== 'Apply') return 'inEditor'; // the diff was shown; the user declined
 
             // Guard against edits made while the diff/modal was open (TOCTOU): if the
             // document moved on from the version we computed the proposal against,
@@ -199,10 +215,11 @@ export function createVsCodeOutputDeps(): OutputDeps {
             const fresh = await vscode.workspace.openTextDocument(current.uri);
             if (fresh.version !== versionAtProposal) {
                 void vscode.window.showWarningMessage('Skiller: the file changed while the diff was open — not applied. Re-run to review against the latest.');
-                return;
+                return 'inEditor';
             }
             const fullRange = new vscode.Range(fresh.positionAt(0), fresh.positionAt(fresh.getText().length));
             await applyEdit(fresh.uri, edit => edit.replace(fresh.uri, fullRange, proposedText));
+            return 'inEditor';
         },
     };
 }

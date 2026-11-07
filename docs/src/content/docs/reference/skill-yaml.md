@@ -134,6 +134,7 @@ context only fills an input that would otherwise be empty.
 | `git.staged` | `git diff --staged` for the workspace |
 | `git.working` | `git diff` (unstaged working-tree changes) |
 | `diagnostics` | The active file's problems, one `‹line›: ‹message›` per line |
+| `tools` | Installed language-model tools, one `‹name› — ‹description›` per line; never triggers a code action |
 
 ```yaml
 inputs:

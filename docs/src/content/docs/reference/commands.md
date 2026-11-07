@@ -19,8 +19,9 @@ menu, or the Command Palette — without typing the command yourself. See
 | Command | What it does | Notes |
 | ------- | ------------ | ----- |
 | `/help` | Lists the available commands. | Start here if you forget a command. |
-| `/skills` | Lists every discovered skill with its `id`, name, and source tier. | Source is workspace, user, or built-in. |
+| `/skills` | Lists every discovered skill with its `id`, name, and source tier. | Source is workspace, user, or built-in. Built-ins also offer **⎘ Copy**, which forks the skill into your workspace. |
 | `/skill <id> [params]` | Runs the skill with that `id`. | Accepts named (`name=Ada`) and positional launch arguments — see below. |
+| `/new [idea]` | Creates a new skill: three links (describe it, from a template, copy a skill), or `/new <idea>` runs the built-in `skill-creator` with that idea. | See [Create a skill](../../getting-started/create-a-skill/). |
 | `/tools` | Lists the tools available to skills. | Includes the built-in file tools and any configured MCP tools. |
 | `/models` | Lists the language models available for skill configuration. | The ids you reference in `models.default` / `models.aliases`. |
 | `/reload` | Re-scans skills and tools and reports what changed. | Shows an added / removed / parse-error diff (see below). |
@@ -64,6 +65,17 @@ writes back there even after chat takes focus. It then opens chat to run the ski
 command is prefilled for you to submit (`adaptive`, default) or submitted immediately (`chat`).
 
 See [Editor-native skills](../../concepts/editor-native-skills/) for the whole model.
+
+## Creating skills
+
+| Command | What it does |
+| ------- | ------------ |
+| `@skiller /new` | Offers three links: **✎ Describe it**, **▤ From a template**, **⎘ Copy a skill**. `/new <text>` runs `skill-creator` with the text as the idea. |
+| `Skiller: New Skill…` (`skiller.newSkill`) | Command Palette version of the same three choices. |
+| **⎘ Copy** in `/skills` (`skiller.copySkill`) | Forks a built-in skill into `.skiller/skills/<id>/`, keeping its id so it overrides the built-in. |
+
+Skills are written to `.skiller/skills/<id>/` (or `~/.vscode/skiller/skills/` with no workspace open)
+after passing the same validation as `/skill`. See [Create a skill](../../getting-started/create-a-skill/).
 
 ## The `/reload` diff
 

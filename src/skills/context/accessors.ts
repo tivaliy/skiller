@@ -7,7 +7,7 @@
 
 import * as vscode from 'vscode';
 import type { ContextAccessors } from './types';
-import { formatDiagnostics } from './sources';
+import { formatDiagnostics, formatToolList } from './sources';
 
 /** Minimal shape of the built-in git extension API we rely on. */
 interface GitRepository { diff(cached?: boolean): Promise<string>; }
@@ -62,6 +62,9 @@ export function createVsCodeContextAccessors(): ContextAccessors {
             const diags = vscode.languages.getDiagnostics(uri);
             if (diags.length === 0) return undefined;
             return formatDiagnostics(diags);
+        },
+        getTools() {
+            return formatToolList(vscode.lm.tools);
         },
     };
 }

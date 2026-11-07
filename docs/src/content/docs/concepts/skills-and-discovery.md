@@ -38,7 +38,7 @@ Skiller looks in three locations, in this precedence order. **Earlier wins:** wh
 | ---------- | ---- | -------- | ------------- |
 | 1 (highest) | **Workspace** | `.skiller/skills/` in the workspace root | Skills that belong to *this* project — checked into the repo and shared with the team. |
 | 2 | **User** | `~/.vscode/skiller/skills/` | Your personal skills, available across every workspace. |
-| 3 (lowest) | **Built-in** | `skills/` shipped with the extension | The built-in example skills (`greeter`, `mind-reader`) you get out of the box. |
+| 3 (lowest) | **Built-in** | `skills/` shipped with the extension | The built-in skills (`greeter`, `mind-reader`, `skill-creator`) you get out of the box. |
 
 So a workspace skill overrides a user skill of the same `id`, which in turn overrides a
 built-in one. Each tier is scanned independently; folders whose names start with `.` and
@@ -47,14 +47,15 @@ treated as a broken skill.
 
 ## Forking a built-in skill
 
-Because higher tiers win, **reusing an `id` is how you fork.** To customize a built-in
-example, copy its folder into a higher tier — typically `.skiller/skills/<id>/` — keep the
-same `id`, and edit your copy. Your version takes over wherever that workspace (or user
-profile) is active, while the original stays untouched. It is the quickest way to start from
-something that already runs end to end.
+Because higher tiers win, **reusing an `id` is how you fork.** The easy way is the **Copy**
+action: click **⎘ Copy** next to a built-in in the `@skiller /skills` list (or run
+`Skiller: New Skill…` and choose **Copy a skill**). Skiller copies the skill into
+`.skiller/skills/<id>/`, keeps the same `id`, and opens it for editing. Your version takes over wherever
+that workspace is active, while the original stays untouched. See
+[Create a skill](../../getting-started/create-a-skill/).
 
 ```text
-.skiller/skills/greeter/skill.yaml   # your fork — id: greeter, overrides the built-in
+.skiller/skills/greeter/skill.yaml   # your copy — id: greeter, overrides the built-in
 ```
 
 The same mechanism lets you pin a project-specific variant in the workspace while keeping a

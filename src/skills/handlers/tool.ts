@@ -18,6 +18,7 @@ import { ToolResolver, createToolResolver } from '../tool-resolver';
 import { interpolateObject } from '../interpolation';
 import { executeToolStep } from './runners';
 import { buildHandlerResult, createErrorResult, buildSkippedHandlerResult } from './utils';
+import { assertMayUseTools } from '../reserved-tools';
 
 /**
  * Handler for tool steps (pure MCP tool invocation)
@@ -59,6 +60,7 @@ export class ToolStepHandler implements StepHandler {
             // Resolve alias, optionality, and existence via the shared resolver
             // (no duplicate parsing, no direct vscode.lm access here). Each
             // reference is classified into exactly one of resolved/missing.
+            assertMayUseTools(skill, [step.tool!]);
             const refs = this.toolResolver.validateReferences([step.tool!], skill.tools.aliases);
             const resolved = refs.resolved[0];
             const missing = refs.missing[0];

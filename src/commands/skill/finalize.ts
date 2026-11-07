@@ -24,7 +24,7 @@ export async function finalizeSkillRun(
     const target = ctx.launchContextStore?.takeTarget(skill.id);
     const outcome = await deliverSkillOutput(skill, result, undefined, target);
     switch (outcome.kind) {
-        case 'delivered': presenter.showOutputDelivered(ctx.stream, outcome.sink); break;
+        case 'delivered': presenter.showOutputDelivered(ctx.stream, outcome.sink, outcome.fellBack); break;
         case 'unknownSink': presenter.showUnknownSink(ctx.stream, outcome.to); break;
         case 'failed': presenter.showOutputDeliveryFailed(ctx.stream, outcome.message); break;
         case 'none': break;

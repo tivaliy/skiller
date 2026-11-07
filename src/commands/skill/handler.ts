@@ -105,15 +105,28 @@ function normalizeContextInputs(
  * 5. Start input collection if needed, or execute directly
  */
 export async function handleSkill(ctx: CommandContext): Promise<CommandResult> {
-    const { stream, skillRegistry, skillExecutor, pendingStateManager, executionState } = ctx;
-
     // Parse arguments
     const { skillId, params } = parseArgs(ctx.request.prompt);
 
     if (!skillId) {
-        presenter.showUsage(stream);
+        presenter.showUsage(ctx.stream);
         return { handled: true, metadata: { command: 'skill', error: 'no_skill_id' } };
     }
+
+    return runSkillById(ctx, skillId, params);
+}
+
+/**
+ * Run a skill by id with already-parsed params (everything `/skill` does after
+ * argument parsing). Shared by `/skill` and by commands that launch a skill
+ * programmatically (e.g. `/new` → skill-creator).
+ */
+export async function runSkillById(
+    ctx: CommandContext,
+    skillId: string,
+    params: Record<string, string>
+): Promise<CommandResult> {
+    const { stream, skillRegistry, skillExecutor, pendingStateManager, executionState } = ctx;
 
     // Find the skill (cache lookup for path only)
     const cachedSkill = skillRegistry.getById(skillId);
@@ -189,7 +202,7 @@ export async function handleSkill(ctx: CommandContext): Promise<CommandResult> {
     // target (newDocument/file/terminal) and the common no-`output.to` case need none,
     // so skip the editor read and store write entirely.
     if (outputNeedsTarget(skill.output?.to) && ctx.launchContextStore && !ctx.launchContextStore.hasTarget(skill.id)) {
-        const liveTarget = captureDeliveryTarget();
+        const liveTarget = captureDeliveryTarget({ excludeDir: skill.source.path });
         if (liveTarget) ctx.launchContextStore.setTarget(skill.id, liveTarget);
     }
 

@@ -34,6 +34,9 @@ export interface DeliveryTarget {
     selection: { start: TargetPosition; end: TargetPosition };
 }
 
+/** Where an editor write-back sink put the content: the launch editor, or a new tab (fallback). */
+export type WriteBackResult = 'inEditor' | 'newDocument';
+
 /** Injected side-effects so deliverOutput is testable without the VS Code runtime. */
 export interface OutputDeps {
     /** Open the content as a new untitled document. */
@@ -41,11 +44,11 @@ export interface OutputDeps {
     /** Write the content to a workspace-relative or absolute path (workspace-guarded). */
     writeFile(path: string, content: string): Promise<void>;
     /** Replace the launch target's selection with the content. */
-    replaceSelection(content: string, target?: DeliveryTarget): Promise<void>;
+    replaceSelection(content: string, target?: DeliveryTarget): Promise<WriteBackResult>;
     /** Insert the content at the launch target's caret. */
-    insertAtCursor(content: string, target?: DeliveryTarget): Promise<void>;
+    insertAtCursor(content: string, target?: DeliveryTarget): Promise<WriteBackResult>;
     /** Show the content as a reviewable diff scoped to the launch target. */
-    showDiff(content: string, target?: DeliveryTarget): Promise<void>;
+    showDiff(content: string, target?: DeliveryTarget): Promise<WriteBackResult>;
     /** Type the content into the integrated terminal without executing it (the user presses Enter). */
     sendToTerminal(content: string): Promise<void>;
     /** Type the content into the integrated terminal and run it (gated by a confirmation step). */
@@ -55,6 +58,6 @@ export interface OutputDeps {
 /** Outcome of routing a completed skill's summary to its output sink. */
 export type DeliveryOutcome =
     | { kind: 'none' }                         // chat-only, or nothing to deliver
-    | { kind: 'delivered'; sink: OutputSink }  // routed to the sink successfully
+    | { kind: 'delivered'; sink: OutputSink; fellBack?: true } // routed to the sink; fellBack: an editor sink opened a new tab instead
     | { kind: 'unknownSink'; to: string }      // output.to did not parse to a known sink
     | { kind: 'failed'; message: string };     // the sink threw while delivering

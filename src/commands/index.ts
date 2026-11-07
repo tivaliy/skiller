@@ -12,6 +12,7 @@ import { handleModels } from './models';
 import { handleReload } from './reload';
 import { handleSkills } from './skills';
 import { handleSkill } from './skill';
+import { handleNew } from './new';
 import { handleCancel, handleReset, handleStatus } from './control';
 
 // Re-export confirmation and input collection handlers for extension.ts
@@ -69,6 +70,12 @@ commandRegistry.register({
     name: 'skill',
     description: 'Run a skill',
     handler: handleSkill
+});
+
+commandRegistry.register({
+    name: 'new',
+    description: 'Create a new skill',
+    handler: handleNew
 });
 
 // Control commands — dispatched even while a skill is awaiting input/confirmation

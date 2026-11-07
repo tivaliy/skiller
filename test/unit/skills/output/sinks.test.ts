@@ -26,9 +26,9 @@ describe('deliverOutput', () => {
     const deps: OutputDeps = {
       openNewDocument: async (c) => { calls.newDocument = c; },
       writeFile: async (p, c) => { calls.file = { path: p, content: c }; },
-      replaceSelection: async (c) => { calls.replaceSelection = c; },
-      insertAtCursor: async (c) => { calls.insert = c; },
-      showDiff: async (c) => { calls.diff = c; },
+      replaceSelection: async (c) => { calls.replaceSelection = c; return 'inEditor'; },
+      insertAtCursor: async (c) => { calls.insert = c; return 'inEditor'; },
+      showDiff: async (c) => { calls.diff = c; return 'inEditor'; },
       sendToTerminal: async (c) => { calls.terminal = c; },
       runInTerminal: async (c) => { calls.terminalRun = c; },
     };

@@ -15,6 +15,7 @@ import type { ToolResolver } from '../tool-resolver';
 import { interpolate } from '../interpolation';
 import { executeLLMStep } from './runners';
 import { buildHandlerResult, createErrorResult } from './utils';
+import { assertMayUseTools } from '../reserved-tools';
 
 /**
  * Handler for LLM steps (agentic reasoning with optional tool use)
@@ -157,6 +158,7 @@ export class LLMStepHandler implements StepHandler {
         if (toolNames.length === 0) {
             return [];
         }
+        assertMayUseTools(skill, toolNames);
 
         // Use injected resolver if available
         if (this.toolResolver) {

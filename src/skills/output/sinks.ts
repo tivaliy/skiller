@@ -8,7 +8,7 @@
  * drives the input side. No `vscode` import: the runtime lives behind `OutputDeps`.
  */
 
-import type { OutputSink, OutputDeps, DeliveryTarget } from './types';
+import type { OutputSink, OutputDeps, DeliveryTarget, WriteBackResult } from './types';
 
 type Kind = OutputSink['kind'];
 
@@ -18,7 +18,7 @@ interface SinkSpec {
     /** Recognize + parse an `output.to` string into a sink (undefined if not this sink). */
     parse(to: string): OutputSink | undefined;
     /** Deliver the rendered content via the injected boundary. */
-    deliver(deps: OutputDeps, content: string, sink: OutputSink, target?: DeliveryTarget): Promise<void>;
+    deliver(deps: OutputDeps, content: string, sink: OutputSink, target?: DeliveryTarget): Promise<WriteBackResult | void>;
     /** Human phrase for the delivery confirmation, e.g. "opened in a new document". */
     describe(sink: OutputSink): string;
     /** True for editor sinks that write back to the launch document, so a DeliveryTarget must be captured at launch. */
@@ -119,7 +119,7 @@ export function deliverOutput(
     sink: OutputSink,
     deps: OutputDeps,
     target?: DeliveryTarget
-): Promise<void> {
+): Promise<WriteBackResult | void> {
     return SINKS[sink.kind].deliver(deps, content, sink, target);
 }
 

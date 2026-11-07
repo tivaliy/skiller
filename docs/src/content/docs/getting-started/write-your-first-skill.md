@@ -2,10 +2,10 @@
 title: Write your first skill
 description: Build a small, real skill from scratch — a manifest, a prompt step, a human-in-the-loop confirmation — and run it in chat.
 sidebar:
-  order: 4
+  order: 5
 ---
 
-You ran the built-in example skills in the previous step. Now you'll author one yourself: a
+You ran the built-in example skills earlier. (Prefer a head start? [Create a skill](../create-a-skill/) scaffolds one from a template or an idea.) Now you'll author one yourself: a
 **greeter** that asks for your name, drafts a friendly greeting, **pauses** so you can decide
 whether to continue, then offers a fun fact. It stays entirely in chat and needs no MCP tools — a
 complete skill in two small files.

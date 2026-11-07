@@ -18,6 +18,8 @@ export interface EditorContextSnapshot {
     gitWorking?: string;
     /** Diagnostics for the active file, formatted as `line: message` lines. */
     diagnostics?: string;
+    /** Installed language-model tools, one `name — description` per line. */
+    tools?: string;
 }
 
 /** The VS Code boundary. Implemented live in accessors.ts; faked in tests. */
@@ -28,6 +30,8 @@ export interface ContextAccessors {
     getGitDiff(staged: boolean): Promise<string | undefined>;
     /** Diagnostics for the active file as text, or undefined. */
     getDiagnostics(): string | undefined;
+    /** Installed language-model tools as text, or undefined when none. */
+    getTools(): string | undefined;
 }
 
 /** A pure extractor: snapshot → string value (or undefined). */

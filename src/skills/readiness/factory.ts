@@ -10,7 +10,7 @@ import type { ToolResolver } from '../tool-resolver';
 import { createToolResolver } from '../tool-resolver';
 import type { ReadinessContext, ExecutionReadiness } from './types';
 import { ReadinessEngine } from './engine';
-import { ToolAvailabilityCheck } from './checks';
+import { BuiltinOnlyToolsCheck, ToolAvailabilityCheck } from './checks';
 
 /**
  * Create a readiness engine with all default checks registered
@@ -22,6 +22,7 @@ export function createReadinessEngine(toolResolver?: ToolResolver): ReadinessEng
 
     const engine = new ReadinessEngine();
     engine.register(new ToolAvailabilityCheck(resolver));
+    engine.register(new BuiltinOnlyToolsCheck());
 
     return engine;
 }

@@ -8,7 +8,7 @@
 import * as vscode from 'vscode';
 import { CommandContext, CommandResult } from './types';
 import { showSkillGraph } from '../skills';
-import { formatSkillList, formatSkillDetails } from './presenters';
+import { formatSkillList, formatSkillDetails, COPY_SKILL_COMMAND } from './presenters';
 
 /**
  * Handle /skills command - list available skills
@@ -37,7 +37,7 @@ export async function handleSkills(ctx: CommandContext): Promise<CommandResult> 
     // Format and display skills with trusted markdown for command URIs
     const output = formatSkillList(skillRegistry);
     const md = new vscode.MarkdownString(output);
-    md.isTrusted = { enabledCommands: ['workbench.action.chat.open'] };
+    md.isTrusted = { enabledCommands: ['workbench.action.chat.open', COPY_SKILL_COMMAND] };
     stream.markdown(md);
 
     // Add usage hint

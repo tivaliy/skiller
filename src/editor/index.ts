@@ -4,6 +4,8 @@ import { registerRunSkillCommand } from './run-skill-command';
 import { registerSkillCodeActions } from './code-action-provider';
 
 export { SkillCodeActionProvider, snapshotFromCodeAction } from './code-action-provider';
+export { registerScaffoldCommands } from './scaffold-commands';
+export { finishSkill } from './scaffold-finish';
 
 /** Wire up editor-native triggers. */
 export function registerTriggers(

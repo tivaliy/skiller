@@ -1,0 +1,56 @@
+# The skill id you run with /skill. Skiller's New Skill command keeps it equal to the folder name.
+id: __SKILL_ID__
+# Display name shown in the skill picker.
+name: __SKILL_NAME__
+# One line telling people what this skill does.
+description: Brainstorm ideas and keep asking for more until you are happy
+# Your own version number for the skill.
+version: "0.1.0"
+
+# Inputs are values collected before the skill runs.
+inputs:
+  # `name` is how steps refer to it, e.g. {{ inputs.<name> }}.
+  - name: subject
+    # `type` is the value's kind (string here).
+    type: string
+    description: What to brainstorm about
+    # `required` inputs are always asked for if they are empty.
+    required: true
+    # `prompt` is the question shown when Skiller asks for the value.
+    prompt: "What should I brainstorm ideas for?"
+
+# Steps run top to bottom; each stores its result under its `output` name.
+steps:
+  # 1. The model proposes ideas.
+  - id: brainstorm
+    # `type: llm` sends a prompt to the model; `file` holds the prompt, `output` names the result.
+    type: llm
+    description: Propose a few ideas
+    file: steps/01-brainstorm.md
+    output: ideas
+
+  # 2. A `goto` option jumps to another step by id. Pointing back at an
+  #    earlier step makes a loop: choosing "More ideas" runs `brainstorm` again.
+  - id: more
+    type: confirmation
+    description: Ask whether to keep going
+    message: |
+      ## Ideas
+
+      {{ outputs.ideas }}
+
+      Want more?
+    options:
+      - label: "More ideas"
+        action: goto
+        goto_step: brainstorm
+      - label: "That's enough"
+        action: continue
+    output: choice
+
+# On a step failure: `abort` stops the run, `continue` moves on.
+on_error: abort
+
+# The final message shown in chat once every step has finished.
+output:
+  summary: "{{ outputs.ideas }}"

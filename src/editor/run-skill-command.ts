@@ -37,8 +37,8 @@ export function registerRunSkillCommand(
             );
             // Capture the editor location too, so a write-back sink lands where the skill
             // was launched even after chat opens and moves focus — only such sinks need it.
-            if (outputNeedsTarget(skill?.output?.to)) {
-                const target = captureDeliveryTarget();
+            if (skill && outputNeedsTarget(skill.output?.to)) {
+                const target = captureDeliveryTarget({ excludeDir: skill.source.path });
                 if (target) launchContextStore.setTarget(id, target);
             }
 

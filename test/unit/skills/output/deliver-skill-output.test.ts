@@ -21,9 +21,9 @@ function recordingDeps(overrides: Partial<OutputDeps> = {}) {
   const deps: OutputDeps = {
     openNewDocument: async (c) => { calls.newDocument = c; },
     writeFile: async (p, c) => { calls.file = { p, c }; },
-    replaceSelection: async (c) => { calls.replaceSelection = c; },
-    insertAtCursor: async (c) => { calls.insert = c; },
-    showDiff: async (c) => { calls.diff = c; },
+    replaceSelection: async (c) => { calls.replaceSelection = c; return 'inEditor'; },
+    insertAtCursor: async (c) => { calls.insert = c; return 'inEditor'; },
+    showDiff: async (c) => { calls.diff = c; return 'inEditor'; },
     sendToTerminal: async (c) => { calls.terminal = c; },
     runInTerminal: async (c) => { calls.terminalRun = c; },
     ...overrides,
@@ -32,6 +32,18 @@ function recordingDeps(overrides: Partial<OutputDeps> = {}) {
 }
 
 describe('deliverSkillOutput', () => {
+  it('reports when an editor sink fell back to a new tab, so chat does not claim an in-place write', async () => {
+    const { deps } = recordingDeps({ insertAtCursor: async () => 'newDocument' });
+    const outcome = await deliverSkillOutput(skill('editor.insert'), result('HELLO'), deps);
+    expect(outcome).toEqual({ kind: 'delivered', sink: { kind: 'insert' }, fellBack: true });
+  });
+
+  it('reports an in-place editor write without a fallback flag', async () => {
+    const { deps } = recordingDeps({ insertAtCursor: async () => 'inEditor' });
+    const outcome = await deliverSkillOutput(skill('editor.insert'), result('HELLO'), deps);
+    expect(outcome).toEqual({ kind: 'delivered', sink: { kind: 'insert' } });
+  });
+
   it('delivers the rendered summary to the configured sink and reports delivered', async () => {
     const { deps, calls } = recordingDeps();
     const outcome = await deliverSkillOutput(skill('newDocument'), result('HELLO'), deps);
@@ -114,6 +126,10 @@ describe('stripCodeFence', () => {
   });
   it('strips a CRLF-fenced wrapper without leaving a trailing carriage return', () => {
     expect(stripCodeFence('```ts\r\nconst x = 1;\r\n```')).toBe('const x = 1;');
+  });
+  it('leaves two separate fenced blocks untouched (no wrapper to strip)', () => {
+    const two = '```bash\nnpm test\n```\nthen\n```json\n{}\n```';
+    expect(stripCodeFence(two)).toBe(two);
   });
   it('preserves internal CRLF line endings but drops the dangling one before the fence', () => {
     expect(stripCodeFence('```ts\r\nconst x = 1;\r\nconst y = 2;\r\n```')).toBe('const x = 1;\r\nconst y = 2;');

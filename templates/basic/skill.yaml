@@ -1,0 +1,36 @@
+# The skill id you run with /skill. Skiller's New Skill command keeps it equal to the folder name.
+id: __SKILL_ID__
+# Display name shown in the skill picker.
+name: __SKILL_NAME__
+# One line telling people (and the model) what this skill does.
+description: Summarize a piece of text in a few bullet points
+# Your own version number for the skill.
+version: "0.1.0"
+
+# Inputs are values collected before the skill runs.
+inputs:
+  # `name` is how steps refer to it: {{ inputs.text }}
+  - name: text
+    type: string
+    description: The text to summarize
+    required: true
+    # Shown when Skiller asks you for the value.
+    prompt: "Paste the text you want summarized"
+
+# Steps run top to bottom. Each step's result is stored under its `output` name.
+# No `models:` block here, so the model picked in the chat dropdown is used.
+steps:
+  - id: summarize
+    type: llm
+    description: Summarize the text
+    # The prompt for this step lives in a Markdown file next to this one.
+    file: steps/01-summarize.md
+    # Later steps and the summary below read this as {{ outputs.summary }}.
+    output: summary
+
+# What to do when a step fails: `abort` stops the run, `continue` moves on.
+on_error: abort
+
+# The final message shown in chat once every step has finished.
+output:
+  summary: "{{ outputs.summary }}"

@@ -6,7 +6,8 @@ import {
     handleInputResponse,
     checkPendingInputCollection
 } from './commands';
-import { registerTriggers } from './editor';
+import { finishSkill, registerScaffoldCommands, registerTriggers } from './editor';
+import { createWriteSkillDeps } from './scaffold';
 import {
     PendingStateManager,
     LaunchContextStore,
@@ -132,9 +133,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         stepInspectionProvider
     );
 
-    registerTools(context);
+    registerTools(context, {
+        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri })),
+    });
     registerSkillCodeLens(context);
     registerTriggers(context, skillRegistry, launchContextStore);
+    registerScaffoldCommands(context, { skillRegistry, extensionUri: context.extensionUri });
     context.subscriptions.push(enableLiveReload());
 
     const participant = vscode.chat.createChatParticipant(PARTICIPANT_ID, handleRequest);

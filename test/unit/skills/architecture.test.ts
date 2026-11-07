@@ -168,3 +168,36 @@ describe('editor-output vscode-isolation guard', () => {
         });
     }
 });
+
+/**
+ * The scaffold module's pure core must stay free of any `vscode` import. Every
+ * listed pure file must exist (a rename or deletion fails here instead of
+ * silently dropping out of the guard); new files under `sources/` are picked up.
+ */
+describe('scaffold vscode-isolation guard', () => {
+    const SCAFFOLD = path.resolve(process.cwd(), 'src/scaffold');
+
+    function walk(dir: string): string[] {
+        if (!fs.existsSync(dir)) {
+            return [];
+        }
+        return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+            e.isDirectory() ? walk(path.join(dir, e.name)) : e.name.endsWith('.ts') ? [path.join(dir, e.name)] : [],
+        );
+    }
+
+    const listed = ['types.ts', 'ids.ts', 'commit.ts', 'flow.ts', 'kinds.ts', 'target.ts', 'sources/registry.ts', 'sources/templates.ts'].map((f) =>
+        path.join(SCAFFOLD, f),
+    );
+    const pureFiles = [...new Set([...listed, ...walk(path.join(SCAFFOLD, 'sources'))])];
+
+    it.each(listed.map((abs) => path.relative(SCAFFOLD, abs)))('scaffold/%s exists', (rel) => {
+        expect(fs.existsSync(path.join(SCAFFOLD, rel))).toBe(true);
+    });
+
+    for (const abs of pureFiles) {
+        it(`scaffold/${path.relative(SCAFFOLD, abs)} does not import the vscode runtime`, () => {
+            expect(importSpecifiers(abs).filter(isVscodeImport)).toEqual([]);
+        });
+    }
+});

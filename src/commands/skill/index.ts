@@ -11,6 +11,6 @@
  *   - presenter.ts: UI output functions
  */
 
-export { handleSkill } from './handler';
+export { handleSkill, runSkillById } from './handler';
 export { handleInputResponse, checkPendingInputCollection } from './input-collector';
 export { handleConfirmationResponse, checkPendingConfirmation } from './confirmation-responder';

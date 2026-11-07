@@ -1,0 +1,42 @@
+# The skill id you run with /skill. Skiller's New Skill command keeps it equal to the folder name.
+id: __SKILL_ID__
+# Display name shown in the skill picker.
+name: __SKILL_NAME__
+# One line telling people what this skill does.
+description: Rewrite the selected text in the editor in a clearer style
+# Your own version number for the skill.
+version: "0.1.0"
+
+# Inputs are values collected before the skill runs.
+inputs:
+  # `name` is how steps refer to it, e.g. {{ inputs.<name> }}.
+  - name: text
+    # `type` is the value's kind (string here).
+    type: string
+    description: The selected text
+    # `from` fills this input from the editor when the skill is launched.
+    # If nothing is selected, Skiller asks you for the value instead.
+    from: selection
+    # `required`: ask for a value if the editor gave none.
+    required: true
+    # `prompt` is the question shown when Skiller asks for the value.
+    prompt: "Paste the text to rewrite"
+
+# Steps run top to bottom; each stores its result under its `output` name.
+steps:
+  - id: rewrite
+    # `type: llm` sends a prompt to the model; `file` holds the prompt, `output` names the result.
+    type: llm
+    description: Rewrite the text
+    file: steps/01-rewrite.md
+    output: rewritten
+
+# On a step failure: `abort` stops the run, `continue` moves on.
+on_error: abort
+
+# The final message shown in chat once every step has finished.
+output:
+  summary: "{{ outputs.rewritten }}"
+  # `to` sends the result to the editor instead of only chat.
+  # editor.replaceSelection swaps the selected text for the result.
+  to: editor.replaceSelection

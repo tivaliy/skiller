@@ -47,6 +47,7 @@ describe('captureSnapshot', () => {
       getActiveFile: () => ({ path: '/a.ts', content: 'C', languageId: 'ts', selection: 'SEL' }),
       getGitDiff: async (staged) => (staged ? 'STAGED' : 'WORKING'),
       getDiagnostics: () => 'DIAG',
+      getTools: () => undefined,
     };
     const snap = await captureSnapshot(accessors);
     expect(snap.selection).toBe('SEL');
@@ -61,6 +62,7 @@ describe('captureSnapshot', () => {
       getActiveFile: () => undefined,
       getGitDiff: async () => undefined,
       getDiagnostics: () => undefined,
+      getTools: () => undefined,
     };
     const snap = await captureSnapshot(accessors);
     expect(snap).toEqual({});
@@ -73,6 +75,7 @@ describe('captureSnapshot', () => {
       getActiveFile: () => ({ path: '/a.ts', content: 'C', languageId: 'ts', selection: 'SEL' }),
       getGitDiff: async (staged) => { gitCalls++; return staged ? 'STAGED' : 'WORKING'; },
       getDiagnostics: () => { diagCalls++; return 'DIAG'; },
+      getTools: () => undefined,
     };
     const snap = await captureSnapshot(accessors, new Set(['selection']));
     expect(gitCalls).toBe(0);          // no git subprocess for a selection-only binding
@@ -88,6 +91,7 @@ describe('captureSnapshot', () => {
       getActiveFile: () => undefined,
       getGitDiff: async (s) => { staged.push(s); return s ? 'STAGED' : 'WORKING'; },
       getDiagnostics: () => undefined,
+      getTools: () => undefined,
     };
     const snap = await captureSnapshot(accessors, new Set(['git.staged']));
     expect(staged).toEqual([true]);    // only the staged diff, not the working-tree one

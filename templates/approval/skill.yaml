@@ -1,0 +1,63 @@
+# The skill id you run with /skill. Skiller's New Skill command keeps it equal to the folder name.
+id: __SKILL_ID__
+# Display name shown in the skill picker.
+name: __SKILL_NAME__
+# One line telling people what this skill does.
+description: Draft a message, ask for your approval, then polish it
+# Your own version number for the skill.
+version: "0.1.0"
+
+# Inputs are values collected before the skill runs.
+inputs:
+  # `name` is how steps refer to it, e.g. {{ inputs.<name> }}.
+  - name: topic
+    # `type` is the value's kind (string here).
+    type: string
+    description: What the message is about
+    # `required` inputs are always asked for if they are empty.
+    required: true
+    # `prompt` is the question shown when Skiller asks for the value.
+    prompt: "What should the message be about?"
+
+# Steps run top to bottom; each stores its result under its `output` name.
+steps:
+  # 1. The model writes a first draft.
+  - id: draft
+    # `type: llm` sends a prompt to the model; `file` holds the prompt, `output` names the result.
+    type: llm
+    description: Write a first draft
+    file: steps/01-draft.md
+    output: draft
+
+  # 2. A confirmation step pauses the run and shows buttons.
+  #    `continue` moves to the next step, `abort` stops the skill.
+  - id: approve
+    type: confirmation
+    description: Ask whether to polish the draft
+    # `message` is shown to you; it can embed earlier outputs.
+    message: |
+      ## Draft ready
+
+      {{ outputs.draft }}
+
+      Should I polish it?
+    options:
+      - label: "Yes, polish it"
+        action: continue
+      - label: "No, stop here"
+        action: abort
+    output: decision
+
+  # 3. Only reached when you chose "continue".
+  - id: polish
+    type: llm
+    description: Polish the approved draft
+    file: steps/02-polish.md
+    output: final
+
+# On a step failure: `abort` stops the run, `continue` moves on.
+on_error: abort
+
+# The final message shown in chat once every step has finished.
+output:
+  summary: "{{ outputs.final }}"
