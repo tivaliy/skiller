@@ -36,8 +36,9 @@ export type EdgeType = 'sequential' | 'conditional' | 'goto' | 'abort';
  * Different from runtime ModelSource which tracks actual resolution.
  * - 'explicit': Step has `model:` defined directly in YAML
  * - 'inherited': Step inherits from skill's `models.default`
+ * - 'run': Step names no model, so it uses the run's model (chosen at run time)
  */
-export type ConfigModelSource = 'explicit' | 'inherited';
+export type ConfigModelSource = 'explicit' | 'inherited' | 'run';
 
 /**
  * A node in the skill graph (represents a step)

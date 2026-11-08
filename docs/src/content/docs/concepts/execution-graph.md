@@ -24,7 +24,8 @@ offline.
 
 Each node is a card colored by step type — green for `llm`, blue for `tool`, orange (dashed)
 for `confirmation` — plus rounded `start` and `end` terminals. Cards carry small badges for
-the model (🧠) and any tools (🔧) a step uses. A legend in the corner maps the colors to
+the model (🧠) and any tools (🔧) a step uses. An `llm` step that names no model shows
+**🧠 your model** until it runs, then the model it actually ran on. A legend in the corner maps the colors to
 the three step types.
 
 ## Live state highlighting

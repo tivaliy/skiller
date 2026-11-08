@@ -9,6 +9,9 @@ import type { Skill, SkillStep, SkillModels } from '../types';
 import type { SkillGraph, GraphNode, GraphEdge, NodeType, ConfigModelSource } from './types';
 import { formatCondition } from './formatting';
 
+/** Badge text for an AI step that names no model; replaced by the real model when it runs. */
+const RUN_MODEL_BADGE = 'your model';
+
 /**
  * Builds a SkillGraph from a Skill definition
  */
@@ -33,7 +36,9 @@ export class SkillGraphBuilder {
      * Model inheritance logic:
      * - If step has explicit `model:`, use it with source 'explicit'
      * - If step is LLM type and skill has `models.default`, inherit it with source 'inherited'
-     * - Otherwise, no model badge (will use VS Code auto at runtime)
+     * - Otherwise (LLM step), a "your model" badge with source 'run': the run's model,
+     *   whose name replaces the badge text when the step starts. The badge must exist
+     *   before layout, because the runtime update only changes its text.
      */
     private buildNodes(steps: SkillStep[], models?: SkillModels): GraphNode[] {
         return steps.map(step => {
@@ -51,8 +56,10 @@ export class SkillGraphBuilder {
                 // LLM step inherits skill-level default
                 model = models.default;
                 modelSource = 'inherited';
+            } else if (nodeType === 'llm') {
+                model = RUN_MODEL_BADGE;
+                modelSource = 'run';
             }
-            // else: no model badge - will use VS Code auto at runtime
 
             return {
                 id: step.id,

@@ -142,14 +142,15 @@ describe('SkillGraphBuilder', () => {
             expect(graph.nodes[1].modelSource).toBeUndefined();
         });
 
-        it('no model badge when no skill default and no step model', () => {
+        it('an AI step that names no model gets a "your model" badge, filled in with the real model at run time', () => {
+            // The badge must exist before layout: the runtime update only replaces its text.
             const skill = createMockSkill({
                 steps: [createMockStep({ id: 'step1', type: 'llm' })]
             });
             const graph = builder.build(skill);
 
-            expect(graph.nodes[0].model).toBeUndefined();
-            expect(graph.nodes[0].modelSource).toBeUndefined();
+            expect(graph.nodes[0].model).toBe('your model');
+            expect(graph.nodes[0].modelSource).toBe('run');
         });
     });
 
