@@ -49,6 +49,9 @@ const APPROVAL_ACTIONS: ReadonlyArray<{ id: ToolApproval; label: string }> = [
 
 const RESULT_ACTIONS = { open: 'open', copy: 'copy' } as const;
 
+/** How long VS Code gets to report a just-revealed graph panel as visible. */
+const REVEAL_GRACE_MS = 1000;
+
 /** Why a step runs on its model, for the output log ('auto' = the run's fallback model). */
 const MODEL_SOURCE_LABEL: Record<ModelSource, string> = {
     'skill-step': "the step's model",
@@ -114,10 +117,9 @@ class NativeSurface implements RunSurface {
 
     async askConfirmation(skill: Skill, pending: PendingConfirmationInfo): Promise<ConfirmationOption | 'cancelled'> {
         const token = this.runToken;
-        const announce = this.panelHidden(skill);
         await this.revealGraph(skill);
 
-        const actionId = await this.cardAnswer(skill, token, announce, {
+        const actionId = await this.cardAnswer(skill, token, {
             cardId: this.nextCardId(pending.stepId),
             kind: 'confirmation',
             stepId: pending.stepId,
@@ -154,10 +156,9 @@ class NativeSurface implements RunSurface {
         const json = describeToolInput(call.input);
         const title = described?.title ?? `Allow ${call.toolName}?`;
         const markdown = described?.markdown ?? fencedBlock(json, 'json');
-        const announce = this.panelHidden(skill);
         await this.revealGraph(skill);
 
-        const actionId = await this.cardAnswer(skill, token, announce, {
+        const actionId = await this.cardAnswer(skill, token, {
             cardId: this.nextCardId(`tool:${call.toolName}`),
             kind: 'toolApproval',
             title,
@@ -339,32 +340,30 @@ class NativeSurface implements RunSurface {
     // -----------------------------------------------------------------------
 
     /**
-     * Whether the skill's graph panel is missing or out of sight. Read before the card
-     * reveals the panel: afterwards it is always visible.
-     */
-    private panelHidden(skill: Skill): boolean {
-        return !this.deps.panels.getPanel(skill.id)?.visible;
-    }
-
-    /**
      * Show a card and wait for its answer; a cancelled run clears the card (resolving undefined).
-     * `announce`: also show the "waiting" notice (when the panel was out of sight), so a
-     * visible panel doesn't get a notification for every card.
+     * The "waiting" notice appears only if the card is still unanswered once VS Code has had
+     * time to report the revealed panel's visibility, and the panel is still out of sight
+     * (for example, the editor area is hidden behind a maximized chat).
      */
     private async cardAnswer(
         skill: Skill,
         token: vscode.CancellationToken | undefined,
-        announce: boolean,
         card: GraphCard
     ): Promise<string | undefined> {
         if (token?.isCancellationRequested) return undefined;
         const clearOnCancel = token?.onCancellationRequested(() => this.deps.panels.clearCard(skill.id, card.cardId));
-        if (announce && this.deps.panels.getPanel(skill.id)) this.notifyWaiting(skill);
+        let settled = false;
+        const recheck = setTimeout(() => {
+            const panel = this.deps.panels.getPanel(skill.id);
+            if (!settled && panel && !panel.visible && !token?.isCancellationRequested) this.notifyWaiting(skill);
+        }, REVEAL_GRACE_MS);
         try {
             const actionId = await this.deps.panels.showCard(skill.id, card);
             if (actionId !== undefined) this.deps.panels.clearCard(skill.id, card.cardId);
             return actionId;
         } finally {
+            settled = true;
+            clearTimeout(recheck);
             clearOnCancel?.dispose();
         }
     }

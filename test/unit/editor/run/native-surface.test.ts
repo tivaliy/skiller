@@ -4,7 +4,7 @@
  * and tool approvals, notifications for progress, problems and results.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { Mock } from 'vitest';
 import * as vscode from 'vscode';
 import type { CancellationToken, OutputChannel } from 'vscode';
@@ -258,7 +258,6 @@ describe('NativeSurface', () => {
             expect(card.html).toContain('Look');
             expect(card.cardId).toContain('review');
             expect(panels.clearCard).toHaveBeenCalledWith('writer', card.cardId);
-            expect(window.showInformationMessage).toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
             expect(window.showQuickPick).not.toHaveBeenCalled();
         });
 
@@ -274,15 +273,59 @@ describe('NativeSurface', () => {
             expect(window.showInformationMessage).not.toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
         });
 
-        it('announces the card when the panel was hidden before the card revealed it', async () => {
-            startRun();
-            // Hidden when the card arrives; visible once revealed.
-            panels.getPanel.mockReturnValueOnce({ visible: false }).mockReturnValue({ visible: true });
-            panels.showCard.mockResolvedValue('0');
+        describe('waiting notice', () => {
+            /** A card that stays unanswered until `answer` is called. */
+            function pendingCard() {
+                let answer: (id: string) => void = () => {};
+                panels.showCard.mockImplementation(() => new Promise<string>(resolve => { answer = resolve; }));
+                return (id: string) => answer(id);
+            }
 
-            await surface.approveTool(makeSkill(), { toolName: 'mytool', input: {} });
+            beforeEach(() => { vi.useFakeTimers(); });
+            afterEach(() => { vi.useRealTimers(); });
 
-            expect(window.showInformationMessage).toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
+            it('is not shown when revealing the card brought the panel into view', async () => {
+                startRun();
+                // Hidden when the card arrives; revealing the graph brings it into view.
+                const panel = { visible: false };
+                panels.getPanel.mockReturnValue(panel);
+                showGraph.mockImplementation(async () => { panel.visible = true; });
+                const answer = pendingCard();
+
+                const choice = surface.askConfirmation(makeSkill(), pending());
+                await vi.advanceTimersByTimeAsync(2000);
+                expect(window.showInformationMessage).not.toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
+
+                answer('0');
+                await choice;
+            });
+
+            it('is shown when the panel is still out of sight after the reveal, and Review brings it forward', async () => {
+                startRun();
+                panels.getPanel.mockReturnValue({ visible: false });
+                window.showInformationMessage.mockImplementation(async (message: string) =>
+                    message === 'Skiller is waiting for you' ? 'Review' : undefined);
+                const answer = pendingCard();
+
+                const approval = surface.approveTool(makeSkill(), { toolName: 'mytool', input: {} });
+                await vi.advanceTimersByTimeAsync(2000);
+                expect(window.showInformationMessage).toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
+                expect(showGraph).toHaveBeenCalledTimes(2); // the card's reveal, then Review
+
+                answer('allow');
+                await approval;
+            });
+
+            it('is not shown for a card answered before the panel was checked again', async () => {
+                startRun();
+                panels.getPanel.mockReturnValue({ visible: false });
+                panels.showCard.mockResolvedValue('0');
+
+                await surface.askConfirmation(makeSkill(), pending());
+                await vi.advanceTimersByTimeAsync(2000);
+
+                expect(window.showInformationMessage).not.toHaveBeenCalledWith('Skiller is waiting for you', 'Review');
+            });
         });
 
         it('gives every card a fresh id, so a stale answer cannot match', async () => {

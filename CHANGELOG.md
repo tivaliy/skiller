@@ -44,6 +44,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - When an editor write-back sink falls back to a new tab (no launch editor, or the document changed since launch), Skiller now says so instead of reporting an in-place write.
 - The bundled `greeter` example no longer pins `gpt-4o` and `gpt-4.1`. Its first step failed for users whose plan no longer serves `gpt-4o`, even though VS Code still lists it. It now runs on the model you choose for Skiller runs.
 - A failed model request now names the model and the step (`Model 'gpt-4o-2024-11-20' failed in step 'greet': …`) and shows the provider's message instead of its raw JSON.
+- When a card opened the graph panel, Skiller also showed a **Skiller is waiting for you** notification that stayed after you answered. It now shows only if the panel is still out of sight after opening and the card is still unanswered.
 
 ## [0.4.0] - 2026-06-23
 

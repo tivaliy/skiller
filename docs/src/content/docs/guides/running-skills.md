@@ -62,8 +62,9 @@ run** the new one.
 ## Confirmations
 
 A [`confirmation` step](../../concepts/step-types/) opens the graph and appears there as a **card**,
-with its message and one button per option. A notification, **Skiller is waiting for you**, has a
-**Review** button that brings the panel back if you have moved away.
+with its message and one button per option. The progress notification shows *Waiting for you*.
+If the panel still can't be seen after it opens (for example, behind a maximized chat), a second
+notification, **Skiller is waiting for you**, offers **Review** to bring it forward.
 
 If the panel can't be shown, or you close it while the card is waiting, the confirmation falls
 back to a modal dialog that shows the full message and the same options.
