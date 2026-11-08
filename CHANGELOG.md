@@ -41,6 +41,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - A skill that references a tool that only works inside a VS Code chat session (Copilot's `copilot_createFile` / `copilot_editFiles`, subagents, and interactive prompts) now fails its readiness check, pointing at Skiller's file tools where they apply, instead of failing mid-run. A step that offers one anyway (for example through step-file frontmatter) fails with the same message when it runs.
 - An editor write-back skill (`editor.replaceSelection`, `editor.insert`, `diff`) no longer writes into its own `skill.yaml` or step files when one of them is the active editor at launch — for example right after creating the skill, when its `skill.yaml` is open. The result opens in a new tab instead.
 - When an editor write-back sink falls back to a new tab (no launch editor, or the document changed since launch), Skiller now says so instead of reporting an in-place write.
+- The bundled `greeter` example no longer pins `gpt-4o` and `gpt-4.1`. Its first step failed for users whose plan no longer serves `gpt-4o`, even though VS Code still lists it. It now runs on the model you choose for Skiller runs.
 
 ## [0.4.0] - 2026-06-23
 

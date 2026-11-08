@@ -51,9 +51,6 @@ inputs:
     required: true
     prompt: "What is your name?"
 
-models:
-  default: gpt-4o
-
 steps:
   - id: greet
     type: llm
@@ -74,7 +71,6 @@ steps:
   - id: fact
     type: llm
     file: steps/02-fact.md
-    model: gpt-4.1        # per-step model override
     output: fun_fact
 
 on_error: abort
@@ -83,18 +79,13 @@ output:
   summary: "{{ outputs.fun_fact }}"
 ```
 
-:::note[Don't have `gpt-4o` in your model list?]
-The model IDs here are just examples. If your provider doesn't offer `gpt-4o` or `gpt-4.1`,
-Skiller uses your fallback model for that step (and says so) — the skill still runs. See
-[Use & override models](../../guides/models/) to pin your own.
-:::
-
 What each part does:
 
 - **`inputs`** are collected before the skill runs. The `prompt` is the question you're asked in
   an input box; the answer lands at `{{ inputs.name }}`.
-- **`models.default`** sets the model for the whole skill. The `fact` step overrides it with
-  `model: gpt-4.1` — see [Use & override models](../../guides/models/).
+- **No `models` block**, so every step runs on the model you choose for Skiller runs (asked on
+  the first run, then remembered). To pin models per skill or per step, see
+  [Use & override models](../../guides/models/).
 - **`steps`** run top to bottom. Each step has a unique `id` and writes to a unique `output`. The
   `greet` step's `greeting` is what the `confirm` step interpolates and what you see in the gate.
 - **`confirmation`** pauses for a human choice. `continue` proceeds to the next step; `abort` stops

@@ -13,9 +13,6 @@ inputs:
 tools:
   aliases: {}
 
-models:
-  default: gpt-4o
-
 steps:
   - id: greet
     description: Generate a personalized greeting
@@ -43,7 +40,6 @@ steps:
     type: llm
     description: Generate a fun fact
     file: steps/02-fact.md
-    model: gpt-4.1
     output: fun_fact
 
 on_error: abort

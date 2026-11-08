@@ -11,8 +11,7 @@ your fallback model — and how Skiller resolves them.
 
 ## 1. Set a default model
 
-`models.default` is the model every step uses unless it says otherwise. The `greeter` example
-skill pins it to `gpt-4o`:
+`models.default` is the model every step uses unless it says otherwise:
 
 ```yaml
 models:
@@ -23,10 +22,16 @@ Omit `models` entirely and every step uses your [fallback model](#the-fallback-m
 A `models.default` is most useful when a skill needs a specific model's behavior to be
 reproducible regardless of who runs it.
 
+:::caution[Pin only what you need]
+A pinned model wins over the reader's own choice. Providers retire models per plan, sometimes
+still listing a model they then refuse, so a pin that works for you can fail the step for someone
+else. Skills you share are safest with no `models` block. The shipped examples pin nothing.
+:::
+
 ## 2. Override the model for one step
 
 Any `llm` step can set its own `model`, which overrides `models.default` for that step only.
-In `greeter`, the closing `fact` step asks for a different model than the rest of the skill:
+Here the closing `fact` step asks for a different model than the rest of the skill:
 
 ```yaml
 models:
