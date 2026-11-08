@@ -5,7 +5,7 @@ All notable changes to the **Skiller** extension are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.5.0] - 2026-11-08
 
 Skills now run natively in VS Code, and Copilot can run them for you. The `@skiller` chat participant is gone.
 
@@ -99,6 +99,7 @@ Initial release.
 - Commands: `/help`, `/skills`, `/skill`, `/tools`, `/models`, `/reload`.
 - Two bundled example skills: `greeter`, `mind-reader`.
 
+[0.5.0]: https://github.com/tivaliy/skiller/releases/tag/v0.5.0
 [0.4.0]: https://github.com/tivaliy/skiller/releases/tag/v0.4.0
 [0.3.0]: https://github.com/tivaliy/skiller/releases/tag/v0.3.0
 [0.2.0]: https://github.com/tivaliy/skiller/releases/tag/v0.2.0
