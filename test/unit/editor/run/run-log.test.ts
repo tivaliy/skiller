@@ -67,6 +67,12 @@ describe('RunLog', () => {
         ]);
     });
 
+    it('leaves skipped optional inputs out of the inputs line', () => {
+        log.start({ tone: undefined, topic: 'tides' });
+        new RunLog('Other', { write: line => lines.push(line) }).start({ tone: undefined });
+        expect(lines.filter(l => l.startsWith('inputs:'))).toEqual(['inputs: topic = "tides"']);
+    });
+
     it('omits the inputs line when there are none, and the arrow when a step produced nothing', () => {
         log.start({});
         log.stepCompleted('gate', true, 0, undefined, undefined);

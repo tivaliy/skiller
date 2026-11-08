@@ -23,7 +23,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - The `from: tools` input binding, which fills an input with the installed language-model tools.
 - The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. It asks for confirmation unless it is called from Skiller's own `skill-creator` run. Among skills, only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
 - A one-time notice for users upgrading from 0.4, pointing at `Skiller: Run Skill…` and Copilot.
-- **A run log** in the **Skiller** output channel, in place of the old chat transcript: the inputs, each step with its model (and why it was chosen), duration, and the first line of its output, tool calls, your answers on cards, skipped steps, and how the run ended. **Show log** on result cards and failure notifications opens it.
+- **A run log** in the **Skiller** output channel, in place of the old chat transcript: the inputs, each step with its model (and why it was chosen), duration, and a one-line summary of its output, tool calls, your answers on cards, skipped steps, and how the run ended. **Show log** on result cards and failure notifications opens it.
 
 ### Changed
 

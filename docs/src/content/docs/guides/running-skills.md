@@ -120,8 +120,8 @@ inputs: name = "John"
 ✓ Greeter completed in 6.4s
 ```
 
-Each step shows its model and why it was chosen, how long it took, and the first line of what it
-produced; tool calls, your answers on cards, skipped steps, and failures appear in order. A run that
+Each step shows its model and why it was chosen, how long it took, and what it
+produced, on one line and cut to 100 characters; tool calls, your answers on cards, skipped steps, and failures appear in order. A run that
 ends without a result is marked **cancelled** or **stopped**. For a step's full prompt and response,
 hover it in the graph and use **Open ↗**.
 

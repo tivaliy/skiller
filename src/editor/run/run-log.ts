@@ -31,7 +31,7 @@ export class RunLog {
         const time = (this.deps.now?.() ?? new Date()).toLocaleTimeString('en-GB', { hour12: false });
         const head = `── ${this.skillName} · ${time} `;
         this.write(head + '─'.repeat(Math.max(3, HEADER_WIDTH - head.length)));
-        const entries = Object.entries(inputs);
+        const entries = Object.entries(inputs).filter(([, value]) => value !== undefined); // skipped optional inputs
         if (entries.length > 0) {
             this.write(`inputs: ${entries.map(([name, value]) => `${name} = ${formatInput(value)}`).join(', ')}`);
         }
