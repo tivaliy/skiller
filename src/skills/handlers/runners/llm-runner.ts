@@ -75,6 +75,21 @@ export function truncateResultContent<T>(content: readonly T[] | undefined, maxL
 }
 
 /**
+ * The readable part of a failed model request. Copilot encodes its errors as
+ * JSON (`{"code":0,"message":"…","metadata":{}}`); show just the message.
+ */
+function providerMessage(error: unknown): string {
+    const raw = error instanceof Error ? error.message : String(error);
+    try {
+        const parsed = JSON.parse(raw) as { message?: unknown } | null;
+        if (typeof parsed?.message === 'string' && parsed.message) return parsed.message;
+    } catch {
+        // not JSON: the message is already readable
+    }
+    return raw;
+}
+
+/**
  * Does this message carry a tool result (and would be orphaned without its
  * preceding assistant tool-call message)?
  */
@@ -246,8 +261,6 @@ export async function executeLLMStep(
             // Bound history before sending to cap token usage (preserves pairing).
             messages = trimMessageHistory(messages, maxHistoryTurns, maxToolResponses);
 
-            const response = await model.sendRequest(messages, requestOptions, token);
-
             let resultText = '';
             const toolCalls: Array<{
                 callId: string;
@@ -255,21 +268,29 @@ export async function executeLLMStep(
                 input: Record<string, unknown>;
             }> = [];
 
-            // Process response - handle both text and tool calls
-            for await (const part of response.stream) {
-                if (token.isCancellationRequested) {
-                    throw new Error('Cancelled');
-                }
+            try {
+                const response = await model.sendRequest(messages, requestOptions, token);
 
-                if (part instanceof vscode.LanguageModelTextPart) {
-                    resultText += part.value;
-                } else if (part instanceof vscode.LanguageModelToolCallPart) {
-                    toolCalls.push({
-                        callId: part.callId,
-                        name: part.name,
-                        input: part.input as Record<string, unknown>
-                    });
+                // Process response - handle both text and tool calls
+                for await (const part of response.stream) {
+                    if (token.isCancellationRequested) {
+                        throw new Error('Cancelled');
+                    }
+
+                    if (part instanceof vscode.LanguageModelTextPart) {
+                        resultText += part.value;
+                    } else if (part instanceof vscode.LanguageModelToolCallPart) {
+                        toolCalls.push({
+                            callId: part.callId,
+                            name: part.name,
+                            input: part.input as Record<string, unknown>
+                        });
+                    }
                 }
+            } catch (error) {
+                if (token.isCancellationRequested) throw error;
+                // Name the model: a skill's pin can pick one the user never chose.
+                throw new Error(`Model '${model.id}' failed in step '${step.id}': ${providerMessage(error)}`);
             }
 
             // If no tool calls, we're done

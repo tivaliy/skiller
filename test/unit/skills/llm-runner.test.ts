@@ -193,6 +193,44 @@ describe('executeLLMStep', () => {
         expect(result.error).toContain('Max tool iterations (2)');
         expect(invokeTool).toHaveBeenCalledTimes(2);
     });
+
+    describe('provider failures', () => {
+        /** A model whose request is rejected with `error`. */
+        const failingModel = (error: unknown) => ({
+            id: 'gpt-4o-2024-11-20',
+            sendRequest: vi.fn(async () => { throw error; })
+        }) as unknown as vscode.LanguageModelChat;
+
+        it('names the model and the step, and unwraps a JSON-encoded provider message', async () => {
+            const model = failingModel(new Error(
+                '{"code":0,"message":"The model provider reported a failed response without any error details (event: error).","metadata":{}}'
+            ));
+            const result = await executeLLMStep(STEP, 'p', model, TOKEN, Date.now(), [], 'auto', HOOKS, makeDeps());
+            expect(result.success).toBe(false);
+            expect(result.error).toBe(
+                "Model 'gpt-4o-2024-11-20' failed in step 'analyze': The model provider reported a failed response without any error details (event: error)."
+            );
+        });
+
+        it('keeps a plain provider message as it is', async () => {
+            const result = await executeLLMStep(STEP, 'p', failingModel(new Error('quota exceeded')), TOKEN, Date.now(), [], 'auto', HOOKS, makeDeps());
+            expect(result.error).toBe("Model 'gpt-4o-2024-11-20' failed in step 'analyze': quota exceeded");
+        });
+
+        it('does not report a cancelled run as a model failure', async () => {
+            const cancelled = { ...TOKEN, isCancellationRequested: true } as vscode.CancellationToken;
+            const result = await executeLLMStep(STEP, 'p', failingModel(new Error('Canceled')), cancelled, Date.now(), [], 'auto', HOOKS, makeDeps());
+            expect(result.error).toBe('Canceled');
+        });
+
+        it('does not blame the model for a failing tool', async () => {
+            const model = fakeModel([[call('c1', 'mytool')], [text('done')]]);
+            const invokeTool = vi.fn(async () => { throw new Error('tool exploded'); });
+            const result = await executeLLMStep(STEP, 'p', model, TOKEN, Date.now(), OFFERED, 'auto', HOOKS, makeDeps({ invokeTool }));
+            expect(result.error).not.toContain('Model ');
+            expect(result.error).toContain('tool exploded');
+        });
+    });
 });
 
 describe('truncateResultContent', () => {
