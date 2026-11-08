@@ -124,6 +124,7 @@ class NativeSurface implements RunSurface {
 
     async askConfirmation(skill: Skill, pending: PendingConfirmationInfo): Promise<ConfirmationOption | 'cancelled'> {
         const token = this.runToken;
+        const log = this.logFor(skill); // this run's log, even if the answer comes late
         await this.revealGraph(skill);
 
         const actionId = await this.cardAnswer(skill, token, {
@@ -144,7 +145,9 @@ class NativeSurface implements RunSurface {
         const fromCard = actionId !== undefined ? pending.options[Number(actionId)] : undefined;
         // No panel, or it closed while waiting: a modal, whose detail shows the whole message.
         const chosen = fromCard ?? await this.confirmInModal(skill, pending);
-        if (chosen !== 'cancelled') this.logFor(skill).answered(stepTitle(skill, pending.stepId), chosen.label);
+        if (chosen !== 'cancelled' && !token?.isCancellationRequested) {
+            log.answered(stepTitle(skill, pending.stepId), chosen.label);
+        }
         return chosen;
     }
 
@@ -163,6 +166,7 @@ class NativeSurface implements RunSurface {
 
     async approveTool(skill: Skill, call: ToolCallRequest): Promise<ToolApproval> {
         const token = this.runToken;
+        const log = this.logFor(skill); // this run's log, even if the answer comes late
         const described = this.deps.describeTool?.(call);
         const json = describeToolInput(call.input);
         const title = described?.title ?? `Allow ${call.toolName}?`;
@@ -192,7 +196,7 @@ class NativeSurface implements RunSurface {
             );
             answer = APPROVAL_ACTIONS.find(action => action.label === label) ?? APPROVAL_ACTIONS[APPROVAL_ACTIONS.length - 1];
         }
-        this.logFor(skill).answered(title, answer.label);
+        if (!token?.isCancellationRequested) log.answered(title, answer.label);
         return answer.id;
     }
 

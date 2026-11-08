@@ -604,6 +604,24 @@ describe('NativeSurface', () => {
             expect(output.show).toHaveBeenCalledWith(true);
         });
 
+        it('an answer given in the fallback dialog after the run was cancelled is not logged', async () => {
+            const hooks = startRun();
+            panels.showCard.mockResolvedValue(undefined); // no panel: the modal fallback
+            const modal = deferred<string | undefined>();
+            window.showInformationMessage.mockReturnValue(modal.promise);
+            window.showWarningMessage.mockReturnValue(modal.promise);
+
+            const confirm = surface.askConfirmation(makeSkill(), pending());
+            const approve = surface.approveTool(makeSkill(), { toolName: 'mytool', input: {} });
+            await flush();
+            run.cancel();
+            hooks.dispose();
+            modal.resolve('Continue'); // answered late
+            await Promise.all([confirm, approve]);
+
+            expect(lines().filter(l => l.startsWith('  ?'))).toEqual([]);
+        });
+
         it('the result card offers Show log', async () => {
             panels.getPanel.mockReturnValue({});
             const click = deferred<string | undefined>();
