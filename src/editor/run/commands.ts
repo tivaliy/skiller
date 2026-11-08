@@ -35,6 +35,7 @@ export function registerRunCommands(context: vscode.ExtensionContext, deps: RunC
         vscode.commands.registerCommand('skiller.runSkill', (skillId?: unknown) => runSkill(deps, skillId)),
         vscode.commands.registerCommand('skiller.showSkills', () => showSkills(deps)),
         vscode.commands.registerCommand('skiller.cancelRun', () => cancelRun(deps)),
+        vscode.commands.registerCommand('skiller.showRun', () => showRun(deps)),
         vscode.commands.registerCommand('skiller.reloadSkills', () => reloadSkills(deps)),
         vscode.commands.registerCommand('skiller.resetToolApprovals', () => resetToolApprovals(deps)),
     );
@@ -66,6 +67,16 @@ async function showSkills(deps: RunCommandsDeps): Promise<void> {
             await vscode.commands.executeCommand(COPY_SKILL_COMMAND, skill.id);
             return;
     }
+}
+
+/** The status bar's click during a run: bring the running skill's graph (and its cards) forward. */
+async function showRun(deps: RunCommandsDeps): Promise<void> {
+    const running = deps.controller.active;
+    if (running) {
+        await deps.showGraph(running.skill);
+        return;
+    }
+    await showSkills(deps); // the run ended between render and click
 }
 
 function cancelRun(deps: RunCommandsDeps): void {

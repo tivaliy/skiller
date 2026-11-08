@@ -1,12 +1,12 @@
 ---
 title: Running skills
-description: Run a skill from the Command Palette, the editor, or a code action — and answer its inputs, confirmations, and tool approvals in VS Code.
+description: Run a skill from the status bar, the Command Palette, the editor, or a code action — and answer its inputs, confirmations, and tool approvals in VS Code.
 sidebar:
   order: 1
 ---
 
-Skills run **natively in VS Code**. You start one from the Command Palette, the editor, or a code
-action; Skiller asks for its inputs with pickers, shows progress in a notification, and pauses on
+Skills run **natively in VS Code**. You start one from the status bar, the Command Palette, the
+editor, or a code action; Skiller asks for its inputs with pickers, shows progress in a notification, and pauses on
 cards in the skill's [live execution graph](../../concepts/execution-graph/) whenever it needs you.
 No chat is involved — though Copilot can [start your skills too](../use-from-copilot/).
 
@@ -14,6 +14,7 @@ No chat is involved — though Copilot can [start your skills too](../use-from-c
 
 | From | How |
 | ---- | --- |
+| **Status bar** | Click **Skiller** (bottom right) → pick a skill → **Run**. It opens **Show Skills**, below. |
 | **Command Palette** | **Skiller: Run Skill…** → pick a skill. |
 | **Editor context menu** | Right-click in a file → **Run Skill…**. |
 | **Code action** | The lightbulb / quick-fix menu offers **Skiller: Run ‹skill›** for skills whose [`from:` inputs](../../reference/skill-yaml/#binding-inputs-to-editor-context) match the current selection, file, or diagnostics. |
@@ -51,6 +52,10 @@ See [Use & override models](../models/).
 A progress notification titled with the skill's name shows the current step
 (`Draft (2 of 4)`) and has a **Cancel** button. **Skiller: Cancel Run** does the same from the
 Command Palette.
+
+While a skill runs, the **Skiller** status bar item shows a spinner and the skill's name. Click it to
+bring the skill's graph forward, for example when a card is waiting and you've moved to another
+tab. To hide the item, right-click the status bar and uncheck **Skiller**.
 
 The skill's graph opens beside your editor as soon as the run needs you, and lights up step by step.
 To watch from the first step, open it before you start: the **Show Graph** CodeLens above the

@@ -8,6 +8,7 @@ export type { ScaffoldCommandDeps } from './scaffold-commands';
 export { finishSkill } from './scaffold-finish';
 export { showMigrationNoticeOnce } from './migration-notice';
 export { createNativeSurface } from './run';
+export { createSkillerStatusBar } from './status-bar';
 export type { NativeSurfaceDeps } from './run';
 export type { RunCommandsDeps } from './run/commands';
 

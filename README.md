@@ -6,7 +6,7 @@
 
 **Declarative, human-in-the-loop workflow runner for VS Code.**
 
-Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them from the Command Palette, the editor, or Copilot chat.
+Write branching YAML playbooks that orchestrate your language model and MCP tools — with review and input steps — and run them from the status bar, the Command Palette, the editor, or Copilot chat.
 
 [![VS Marketplace](https://img.shields.io/badge/VS%20Marketplace-tivaliy.skiller-007ACC?logo=visualstudiocode&logoColor=white)](https://marketplace.visualstudio.com/items?itemName=tivaliy.skiller)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
@@ -60,6 +60,7 @@ code --install-extension skiller-*.vsix
 
 ### Run your first skill
 
+- **The Skiller status bar item** (bottom right) opens your skills: pick one and **Run**. While a skill runs, it shows the skill's name; click it to bring the run's graph forward.
 - **Skiller: Run Skill…** (Command Palette or editor context menu) — pick the built-in `greeter` to try it. Inputs are asked with pickers; confirmations, tool approvals, and the result appear as cards in the skill's live graph.
 - **Code actions** — the lightbulb menu offers **Skiller: Run ‹skill›** for skills that read your selection, file, or diagnostics.
 - **Skiller: New Skill…** — describe a workflow and the built-in `skill-creator` drafts it, or start from a template or a copy. **Run it now** when it's written.

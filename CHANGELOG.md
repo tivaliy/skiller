@@ -17,6 +17,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - **Copilot can run your skills.** A chat plugin adds `/skiller` to Copilot chats, backed by two new language-model tools: `skiller_listSkills` lists the runnable skills and their inputs, and `skiller_runSkill` runs one by id. `skiller_runSkill` always asks before it starts, waits up to 10 minutes for the result, then returns while the run continues in VS Code. Both are for agents outside a run: a skill that references either fails its readiness check, and a step that offers one anyway (for example through step-file frontmatter) fails when it runs. Unrelated to Copilot's own `/skills` commands.
 - **Create skills without a blank file:** `Skiller: New Skill…` offers **Describe it** (runs the new built-in `skill-creator` skill natively: it drafts a plan, lets you revise it, then writes the skill), **From a template**, or **Copy a skill**. New skills are validated before they are written to `.skiller/skills/<id>/`.
 - Five starter templates (`basic`, `approval`, `loop`, `tool`, `editor`) and three copyable examples (`change-map`, `shell-it`, `smell-refactor`); built-in skills can be forked into the workspace with **Copy to Workspace…** in `Skiller: Show Skills`.
+- A **Skiller** status bar item: it opens `Skiller: Show Skills`, and while a skill runs it shows the skill's name and brings the run's graph forward when clicked. Hide it from the status bar's context menu.
 - New commands: `Skiller: Show Skills` (run a skill, show its graph, or copy a built-in), `Skiller: Cancel Run`, `Skiller: Reload Skills`, and `Skiller: Reset Tool Approvals`.
 - The `skiller.model.default` setting: the fallback model id for steps whose skill names no model. When it is empty, the first run asks for a model once and remembers it; pressing Escape on that picker cancels the run.
 - The `from: tools` input binding, which fills an input with the installed language-model tools.
@@ -28,6 +29,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 
 - Every entry point — the Command Palette, the editor context menu, code actions, `Run it now`, and Copilot — runs the skill natively instead of handing it to chat.
 - Steps that name no model, or a model that isn't available, use the fallback model above (previously the chat session's model).
+- Skiller now activates once VS Code has started (`onStartupFinished`) instead of only in workspaces that contain skills, so the status bar item is there before you have any.
 
 ### Removed
 

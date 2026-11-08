@@ -165,6 +165,7 @@ describe('registerRunCommands', () => {
         const names = registerCommand.mock.calls.map(([name]) => name);
         expect(names).toEqual(expect.arrayContaining([
             'skiller.runSkill', 'skiller.showSkills', 'skiller.cancelRun', 'skiller.reloadSkills', 'skiller.resetToolApprovals',
+            'skiller.showRun',
         ]));
         expect(context.subscriptions).toHaveLength(names.length);
     });
@@ -314,6 +315,20 @@ describe('registerRunCommands', () => {
 
             expect(executeCommand).toHaveBeenCalledWith('skiller.copySkill', 'summarize');
         });
+    });
+
+    it('showRun brings the running skill\'s graph forward', async () => {
+        (controller as { active: unknown }).active = { skill: greeter };
+        await handlerFor('skiller.showRun')();
+        expect(showGraph).toHaveBeenCalledWith(greeter);
+        expect(showQuickPick).not.toHaveBeenCalled();
+    });
+
+    it('showRun opens Show Skills when nothing is running', async () => {
+        showQuickPick.mockResolvedValue(undefined);
+        await handlerFor('skiller.showRun')();
+        expect(showGraph).not.toHaveBeenCalled();
+        expect(showQuickPick).toHaveBeenCalledTimes(1);
     });
 
     it('cancelRun cancels the active run', async () => {

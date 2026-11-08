@@ -64,12 +64,24 @@ const CANCELLED = 'cancelled' as const;
 
 export class RunController {
     private current: ActiveRun | undefined;
+    private readonly activeListeners = new Set<() => void>();
 
     constructor(private readonly deps: RunControllerDeps) {}
 
     /** The run in progress, if any. */
     get active(): { skill: Skill } | undefined {
         return this.current ? { skill: this.current.skill } : undefined;
+    }
+
+    /** Called whenever a run starts or ends (read `active` for the new state). */
+    onDidChangeActive(listener: () => void): { dispose(): void } {
+        this.activeListeners.add(listener);
+        return { dispose: () => { this.activeListeners.delete(listener); } };
+    }
+
+    private setCurrent(run: ActiveRun | undefined): void {
+        this.current = run;
+        for (const listener of [...this.activeListeners]) listener();
     }
 
     /** Cancel the run in progress. Returns false when nothing is running. */
@@ -102,7 +114,7 @@ export class RunController {
             cancel: () => { if (!settled) cancellation.cancel(); },
             done: new Promise<void>(resolve => { release = resolve; })
         };
-        this.current = active;
+        this.setCurrent(active);
 
         const callerLink = req.token?.onCancellationRequested(() => active.cancel());
         if (req.token?.isCancellationRequested) active.cancel();
@@ -113,7 +125,7 @@ export class RunController {
             settled = true;
             callerLink?.dispose();
             cancellation.dispose();
-            if (this.current === active) this.current = undefined;
+            if (this.current === active) this.setCurrent(undefined);
             release();
         }
     }

@@ -235,7 +235,14 @@ export const window = {
     withProgress: vi.fn(),
     createOutputChannel: vi.fn(),
     showTextDocument: vi.fn(),
+    createStatusBarItem: vi.fn(),
 };
+
+// StatusBarAlignment enum (matches vscode.StatusBarAlignment)
+export enum StatusBarAlignment {
+    Left = 1,
+    Right = 2,
+}
 
 // Commands namespace
 export const commands = {

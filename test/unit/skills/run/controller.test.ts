@@ -495,6 +495,24 @@ describe('RunController', () => {
         expect(runOrder).toEqual([]);
     });
 
+    it('notifies listeners when a run starts and when it ends, until disposed', async () => {
+        const seen: Array<string | undefined> = [];
+        const listener = controller.onDidChangeActive(() => seen.push(controller.active?.skill.id));
+        surface.inputAnswers = [deferred<{ value: unknown } | 'cancelled'>()]; // never answered
+
+        const run = controller.run({ skill: makeSkill() });
+        await until(() => surface.calls.includes('askInput:topic:0/1'));
+        expect(seen).toEqual(['writer']);
+
+        controller.cancelActive();
+        await run;
+        expect(seen).toEqual(['writer', undefined]);
+
+        listener.dispose();
+        await controller.run({ skill: noInputSkill('quiet') });
+        expect(seen).toEqual(['writer', undefined]);
+    });
+
     it('invalid input is re-asked with the validation error', async () => {
         const skill = makeSkill({
             inputs: [{ name: 'slug', type: 'string', description: 'Slug', required: true, pattern: '^[a-z]+$' }],

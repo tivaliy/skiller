@@ -43,8 +43,7 @@
     "onLanguageModelTool:skiller_writeSkill",
     "onLanguageModelTool:skiller_listSkills",
     "onLanguageModelTool:skiller_runSkill",
-    "workspaceContains:**/skill.yaml",
-    "workspaceContains:**/skills/**/*.yaml"
+    "onStartupFinished"
   ],
   "contributes": {
     "chatPlugins": [
@@ -85,13 +84,19 @@
         "command": "skiller.resetToolApprovals",
         "title": "Reset Tool Approvals",
         "category": "Skiller"
+      },
+      {
+        "command": "skiller.showRun",
+        "title": "Show Running Skill",
+        "category": "Skiller"
       }
     ],
     "menus": {
       "commandPalette": [
         { "command": "skiller.runSkill" },
         { "command": "skiller.newSkill" },
-        { "command": "skiller.copySkill", "when": "false" }
+        { "command": "skiller.copySkill", "when": "false" },
+        { "command": "skiller.showRun", "when": "false" }
       ],
       "editor/context": [
         { "command": "skiller.runSkill", "when": "editorTextFocus", "group": "skiller@1" }

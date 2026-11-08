@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { createNativeSurface, finishSkill, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce } from './editor';
+import { createNativeSurface, createSkillerStatusBar, finishSkill, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce } from './editor';
 import { createWriteSkillDeps } from './scaffold';
 import {
     LaunchContextStore,
@@ -70,6 +70,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         set: names => context.workspaceState.update(ALWAYS_ALLOWED_TOOLS_KEY, names),
     });
     const controller = createRunController(context, toolApprovals, showGraph);
+    context.subscriptions.push(createSkillerStatusBar(controller));
 
     registerTools(context, {
         writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri }), controller),
