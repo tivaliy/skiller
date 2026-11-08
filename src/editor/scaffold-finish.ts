@@ -7,6 +7,8 @@ import type { CreatedSkill } from '../scaffold/types';
 export interface FinishDeps {
     skillRegistry: SkillRegistry;
     extensionUri: vscode.Uri;
+    /** Told after a skill is created (the migration notice records the installed version). */
+    onCreated?: () => Promise<void>;
 }
 
 /** The parenthetical notes appended to the "created" notification. */
@@ -32,6 +34,7 @@ async function step(name: string, fn: () => Promise<unknown>): Promise<void> {
 export async function finishSkill(result: CreatedSkill, deps: FinishDeps): Promise<void> {
     const { skillRegistry, extensionUri } = deps;
     const { id, dir } = result;
+    if (deps.onCreated) await step('onCreated', deps.onCreated);
     const note = finishNote(result);
     // Opening skill.yaml doesn't depend on the registry, so it runs alongside the rescan.
     await Promise.all([

@@ -1,14 +1,28 @@
-import { describe, expect, it } from 'vitest';
-import { finishNote } from '../../../src/editor/scaffold-finish';
+/**
+ * After a skill is created: the registry is refreshed, the files are opened, and
+ * the creation is reported to the caller (the migration notice records the version).
+ */
 
-describe('finishNote', () => {
-    it('is empty for a workspace skill that overrides nothing', () => {
-        expect(finishNote({ tier: 'workspace', overridesBuiltin: false })).toBe('');
-    });
-    it('names the user tier and the override, in that order', () => {
-        expect(finishNote({ tier: 'user' })).toBe('(saved to your user skills — no workspace is open)');
-        expect(finishNote({ tier: 'workspace', overridesBuiltin: true })).toBe('(overrides the built-in)');
-        expect(finishNote({ tier: 'user', overridesBuiltin: true })).toBe(
-            '(saved to your user skills — no workspace is open) (overrides the built-in)');
+import { describe, it, expect, vi } from 'vitest';
+import * as vscode from 'vscode';
+import { finishSkill } from '../../../src/editor/scaffold-finish';
+import type { FinishDeps } from '../../../src/editor/scaffold-finish';
+import type { CreatedSkill } from '../../../src/scaffold/types';
+
+describe('finishSkill', () => {
+    it('reports the creation even when opening the new files fails', async () => {
+        vi.mocked(vscode.workspace.openTextDocument).mockRejectedValue(new Error('no editor'));
+        const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const onCreated = vi.fn(async () => {});
+        const deps = {
+            skillRegistry: { refresh: vi.fn(async () => {}), getById: vi.fn() },
+            extensionUri: vscode.Uri.file('/ext'),
+            onCreated,
+        } as unknown as FinishDeps;
+
+        await finishSkill({ id: 'fresh', dir: '/ws/.skiller/skills/fresh', tier: 'workspace' } as unknown as CreatedSkill, deps);
+
+        expect(onCreated).toHaveBeenCalledTimes(1);
+        logError.mockRestore();
     });
 });

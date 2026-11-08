@@ -4,6 +4,7 @@ import {
     MIGRATION_DOCS_URL,
     MIGRATION_NOTICE_KEY,
     RECORDED_VERSION_KEY,
+    recordInstallVersion,
     showMigrationNoticeOnce,
     type MigrationNoticeInstall,
 } from '../../../src/editor/migration-notice';
@@ -73,12 +74,31 @@ describe('showMigrationNoticeOnce', () => {
         expect(h.show).not.toHaveBeenCalled();
     });
 
-    it('records the running version, so the next activation can tell an upgrade from a fresh install', async () => {
-        const h = harness({ install: { version: '0.5.3' } });
+    it('records the running version once it can tell an upgrade from a fresh install', async () => {
+        const h = harness({ state: { [RECORDED_VERSION_KEY]: '0.5.0' }, install: { version: '0.5.3' } });
 
         await h.notice();
 
         expect(h.state.values.get(RECORDED_VERSION_KEY)).toBe('0.5.3');
+    });
+
+    it('leaves an undecided install unrecorded, so a later window with the user\'s skills still shows the notice', async () => {
+        // A 0.4 user whose skills live only in one repo opens another project first.
+        const h = harness({ install: { hasOwnSkills: false } });
+        await h.notice();
+        expect(h.state.values.has(RECORDED_VERSION_KEY)).toBe(false);
+
+        await showMigrationNoticeOnce(h.state, h.show, h.run, { version: '0.5.0', hasOwnSkills: true });
+        expect(h.show).toHaveBeenCalledTimes(1);
+    });
+
+    it('a skill created by this version marks the install as known, so its own skills never trigger the notice', async () => {
+        const h = harness({ install: { hasOwnSkills: true } });
+        await recordInstallVersion(h.state, '0.5.0');
+
+        await h.notice();
+
+        expect(h.show).not.toHaveBeenCalled();
     });
 
     it('marks the notice as shown before the user answers, so a dismissed or ignored toast never returns', async () => {

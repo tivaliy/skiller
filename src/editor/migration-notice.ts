@@ -21,13 +21,23 @@ export interface MigrationNoticeInstall {
 }
 
 /**
+ * Record that this version is installed. Called when Skiller itself creates a skill, so
+ * a new user's first skills are never mistaken for evidence of a pre-0.5 install.
+ */
+export async function recordInstallVersion(state: Pick<vscode.Memento, 'update'>, version: string): Promise<void> {
+    await state.update(RECORDED_VERSION_KEY, version);
+}
+
+/**
  * Tell a user upgrading from before 0.5 once that the `@skiller` chat commands are gone.
  *
  * "Upgrading from before 0.5" means: the recorded version is below 0.5.0, or — since 0.4.0
  * recorded nothing — no readable version is recorded and the user has their own skills.
- * A fresh install (nothing recorded, no own skills) sees nothing. The running version is
- * recorded on every call, and both writes happen before the toast is awaited, since the
- * user may never answer it.
+ * With nothing recorded and no own skills the install is undecided: nothing is shown and
+ * nothing recorded, so a later window that has the user's skills (activation no longer
+ * waits for a skills workspace) can still decide. Otherwise the running version is
+ * recorded, and both writes happen before the toast is awaited, since the user may never
+ * answer it.
  */
 export async function showMigrationNoticeOnce(
     state: Pick<vscode.Memento, 'get' | 'update'>,
@@ -36,7 +46,8 @@ export async function showMigrationNoticeOnce(
     install: MigrationNoticeInstall
 ): Promise<void> {
     const recorded = parseMinor(state.get<string>(RECORDED_VERSION_KEY));
-    await state.update(RECORDED_VERSION_KEY, install.version);
+    if (!recorded && !install.hasOwnSkills) return; // undecided: a fresh install, or skills elsewhere
+    await recordInstallVersion(state, install.version);
 
     if (state.get<boolean>(MIGRATION_NOTICE_KEY)) return;
     const upgradedFromBefore05 = recorded

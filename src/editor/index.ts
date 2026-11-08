@@ -6,7 +6,7 @@ export { SkillCodeActionProvider, snapshotFromCodeAction } from './code-action-p
 export { registerScaffoldCommands } from './scaffold-commands';
 export type { ScaffoldCommandDeps } from './scaffold-commands';
 export { finishSkill } from './scaffold-finish';
-export { showMigrationNoticeOnce } from './migration-notice';
+export { recordInstallVersion, showMigrationNoticeOnce } from './migration-notice';
 export { createNativeSurface } from './run';
 export { createSkillerStatusBar } from './status-bar';
 export type { NativeSurfaceDeps } from './run';

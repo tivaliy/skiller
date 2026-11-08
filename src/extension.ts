@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import { createNativeSurface, createSkillerStatusBar, finishSkill, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce } from './editor';
+import type { FinishDeps } from './editor/scaffold-finish';
+import { createNativeSurface, createSkillerStatusBar, finishSkill, recordInstallVersion, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce } from './editor';
 import { createWriteSkillDeps } from './scaffold';
 import {
     LaunchContextStore,
@@ -70,10 +71,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         set: names => context.workspaceState.update(ALWAYS_ALLOWED_TOOLS_KEY, names),
     });
     const controller = createRunController(context, toolApprovals, showGraph);
+    const version = String(context.extension.packageJSON.version);
+    // A skill Skiller creates proves this install isn't an upgrade from before 0.5.
+    const finishDeps: FinishDeps = {
+        skillRegistry,
+        extensionUri: context.extensionUri,
+        onCreated: () => recordInstallVersion(context.globalState, version),
+    };
     context.subscriptions.push(createSkillerStatusBar(controller));
 
     registerTools(context, {
-        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, { skillRegistry, extensionUri: context.extensionUri }), controller),
+        writeSkill: createWriteSkillDeps(skillRegistry, (r) => finishSkill(r, finishDeps), controller),
         listSkills: { skills: () => skillRegistry.getAll() },
         runSkill: {
             find: id => skillRegistry.getById(id),
@@ -97,7 +105,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         reloadTools: () => toolCache.refresh(),
         executionState,
     });
-    registerScaffoldCommands(context, { skillRegistry, extensionUri: context.extensionUri, controller });
+    registerScaffoldCommands(context, { ...finishDeps, controller });
     context.subscriptions.push(enableLiveReload());
 
     void showMigrationNoticeOnce(
@@ -105,7 +113,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         (msg, ...actions) => vscode.window.showInformationMessage(msg, ...actions),
         (cmd, ...args) => vscode.commands.executeCommand(cmd, ...args),
         {
-            version: String(context.extension.packageJSON.version),
+            version,
             hasOwnSkills: skillRegistry.getAll().some(s => s.source.type !== 'builtin'),
         }
     ).catch(err => console.error('Skiller: migration notice failed', err));
