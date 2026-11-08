@@ -110,7 +110,7 @@ belong to agentic `llm` steps.
 
 ## Step 4 — Run it
 
-Run **Skiller: Reload Skills** so Skiller picks up the new folder, then **Skiller: Run Skill…** →
+Save the files (Skiller picks up the new folder by itself), then **Skiller: Run Skill…** →
 **Note Writer**, and give it a topic — say, *our release process*.
 
 The `draft` step calls the model. Before the `save` step writes, Skiller asks: a **Create File** card

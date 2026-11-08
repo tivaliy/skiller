@@ -136,8 +136,8 @@ Keep it to one or two sentences.
 
 ## 4. Run it
 
-1. Run **Skiller: Reload Skills** to pick up the new skill (it reports what was added, removed, or
-   failed to parse).
+1. Save the files: Skiller picks up the new skill by itself. (**Skiller: Reload Skills** re-scans on
+   demand and reports what was added, removed, or failed to parse.)
 2. Open the [live execution graph](../../concepts/execution-graph/) — click the **Show Graph**
    CodeLens above your `skill.yaml`.
 3. Run **Skiller: Run Skill…** and pick **Greeter**.

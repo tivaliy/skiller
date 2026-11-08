@@ -9,6 +9,7 @@ export { finishSkill } from './scaffold-finish';
 export { recordInstallVersion, showMigrationNoticeOnce } from './migration-notice';
 export { createNativeSurface } from './run';
 export { createSkillerStatusBar } from './status-bar';
+export { watchSkillFolders } from './skill-watcher';
 export type { NativeSurfaceDeps } from './run';
 export type { RunCommandsDeps } from './run/commands';
 

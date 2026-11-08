@@ -84,7 +84,7 @@ Output rules:
 - Change only what the instruction asks for.
 ```
 
-Run **Skiller: Reload Skills** so the registry picks up the new skill.
+Save the files: Skiller picks up the new skill by itself.
 
 ## 3. Launch it from the editor
 

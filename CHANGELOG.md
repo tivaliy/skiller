@@ -20,6 +20,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - A **Skiller** status bar item: it opens `Skiller: Show Skills`, and while a skill runs it shows the skill's name and brings the run's graph forward when clicked. Hide it from the status bar's context menu.
 - New commands: `Skiller: Show Skills` (run a skill, show its graph, or copy a built-in), `Skiller: Cancel Run`, `Skiller: Reload Skills`, and `Skiller: Reset Tool Approvals`.
 - The `skiller.model.default` setting: the fallback model id for steps whose skill names no model. When it is empty, the first run asks for a model once and remembers it; pressing Escape on that picker cancels the run.
+- Skills reload by themselves when their files are created, saved, or deleted (workspace `.skiller/skills/` and the user skills folder), so Run never uses a stale `skill.yaml` and skills added outside VS Code show up without `Skiller: Reload Skills`.
 - The `from: tools` input binding, which fills an input with the installed language-model tools.
 - The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. It asks for confirmation unless it is called from Skiller's own `skill-creator` run. Among skills, only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
 - A one-time notice for users upgrading from 0.4, pointing at `Skiller: Run Skill…` and Copilot.

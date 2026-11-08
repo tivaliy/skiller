@@ -15,7 +15,8 @@ Open the Command Palette and run **Skiller: Show Skills**. You'll see `greeter`,
 `skill-creator` (plus any skills you've added in your workspace or user folder). Pick one to
 **Run** it, **Show Graph**, or — for a built-in — **Copy to Workspace…**.
 
-If the list looks stale after you edit a `skill.yaml`, run **Skiller: Reload Skills** to re-scan.
+The list updates by itself when skill files change on disk. **Skiller: Reload Skills** re-scans on
+demand and reports what changed.
 
 ## 2. Run `greeter` — meet the confirmation pause
 

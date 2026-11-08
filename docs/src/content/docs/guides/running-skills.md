@@ -130,9 +130,11 @@ log opens as an editor tab that keeps updating, which you can drag beside the gr
 
 ## Reloading skills
 
-Skiller scans for skills at startup and when you create one. After adding or editing a skill on
-disk, or starting an MCP server, run **Skiller: Reload Skills**: it re-scans skills and tools,
-refreshes open graphs, and reports how many skills were added or removed and any parse errors.
+Skiller scans for skills at startup and reloads them when a skill's files are created, saved, or
+deleted in the workspace `.skiller/skills/` folder or your user skills folder, so a run always
+uses the saved `skill.yaml`. After starting an MCP server, or to force a re-scan, run
+**Skiller: Reload Skills**: it re-scans skills and tools, refreshes open graphs, and reports how
+many skills were added or removed and any parse errors.
 
 ## Coming from the `@skiller` chat commands
 

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import type { FinishDeps } from './editor/scaffold-finish';
-import { createNativeSurface, createSkillerStatusBar, finishSkill, recordInstallVersion, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce } from './editor';
+import { createNativeSurface, createSkillerStatusBar, finishSkill, recordInstallVersion, registerScaffoldCommands, registerTriggers, showMigrationNoticeOnce, watchSkillFolders } from './editor';
 import { createWriteSkillDeps } from './scaffold';
 import {
     LaunchContextStore,
@@ -47,6 +47,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const workspacePath = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     skillRegistry = new SkillRegistry(context.extensionPath, workspacePath);
     await skillRegistry.refresh();
+    // Reload when skill files change on disk, so Run never uses a stale skill.yaml.
+    context.subscriptions.push(watchSkillFolders({
+        targets: [
+            workspacePath ? { base: workspacePath, pattern: '.skiller/skills/**' } : undefined,
+            { base: skillRegistry.getUserSkillsPath(), pattern: '**' },
+        ],
+        createWatcher: (base, pattern) =>
+            vscode.workspace.createFileSystemWatcher(new vscode.RelativePattern(vscode.Uri.file(base), pattern)),
+        refresh: () => skillRegistry.refresh(),
+    }));
 
     skillExecutor = createSkillExecutor();
     executionState = createExecutionState();

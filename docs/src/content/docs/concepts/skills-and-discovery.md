@@ -63,9 +63,10 @@ general-purpose version in your user tier.
 
 ## What Reload Skills re-scans
 
-Discovery is cached after the first scan, so skills you add or edit on disk are not picked up
-automatically (a skill created with **Skiller: New Skill…** is). Run **Skiller: Reload Skills** to
-re-scan **all three tiers** from disk. It reports how many skills were added and removed, and any
+Discovery is cached after the first scan and refreshed automatically when a file in the workspace
+`.skiller/skills/` folder or your user skills folder is created, saved, or deleted, so a saved
+`skill.yaml` is what the next run uses. Changes inside a symlinked skill folder may not be noticed:
+run **Skiller: Reload Skills** to re-scan **all three tiers** from disk. It reports how many skills were added and removed, and any
 manifests that fail to parse, so you can confirm your edit landed without restarting VS Code. See
 the [Commands reference](../../reference/commands/).
 

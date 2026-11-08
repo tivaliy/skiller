@@ -45,9 +45,9 @@ an unknown or misspelled key is rejected with a did-you-mean suggestion the mome
 catch `tool_mode` typed as `toolMode`, or `goto_step` as `gotoStep`, here rather than at run
 time.
 
-After editing a manifest on disk, run **Skiller: Reload Skills** so the skill registry and any
-other open panels pick up the change; it reports how many skills were added and removed, and any
-parse errors.
+Skiller reloads its skills when their files change on disk, so a saved manifest is what the next
+run uses. To re-scan on demand and see how many skills were added and removed, and any parse
+errors, run **Skiller: Reload Skills**.
 
 ## The empty-interpolation trap
 
