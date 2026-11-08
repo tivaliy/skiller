@@ -336,7 +336,7 @@
     "@types/node": "^20.x",
     "@types/vscode": "^1.95.0",
     "@vitest/ui": "^3.2.0",
-    "@vscode/vsce": "^3.x",
+    "@vscode/vsce": "^4.1.0",
     "esbuild": "^0.25.0",
     "typescript": "^5.x",
     "vitest": "^3.2.0"
