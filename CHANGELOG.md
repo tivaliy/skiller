@@ -30,6 +30,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - Every entry point — the Command Palette, the editor context menu, code actions, `Run it now`, and Copilot — runs the skill natively instead of handing it to chat.
 - Steps that name no model, or a model that isn't available, use the fallback model above (previously the chat session's model).
 - Skiller now activates once VS Code has started (`onStartupFinished`) instead of only in workspaces that contain skills, so the status bar item is there before you have any.
+- In Restricted Mode, VS Code now says why Skiller is off: it needs a trusted workspace, since skills call tools and write files.
 
 ### Removed
 

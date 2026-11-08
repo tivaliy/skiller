@@ -37,6 +37,12 @@
     "theme": "dark"
   },
   "main": "./out/extension.js",
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Skiller runs skills that call tools and write files, so it needs a trusted workspace. Trust this folder to use Skiller."
+    }
+  },
   "activationEvents": [
     "onLanguageModelTool:skiller_createFile",
     "onLanguageModelTool:skiller_replaceInFile",

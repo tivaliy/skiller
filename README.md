@@ -39,6 +39,7 @@ Skills run in VS Code itself, from the editor, and Copilot can run them too: it 
 ## Requirements
 
 - **VS Code 1.95+**
+- A **trusted workspace**: in Restricted Mode, Skiller stays off, since skills call tools and write files
 - A **language model provider** (e.g. GitHub Copilot, or any provider exposing VS Code's Language Model API)
 - **MCP servers** configured in VS Code (optional — only needed for tool integrations)
 
