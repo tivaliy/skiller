@@ -71,6 +71,8 @@ code --install-extension skiller-*.vsix
 
 Before a skill's step calls a tool, Skiller asks: **Allow**, **Allow for this run**, **Always allow in this workspace**, or **Deny** (**Skiller: Reset Tool Approvals** forgets the "always" choices).
 
+Every run is also written to the **Skiller** output channel as it happens: the inputs, each step with its model, duration, and a one-line output, tool calls, your answers, and how the run ended. **Show log** on the result card opens it.
+
 > **Upgrading from 0.4?** The `@skiller` chat participant and its slash commands are gone — see [where each command went](https://tivaliy.github.io/skiller/guides/running-skills/#coming-from-the-skiller-chat-commands).
 
 See the [Getting Started tutorial](https://tivaliy.github.io/skiller/getting-started/introduction/) to install, run a skill, and author your own.
@@ -80,7 +82,7 @@ See the [Getting Started tutorial](https://tivaliy.github.io/skiller/getting-sta
 The docs are the single source of truth. Jump to what you need:
 
 - **[Run a built-in skill](https://tivaliy.github.io/skiller/getting-started/run-a-bundled-skill/)** and **[Write your first skill](https://tivaliy.github.io/skiller/getting-started/write-your-first-skill/)** — guided tutorials.
-- **[Running skills](https://tivaliy.github.io/skiller/guides/running-skills/)** and **[Use Skiller from Copilot](https://tivaliy.github.io/skiller/guides/use-from-copilot/)** — inputs, cards, tool approvals, and `/skiller`.
+- **[Running skills](https://tivaliy.github.io/skiller/guides/running-skills/)** and **[Use Skiller from Copilot](https://tivaliy.github.io/skiller/guides/use-from-copilot/)** — inputs, cards, tool approvals, the run log, and `/skiller`.
 - **Guides** — how-to for [tool/MCP skills](https://tivaliy.github.io/skiller/guides/tool-mcp-skill/), [branching & looping](https://tivaliy.github.io/skiller/guides/branching-looping/), [debugging](https://tivaliy.github.io/skiller/guides/debugging/), and [models](https://tivaliy.github.io/skiller/guides/models/).
 - **[Skills & discovery](https://tivaliy.github.io/skiller/concepts/skills-and-discovery/)**, **[Step types & state](https://tivaliy.github.io/skiller/concepts/step-types/)**, **[Templating with Liquid](https://tivaliy.github.io/skiller/concepts/templating/)**, and **[The execution graph](https://tivaliy.github.io/skiller/concepts/execution-graph/)** — how it all works.
 - **[skill.yaml manifest](https://tivaliy.github.io/skiller/reference/skill-yaml/)** and **[step-file frontmatter](https://tivaliy.github.io/skiller/reference/step-frontmatter/)** — every field.
