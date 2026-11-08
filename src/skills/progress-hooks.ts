@@ -36,8 +36,9 @@ export interface ProgressHooks {
      * @param success - Whether the step succeeded
      * @param duration - Duration in milliseconds
      * @param error - Error message if failed
+     * @param output - What the step produced (its result data), if anything
      */
-    onStepComplete?: (stepId: string, success: boolean, duration: number, error?: string) => void;
+    onStepComplete?: (stepId: string, success: boolean, duration: number, error?: string, output?: unknown) => void;
 
     /**
      * Called when a new execution phase starts.

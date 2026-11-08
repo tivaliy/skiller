@@ -73,6 +73,12 @@ describe('SkillExecutor progress hooks', () => {
         expect(hooks.onSkillComplete).toHaveBeenCalledTimes(1);
     });
 
+    it('passes each completed step its output, so a surface can log what the step produced', async () => {
+        const onStepComplete = vi.fn();
+        await executor.execute(makeSkill(['draft']), makeOptions(executionState, { onStepComplete }));
+        expect(onStepComplete).toHaveBeenCalledWith('draft', true, 1, undefined, 'out-draft');
+    });
+
     it('still emits step statuses to execution state when hooks are no-ops', async () => {
         const seen: string[] = [];
         executionState.subscribe((e: ExecutionEvent) => {

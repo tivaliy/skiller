@@ -23,7 +23,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - The `from: tools` input binding, which fills an input with the installed language-model tools.
 - The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. It asks for confirmation unless it is called from Skiller's own `skill-creator` run. Among skills, only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
 - A one-time notice for users upgrading from 0.4, pointing at `Skiller: Run Skill…` and Copilot.
-- The **Skiller** output channel logs which model each AI step runs on and why: the step's model, the skill's `models.default`, or your model for Skiller runs.
+- **A run log** in the **Skiller** output channel, in place of the old chat transcript: the inputs, each step with its model (and why it was chosen), duration, and the first line of its output, tool calls, your answers on cards, skipped steps, and how the run ended. **Show log** on result cards and failure notifications opens it.
 
 ### Changed
 
@@ -36,7 +36,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 
 - The `@skiller` chat participant and all its slash commands (`/skill`, `/new`, `/skills`, `/help`, `/tools`, `/models`, `/reload`, `/cancel`, `/reset`, `/status`). See the docs' [Running skills](https://tivaliy.github.io/skiller/guides/running-skills/#coming-from-the-skiller-chat-commands) page for where each one went.
 - The `skiller.skills.runSurface` setting: every entry point now runs the skill directly.
-- The `skiller.skills.verboseMode` setting. It printed each step's prompt and response into the `@skiller` chat; to see what a step sent and received, hover it in the live execution graph (**Open ↗** shows both in a read-only document).
+- The `skiller.skills.verboseMode` setting. It printed each step's prompt and response into the `@skiller` chat; the run log now shows each step's output in one line, and hovering a step in the live execution graph shows its full prompt and response (**Open ↗** opens both in a read-only document).
 - The chat model-dropdown override of a skill's models, and the graph's model-override banner.
 
 ### Fixed

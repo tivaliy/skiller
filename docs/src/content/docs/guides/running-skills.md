@@ -99,10 +99,34 @@ When the run finishes:
 - A skill with an [`output.to` sink](../../reference/skill-yaml/#output-sinks-outputto) delivers its
   summary there and tells you where (or that it opened a new tab because there was no safe place
   to write).
-- Otherwise its summary appears as a **result card** in the graph, with **Open as document** and
-  **Copy**; with the panel closed, it opens as a document.
-- A failed run says which skill failed and why; **Show details** writes the full error to the
-  **Skiller** output channel.
+- Otherwise its summary appears as a **result card** in the graph, with **Open as document**,
+  **Copy**, and **Show log**; with the panel closed, it opens as a document.
+- A failed run says which skill failed and why, with **Show log**.
+
+## The run log
+
+Every run is also written, as it happens, to the **Skiller** output channel (**View → Output**, then
+pick *Skiller*, or **Show log** on a result card or a failure). Runs Copilot starts are logged too.
+
+```text
+── Greeter · 18:00:42 ─────────────────────────────────────
+inputs: name = "John"
+▶ greet (1/3) · model gpt-5.6-luna (your model for Skiller runs)
+  ✓ greet 2.1s → Hi John, wishing you a wonderful day…
+▶ confirm (2/3)
+  ? Confirm before generating fun fact → Yes, give me a fun fact
+▶ fact (3/3) · model gpt-5.6-luna (your model for Skiller runs)
+  ✓ fact 1.8s → Fun fact: "John" comes from a Hebrew name…
+✓ Greeter completed in 6.4s
+```
+
+Each step shows its model and why it was chosen, how long it took, and the first line of what it
+produced; tool calls, your answers on cards, skipped steps, and failures appear in order. A run that
+ends without a result is marked **cancelled** or **stopped**. For a step's full prompt and response,
+hover it in the graph and use **Open ↗**.
+
+To keep the log next to the graph, click **Open Output in Editor** in the Output panel's toolbar: the
+log opens as an editor tab that keeps updating, which you can drag beside the graph.
 
 ## Reloading skills
 
@@ -121,11 +145,12 @@ Skiller 0.5.0 removed the `@skiller` chat participant. Here is where each comman
 | `@skiller /new` | **Skiller: New Skill…** |
 | `@skiller /reload` | **Skiller: Reload Skills** |
 | `@skiller /cancel`, `/reset`, `/status` | **Skiller: Cancel Run**, or **Cancel** on the progress notification. A run's state lives in its graph; there is nothing left to reset. |
+| The chat transcript of a run | The [run log](#the-run-log) in the **Skiller** output channel. |
 | `@skiller /models` | The model picker lists each model's id; set one in [`skiller.model.default`](../../reference/settings/#skillermodeldefault). |
 | `@skiller /tools`, `/help` | No replacement. A skill that names a tool that isn't available refuses to start and names the tool. |
 | The chat model dropdown overriding a skill's models | Gone: skills use the models they name, and the fallback model above for the rest. |
 | `skiller.skills.runSurface` | Removed: every entry point runs the skill directly. |
-| `skiller.skills.verboseMode` | Removed: hover a step in the graph to see its prompt and response — see [Debug a skill](../debugging/). |
+| `skiller.skills.verboseMode` | Removed: the [run log](#the-run-log) shows each step's output in one line; hover a step in the graph for its full prompt and response — see [Debug a skill](../debugging/). |
 
 ## Related
 

@@ -23,6 +23,7 @@ import type { SkillGraphPanelManager } from '../../skills/graph/panel-manager';
 import type { GraphCard } from '../../skills/graph/types';
 import { fencedBlock } from '../../skills/utils';
 import { renderCardMarkdown } from './markdown';
+import { RunLog } from './run-log';
 
 export interface NativeSurfaceDeps {
     /** Graph-panel cards. `getPanel` tells whether a result card can be shown without waiting. */
@@ -37,6 +38,7 @@ export interface NativeSurfaceDeps {
 }
 
 const SHOW_DETAILS = 'Show details';
+const SHOW_LOG = 'Show log';
 const REVIEW = 'Review';
 const REPLACE_RUN = 'Cancel and run';
 
@@ -47,7 +49,10 @@ const APPROVAL_ACTIONS: ReadonlyArray<{ id: ToolApproval; label: string }> = [
     { id: 'deny', label: 'Deny' },
 ];
 
-const RESULT_ACTIONS = { open: 'open', copy: 'copy' } as const;
+const RESULT_ACTIONS = { open: 'open', copy: 'copy', log: 'log' } as const;
+
+/** Tool-call outcomes worth a log line (the generic "Processing…" phases are not). */
+const TOOL_PHASE = /^(Called |Error from |Refused: |Declined: |Failed: )/;
 
 /** How long VS Code gets to report a just-revealed graph panel as visible. */
 const REVEAL_GRACE_MS = 1000;
@@ -72,6 +77,8 @@ class NativeSurface implements RunSurface {
     private cardSeq = 0;
     /** The token of the run whose progress is showing; used to dismiss cards on cancel. */
     private runToken: vscode.CancellationToken | undefined;
+    /** The running skill's transcript in the Skiller output channel. */
+    private log: RunLog | undefined;
 
     constructor(private readonly deps: NativeSurfaceDeps) {}
 
@@ -134,10 +141,14 @@ class NativeSurface implements RunSurface {
         if (token?.isCancellationRequested) return 'cancelled';
 
         // Return the option itself: the controller matches the choice by identity.
-        const chosen = actionId !== undefined ? pending.options[Number(actionId)] : undefined;
-        if (chosen) return chosen;
-
+        const fromCard = actionId !== undefined ? pending.options[Number(actionId)] : undefined;
         // No panel, or it closed while waiting: a modal, whose detail shows the whole message.
+        const chosen = fromCard ?? await this.confirmInModal(skill, pending);
+        if (chosen !== 'cancelled') this.logFor(skill).answered(stepTitle(skill, pending.stepId), chosen.label);
+        return chosen;
+    }
+
+    private async confirmInModal(skill: Skill, pending: PendingConfirmationInfo): Promise<ConfirmationOption | 'cancelled'> {
         const label = await vscode.window.showInformationMessage(
             skill.name,
             { modal: true, detail: pending.message },
@@ -171,25 +182,30 @@ class NativeSurface implements RunSurface {
         });
         if (token?.isCancellationRequested) return 'deny';
 
-        const fromCard = APPROVAL_ACTIONS.find(action => action.id === actionId);
-        if (fromCard) return fromCard.id;
-
-        // No panel, or it closed while waiting: a modal with the same choices.
-        const label = await vscode.window.showWarningMessage(
-            title,
-            { modal: true, detail: described?.markdown ?? json },
-            ...APPROVAL_ACTIONS.map(action => action.label)
-        );
-        return APPROVAL_ACTIONS.find(action => action.label === label)?.id ?? 'deny';
+        let answer = APPROVAL_ACTIONS.find(action => action.id === actionId);
+        if (!answer) {
+            // No panel, or it closed while waiting: a modal with the same choices.
+            const label = await vscode.window.showWarningMessage(
+                title,
+                { modal: true, detail: described?.markdown ?? json },
+                ...APPROVAL_ACTIONS.map(action => action.label)
+            );
+            answer = APPROVAL_ACTIONS.find(action => action.label === label) ?? APPROVAL_ACTIONS[APPROVAL_ACTIONS.length - 1];
+        }
+        this.logFor(skill).answered(title, answer.label);
+        return answer.id;
     }
 
     // -----------------------------------------------------------------------
     // Progress
     // -----------------------------------------------------------------------
 
-    progress(skill: Skill, token: vscode.CancellationToken): ProgressHooks & { dispose(): void } {
+    progress(skill: Skill, token: vscode.CancellationToken, inputs: Record<string, unknown>): ProgressHooks & { dispose(): void } {
         this.runSeq++;
         this.runToken = token;
+        const log = this.newLog(skill);
+        this.log = log;
+        log.start(inputs);
 
         let report: ((message: string) => void) | undefined;
         let finish: (() => void) | undefined;
@@ -212,13 +228,24 @@ class NativeSurface implements RunSurface {
         return {
             onStepStart: (stepId, stepIndex, totalSteps, modelInfo) => {
                 report?.(`${stepTitle(skill, stepId)} (${stepIndex + 1} of ${totalSteps})`);
+                let model: { model: string; why: string } | undefined;
                 if (modelInfo) {
                     const pin = unavailablePin.get(stepId);
                     const why = pin === undefined
                         ? MODEL_SOURCE_LABEL[modelInfo.source]
                         : `${MODEL_SOURCE_LABEL.auto}; '${pin}' isn't available`;
-                    this.deps.output.appendLine(`${skill.name} › ${stepId}: model ${modelInfo.displayName} (${why})`);
+                    model = { model: modelInfo.displayName, why };
                 }
+                log.stepStarted(stepId, stepIndex, totalSteps, model);
+            },
+            onStepComplete: (stepId, success, duration, error, output) => {
+                log.stepCompleted(stepId, success, duration, error, output);
+            },
+            onStepSkipped: (stepId, stepIndex, totalSteps, reason) => {
+                log.stepSkipped(stepId, stepIndex, totalSteps, reason);
+            },
+            onPhaseComplete: phase => {
+                if (TOOL_PHASE.test(phase)) log.toolEvent(phase);
             },
             onConfirmationRequired: () => {
                 report?.('Waiting for you');
@@ -232,6 +259,8 @@ class NativeSurface implements RunSurface {
             dispose: () => {
                 if (disposed) return;
                 disposed = true;
+                log.stopped(token.isCancellationRequested); // no-op once the result was logged
+                if (this.log === log) this.log = undefined;
                 finish?.();
                 if (this.runToken === token) this.runToken = undefined;
             }
@@ -269,14 +298,16 @@ class NativeSurface implements RunSurface {
     async showResult(skill: Skill, result: SkillResult, delivery: DeliveryOutcome): Promise<void> {
         const summary = result.summary?.trim() ? result.summary : undefined;
 
+        const log = this.logFor(skill);
         if (!result.success) {
             const error = result.error ?? 'unknown error';
-            this.notify('error', `Skill '${skill.name}' failed: ${error}`, `Skill '${skill.name}' failed`, [
-                error,
-                ...(summary ? ['', summary] : [])
-            ]);
+            log.failed(error);
+            void vscode.window.showErrorMessage(`Skill '${skill.name}' failed: ${error}`, SHOW_LOG).then(choice => {
+                if (choice === SHOW_LOG) this.deps.output.show(true);
+            });
             return;
         }
+        log.completed(result.duration);
 
         switch (delivery.kind) {
             case 'delivered':
@@ -320,7 +351,8 @@ class NativeSurface implements RunSurface {
             html: await renderCardMarkdown(summary),
             actions: [
                 { id: RESULT_ACTIONS.open, label: 'Open as document', primary: true },
-                { id: RESULT_ACTIONS.copy, label: 'Copy' }
+                { id: RESULT_ACTIONS.copy, label: 'Copy' },
+                { id: RESULT_ACTIONS.log, label: SHOW_LOG }
             ]
         });
         void answer.then(async actionId => {
@@ -331,6 +363,8 @@ class NativeSurface implements RunSurface {
             } else if (actionId === RESULT_ACTIONS.copy) {
                 await vscode.env.clipboard.writeText(summary);
                 void vscode.window.showInformationMessage(`${skill.name}: result copied.`);
+            } else if (actionId === RESULT_ACTIONS.log) {
+                this.deps.output.show(true);
             }
         });
     }
@@ -405,6 +439,15 @@ class NativeSurface implements RunSurface {
             this.deps.output.appendLine(content);
             this.deps.output.show(true);
         }
+    }
+
+    private newLog(skill: Skill): RunLog {
+        return new RunLog(skill.name, { write: line => this.deps.output.appendLine(line) });
+    }
+
+    /** The running skill's log; a fresh one (no header) for a result shown outside a run. */
+    private logFor(skill: Skill): RunLog {
+        return this.log ?? this.newLog(skill);
     }
 
     private nextCardId(scope: string): string {

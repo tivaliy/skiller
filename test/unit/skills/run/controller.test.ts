@@ -113,9 +113,12 @@ class FakeSurface implements RunSurface {
         return typeof answer === 'object' ? answer.promise : answer;
     }
 
-    progress(_skill: Skill, token: CancellationToken) {
+    progressInputs: Array<Record<string, unknown>> = [];
+
+    progress(_skill: Skill, token: CancellationToken, inputs: Record<string, unknown>) {
         this.calls.push('progress');
         this.progressTokens.push(token);
+        this.progressInputs.push(inputs);
         return { dispose: () => { this.calls.push('progress.dispose'); } };
     }
 
@@ -493,6 +496,20 @@ describe('RunController', () => {
         expect(await run).toEqual({ kind: 'cancelled' });
         expect(controller.cancelActive()).toBe(false);
         expect(runOrder).toEqual([]);
+    });
+
+    it('gives the progress UI the inputs the run starts with: explicit, defaults, and answers', async () => {
+        surface.inputAnswers = [{ value: 'tides' }];
+        const skill = makeSkill({
+            inputs: [
+                { name: 'topic', type: 'string', description: 'Topic', required: true },
+                { name: 'tone', type: 'string', description: 'Tone', required: false, default: 'calm' },
+            ],
+        });
+
+        await controller.run({ skill });
+
+        expect(surface.progressInputs).toEqual([{ topic: 'tides', tone: 'calm' }]);
     });
 
     it('notifies listeners when a run starts and when it ends, until disposed', async () => {

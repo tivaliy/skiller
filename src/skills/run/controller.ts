@@ -190,7 +190,7 @@ class RunSession {
         const model = await untilCancelled(this.deps.resolveModel(skill, this.token), this.token);
         if (model === CANCELLED || model === undefined || this.token.isCancellationRequested) return this.cancelled();
 
-        const progress = surface.progress(skill, this.token);
+        const progress = surface.progress(skill, this.token, inputs);
         try {
             const options: ExecutionOptions = {
                 inputs,

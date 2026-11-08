@@ -143,8 +143,8 @@ describe('NativeSurface', () => {
     }
 
     /** Start a run's progress so the surface knows the run token (as the controller does). */
-    function startRun(skill: Skill = makeSkill()) {
-        return surface.progress(skill, run.token);
+    function startRun(skill: Skill = makeSkill(), inputs: Record<string, unknown> = {}) {
+        return surface.progress(skill, run.token, inputs);
     }
 
     // -----------------------------------------------------------------------
@@ -334,7 +334,7 @@ describe('NativeSurface', () => {
 
             await surface.askConfirmation(makeSkill(), pending());
             await surface.askConfirmation(makeSkill(), pending());
-            surface.progress(makeSkill(), new FakeCancellation().token); // next run
+            surface.progress(makeSkill(), new FakeCancellation().token, {}); // next run
             await surface.askConfirmation(makeSkill(), pending());
 
             const ids = panels.showCard.mock.calls.map(c => (c[1] as GraphCard).cardId);
@@ -445,7 +445,7 @@ describe('NativeSurface', () => {
                 ? { title: 'Create File', markdown: 'Create file at **a.md**?' }
                 : undefined);
             const described = makeSurface({ describeTool });
-            described.progress(makeSkill(), run.token);
+            described.progress(makeSkill(), run.token, {});
 
             panels.showCard.mockResolvedValueOnce('run');
             expect(await described.approveTool(makeSkill(), call)).toBe('run');
@@ -467,7 +467,7 @@ describe('NativeSurface', () => {
 
         it('falls back to the generic card when the tool is not described', async () => {
             const described = makeSurface({ describeTool: () => undefined });
-            described.progress(makeSkill(), run.token);
+            described.progress(makeSkill(), run.token, {});
             panels.showCard.mockResolvedValueOnce('deny');
 
             expect(await described.approveTool(makeSkill(), { toolName: 'mcp_fetch', input: { url: 'x' } })).toBe('deny');
@@ -529,19 +529,37 @@ describe('NativeSurface', () => {
             await flush();
             expect(settled).toBe(true);
         });
+    });
 
-        it('logs which model each AI step runs on and why, without opening the output', () => {
-            const hooks = startRun();
+    // -----------------------------------------------------------------------
+    // run log (the Skiller output channel)
+    // -----------------------------------------------------------------------
+
+    describe('run log', () => {
+        const lines = () => output.appendLine.mock.calls.map(c => c[0] as string);
+
+        it('writes the run as a transcript, without opening the output', async () => {
+            const hooks = startRun(makeSkill(), { topic: 'tides' });
             hooks.onStepStart?.('draft', 0, 2, { displayName: 'gpt-4o', source: 'skill-default' });
-            hooks.onStepStart?.('polish', 1, 2, { displayName: 'gpt-5.6-luna', source: 'auto' });
-            hooks.onStepStart?.('gate', 1, 2); // not an AI step: nothing to log
+            hooks.onPhaseStart?.('Calling mytool');
+            hooks.onPhaseComplete?.('Called mytool');
+            hooks.onPhaseComplete?.('Processed'); // generic phases are not logged
+            hooks.onStepComplete?.('draft', true, 1200, undefined, 'A draft');
+            hooks.onStepSkipped?.('polish', 1, 2, 'when: false');
+            await surface.showResult(makeSkill(), result({ duration: 3000, summary: undefined }), { kind: 'none' });
+            hooks.dispose();
 
-            expect(output.appendLine.mock.calls.map(c => c[0])).toEqual([
-                "Writer › draft: model gpt-4o (the skill's models.default)",
-                'Writer › polish: model gpt-5.6-luna (your model for Skiller runs)',
+            expect(lines()).toEqual([
+                expect.stringMatching(/^── Writer · \d\d:\d\d:\d\d ─+$/),
+                'inputs: topic = "tides"',
+                "▶ draft (1/2) · model gpt-4o (the skill's models.default)",
+                '  · Called mytool',
+                '  ✓ draft 1.2s → A draft',
+                '↷ polish (2/2) skipped: when: false',
+                '✓ Writer completed in 3.0s',
+                '',
             ]);
             expect(output.show).not.toHaveBeenCalled();
-            hooks.dispose();
         });
 
         it('logs a fallback as the run model, naming the pin that was unavailable', () => {
@@ -550,10 +568,54 @@ describe('NativeSurface', () => {
             hooks.onModelFallback?.('draft', 'gpt-x', 'gpt-y');
             hooks.onStepStart?.('draft', 0, 1, { displayName: 'gpt-y', source: 'skill-default' });
 
-            expect(output.appendLine).toHaveBeenCalledWith(
-                "Writer › draft: model gpt-y (your model for Skiller runs; 'gpt-x' isn't available)"
-            );
+            expect(lines()).toContain("▶ draft (1/1) · model gpt-y (your model for Skiller runs; 'gpt-x' isn't available)");
             hooks.dispose();
+        });
+
+        it('logs the answers given on cards', async () => {
+            const hooks = startRun();
+            panels.getPanel.mockReturnValue({ visible: true });
+            panels.showCard.mockResolvedValueOnce('1').mockResolvedValueOnce('run');
+
+            await surface.askConfirmation(makeSkill(), pending());
+            await surface.approveTool(makeSkill(), { toolName: 'mytool', input: {} });
+
+            expect(lines()).toContain('  ? review → Revise');
+            expect(lines()).toContain('  ? Allow mytool? → Allow for this run');
+            hooks.dispose();
+        });
+
+        it('marks a run that ended without a result as cancelled or stopped', () => {
+            const hooks = startRun();
+            run.cancel();
+            hooks.dispose();
+            expect(lines().slice(-2)).toEqual(['■ Writer cancelled', '']);
+        });
+
+        it('logs a failed run, and its notification offers Show log', async () => {
+            window.showErrorMessage.mockResolvedValue('Show log');
+            const hooks = startRun();
+            await surface.showResult(makeSkill(), result({ success: false, error: 'it broke' }), { kind: 'none' });
+            hooks.dispose();
+            await flush();
+
+            expect(window.showErrorMessage).toHaveBeenCalledWith("Skill 'Writer' failed: it broke", 'Show log');
+            expect(lines().slice(-2)).toEqual(['✗ Writer failed: it broke', '']);
+            expect(output.show).toHaveBeenCalledWith(true);
+        });
+
+        it('the result card offers Show log', async () => {
+            panels.getPanel.mockReturnValue({});
+            const click = deferred<string | undefined>();
+            panels.showCard.mockReturnValue(click.promise);
+
+            await surface.showResult(makeSkill(), result(), { kind: 'none' });
+            const card = panels.showCard.mock.calls[0][1] as GraphCard;
+            expect(card.actions).toContainEqual({ id: 'log', label: 'Show log' });
+
+            click.resolve('log');
+            await flush();
+            expect(output.show).toHaveBeenCalledWith(true);
         });
     });
 
@@ -585,6 +647,7 @@ describe('NativeSurface', () => {
                 actions: [
                     { id: 'open', label: 'Open as document', primary: true },
                     { id: 'copy', label: 'Copy' },
+                    { id: 'log', label: 'Show log' },
                 ],
             });
             expect(card.html).toContain('All good.');
@@ -607,7 +670,7 @@ describe('NativeSurface', () => {
         it('presents a failed skill as a failure, not a success', async () => {
             await surface.showResult(makeSkill(), result({ success: false, error: 'it broke' }), { kind: 'none' });
 
-            expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('it broke'), 'Show details');
+            expect(window.showErrorMessage).toHaveBeenCalledWith(expect.stringContaining('it broke'), 'Show log');
             expect(window.showInformationMessage).not.toHaveBeenCalled();
             expect(panels.showCard).not.toHaveBeenCalled();
         });

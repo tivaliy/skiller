@@ -85,6 +85,8 @@ If a tool you once marked **Always allow in this workspace** should ask again, r
 
 ## A debugging checklist
 
+- **What happened, in order?** → the [run log](../running-skills/#the-run-log) in the **Skiller**
+  output channel: inputs, each step's model, duration and output, tool calls, and your answers.
 - **Value is wrong or empty?** → hover the step in the graph, read the prompt, confirm the
   interpolation.
 - **`{{ outputs.x.field }}` is blank?** → JSON-fallback trap; **Open ↗** the step and check

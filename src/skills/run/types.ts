@@ -37,8 +37,8 @@ export interface RunSurface {
     askConfirmation(skill: Skill, pending: PendingConfirmationInfo): Promise<ConfirmationOption | 'cancelled'>;
     /** Ask whether a tool call may run. */
     approveTool(skill: Skill, call: ToolCallRequest): Promise<ToolApproval>;
-    /** Progress UI for the run; disposed when the run ends. */
-    progress(skill: Skill, token: CancellationToken): ProgressHooks & { dispose(): void };
+    /** Progress UI for the run, given the inputs it starts with; disposed when the run ends. */
+    progress(skill: Skill, token: CancellationToken, inputs: Record<string, unknown>): ProgressHooks & { dispose(): void };
     /** Another run is active: ask whether to cancel it and start `next`. */
     confirmReplaceRun(current: Skill, next: Skill): Promise<boolean>;
     /** Show problems that stopped (or interrupted) a run. */

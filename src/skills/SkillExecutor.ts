@@ -518,7 +518,8 @@ export class SkillExecutor {
                     step.id,
                     result.stepResult.success,
                     result.stepResult.duration,
-                    result.stepResult.error
+                    result.stepResult.error,
+                    result.stepResult.data
                 );
             }
         }
