@@ -418,15 +418,19 @@ class NativeSurface implements RunSurface {
         }
     }
 
+    /**
+     * A non-modal error or warning. Its lines go to the Skiller output channel right away,
+     * next to the run log (so an error that ended a run is in its transcript); Show details
+     * opens the channel.
+     */
     private notify(severity: 'error' | 'warning', message: string, heading: string, lines: string[]): void {
+        const { output } = this.deps;
+        output.appendLine(heading);
+        for (const line of lines) output.appendLine(line);
+        output.appendLine('');
         const show = severity === 'error' ? vscode.window.showErrorMessage : vscode.window.showWarningMessage;
         void show(message, SHOW_DETAILS).then(choice => {
-            if (choice !== SHOW_DETAILS) return;
-            const { output } = this.deps;
-            output.appendLine(heading);
-            for (const line of lines) output.appendLine(line);
-            output.appendLine('');
-            output.show(true);
+            if (choice === SHOW_DETAILS) output.show(true);
         });
     }
 

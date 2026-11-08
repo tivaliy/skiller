@@ -705,6 +705,20 @@ describe('NativeSurface', () => {
             expect(output.show).toHaveBeenCalled();
         });
 
+        it('writes problems to the log right away, so an error that ends a run is in its transcript', async () => {
+            window.showErrorMessage.mockResolvedValue(undefined); // the toast is ignored
+
+            const hooks = startRun();
+            hooks.dispose(); // the run ended by throwing: progress is disposed first
+            surface.showProblems(makeSkill(), "Skill 'Writer' failed", ['disk full']);
+            await flush();
+
+            expect(output.appendLine.mock.calls.map(c => c[0]).slice(-5)).toEqual([
+                '■ Writer stopped', '', "Skill 'Writer' failed", 'disk full', '',
+            ]);
+            expect(output.show).not.toHaveBeenCalled();
+        });
+
         it('showWarnings is a non-blocking warning with details', async () => {
             window.showWarningMessage.mockResolvedValue('Show details' as never);
 
