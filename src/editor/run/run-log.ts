@@ -94,12 +94,29 @@ function seconds(ms: number): string {
     return `${(ms / 1000).toFixed(1)}s`;
 }
 
-/** A value on one line, cut to `max` characters ('' for nothing worth showing). */
+/** A value on one line, cut to `max` characters ('' for nothing worth showing). Never throws. */
 function oneLine(value: unknown, max: number): string {
     if (value === undefined || value === null) return '';
-    const raw = typeof value === 'string' ? value : JSON.stringify(value) ?? String(value);
-    const flat = raw.replace(/\s+/g, ' ').trim();
+    // Cut before flattening: only `max` characters survive, however large the value.
+    const flat = describe(value).slice(0, max * 4).replace(/\s+/g, ' ').trim();
     return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat;
+}
+
+/** Text for a step's output: strings as they are, a tool result's text parts, else JSON. */
+function describe(value: unknown): string {
+    if (typeof value === 'string') return value;
+    const parts = (value as { content?: unknown }).content;
+    if (Array.isArray(parts)) {
+        // A tool result: show its text; images and other data parts are only counted.
+        const texts = parts.map(part => (part as { value?: unknown })?.value).filter((t): t is string => typeof t === 'string');
+        if (texts.length > 0) return texts.join(' ');
+        return `[${parts.length} non-text part${parts.length === 1 ? '' : 's'}]`;
+    }
+    try {
+        return JSON.stringify(value) ?? String(value);
+    } catch {
+        return '[output that cannot be shown]'; // cycles, BigInt
+    }
 }
 
 function formatInput(value: unknown): string {

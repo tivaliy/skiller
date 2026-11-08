@@ -48,6 +48,25 @@ describe('RunLog', () => {
         expect(lines[2]).toBe(`  ✓ draft 0.1s → ${'y'.repeat(99)}…`);
     });
 
+    it('never throws on output it cannot print, and summarizes non-text tool results', () => {
+        const cyclic: Record<string, unknown> = { a: 1 };
+        cyclic.self = cyclic;
+        const image = { content: [{ mimeType: 'image/png', data: new Uint8Array(500_000) }] };
+        const mixed = { content: [{ value: 'found 3 files' }, { mimeType: 'image/png', data: new Uint8Array(4) }] };
+
+        log.stepCompleted('a', true, 0, undefined, cyclic);
+        log.stepCompleted('b', true, 0, undefined, image);
+        log.stepCompleted('c', true, 0, undefined, mixed);
+        log.stepCompleted('d', true, 0, undefined, 10n);
+
+        expect(lines).toEqual([
+            '  ✓ a 0.0s → [output that cannot be shown]',
+            '  ✓ b 0.0s → [1 non-text part]',
+            '  ✓ c 0.0s → found 3 files',
+            '  ✓ d 0.0s → [output that cannot be shown]',
+        ]);
+    });
+
     it('omits the inputs line when there are none, and the arrow when a step produced nothing', () => {
         log.start({});
         log.stepCompleted('gate', true, 0, undefined, undefined);
