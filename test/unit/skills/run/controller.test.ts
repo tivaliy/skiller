@@ -530,6 +530,20 @@ describe('RunController', () => {
         expect(seen).toEqual(['writer', undefined]);
     });
 
+    it('a listener that throws neither fails the run nor holds the run lock', async () => {
+        const logError = vi.spyOn(console, 'error').mockImplementation(() => {});
+        controller.onDidChangeActive(() => { throw new Error('listener broke'); });
+
+        const first = await controller.run({ skill: noInputSkill('one') });
+        expect(first.kind).toBe('completed');
+        expect(controller.active).toBeUndefined();
+
+        const second = await controller.run({ skill: noInputSkill('two') });
+        expect(second.kind).toBe('completed');
+        expect(logError).toHaveBeenCalled();
+        logError.mockRestore();
+    });
+
     it('invalid input is re-asked with the validation error', async () => {
         const skill = makeSkill({
             inputs: [{ name: 'slug', type: 'string', description: 'Slug', required: true, pattern: '^[a-z]+$' }],

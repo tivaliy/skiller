@@ -81,7 +81,14 @@ export class RunController {
 
     private setCurrent(run: ActiveRun | undefined): void {
         this.current = run;
-        for (const listener of [...this.activeListeners]) listener();
+        // A broken listener (UI) must never fail a run or keep the run lock held.
+        for (const listener of [...this.activeListeners]) {
+            try {
+                listener();
+            } catch (error) {
+                console.error('Skiller: a run-change listener failed', error);
+            }
+        }
     }
 
     /** Cancel the run in progress. Returns false when nothing is running. */
