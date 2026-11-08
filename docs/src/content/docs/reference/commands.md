@@ -5,8 +5,8 @@ sidebar:
   order: 3
 ---
 
-Skiller runs skills natively in VS Code. You drive it from the Command Palette, the editor, and the
-graph panel; Copilot can drive it through two language-model tools. For how a run behaves once it
+Skiller runs skills natively in VS Code. You drive it from the status bar, the Command Palette, the
+editor, and the graph panel; Copilot can drive it through two language-model tools. For how a run behaves once it
 starts — inputs, cards, tool approvals, results — see [Running skills](../../guides/running-skills/).
 
 ## Command Palette
@@ -22,6 +22,15 @@ starts — inputs, cards, tool approvals, results — see [Running skills](../..
 
 `skiller.copySkill` (**Copy Skill to Workspace…**) is what **Copy** runs. It is hidden from the
 palette: reach it through **Show Skills** or **New Skill… → Copy a skill**.
+
+## Status bar
+
+| State | Click |
+| ----- | ----- |
+| **Skiller** (idle) | Opens **Skiller: Show Skills**. |
+| Spinner and the running skill's name | Brings that skill's graph forward (`skiller.showRun`, hidden from the palette), where its cards wait. |
+
+To hide the item, right-click the status bar and uncheck **Skiller**.
 
 ## In the editor
 

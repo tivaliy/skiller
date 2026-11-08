@@ -34,6 +34,8 @@ It is deliberately **not** a free-form agent and **not** an "Agent Skills" auto-
 
 If you want predictable, reviewable automation that still leverages an LLM — not an autonomous agent — Skiller is for you. As a skill runs, you can watch it as a **live execution graph**, with branches and loops lighting up as they fire.
 
+Skills run in VS Code itself, from the editor, and Copilot can run them too: it calls a skill as a tool, waits for the result, and carries on with its task. A workflow you write once works both ways.
+
 ## Requirements
 
 - **VS Code 1.95+**
@@ -61,7 +63,7 @@ code --install-extension skiller-*.vsix
 ### Run your first skill
 
 - **The Skiller status bar item** (bottom right) opens your skills: pick one and **Run**. While a skill runs, it shows the skill's name; click it to bring the run's graph forward.
-- **Skiller: Run Skill…** (Command Palette or editor context menu) — pick the built-in `greeter` to try it. Inputs are asked with pickers; confirmations, tool approvals, and the result appear as cards in the skill's live graph.
+- **Skiller: Run Skill…** (Command Palette or editor context menu) — pick the built-in `greeter` to try it. Inputs are asked with pickers; confirmations, tool approvals, and the result appear as cards in the skill's live graph. The first run asks which model to use and remembers it (change it with the `skiller.model.default` setting).
 - **Code actions** — the lightbulb menu offers **Skiller: Run ‹skill›** for skills that read your selection, file, or diagnostics.
 - **Skiller: New Skill…** — describe a workflow and the built-in `skill-creator` drafts it, or start from a template or a copy. **Run it now** when it's written.
 - **Copilot** — type `/skiller` in a Copilot chat, or just ask, and Copilot runs the matching skill (after you approve the run). This is unrelated to Copilot's own `/skills` commands.
