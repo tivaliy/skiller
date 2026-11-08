@@ -15,6 +15,7 @@
 import * as vscode from 'vscode';
 import { describeSink, validateSingleInput, coerceValue } from '../../skills';
 import type { Skill, SkillInput, SkillResult, PendingConfirmationInfo, ConfirmationOption } from '../../skills';
+import type { ModelSource } from '../../skills/types';
 import type { DeliveryOutcome } from '../../skills/output';
 import type { RunSurface, ToolApproval, ToolCallRequest } from '../../skills/run';
 import type { ProgressHooks } from '../../skills/progress-hooks';
@@ -47,6 +48,13 @@ const APPROVAL_ACTIONS: ReadonlyArray<{ id: ToolApproval; label: string }> = [
 ];
 
 const RESULT_ACTIONS = { open: 'open', copy: 'copy' } as const;
+
+/** Why a step runs on its model, for the output log ('auto' = the run's fallback model). */
+const MODEL_SOURCE_LABEL: Record<ModelSource, string> = {
+    'skill-step': "the step's model",
+    'skill-default': "the skill's models.default",
+    auto: 'your model for Skiller runs',
+};
 
 /** A QuickPick item carrying the answer it stands for. */
 type PickItem<T> = vscode.QuickPickItem & { answer: T };
@@ -185,6 +193,8 @@ class NativeSurface implements RunSurface {
         let report: ((message: string) => void) | undefined;
         let finish: (() => void) | undefined;
         let disposed = false;
+        /** Pins that were unavailable, by step: the executor reports them before the step starts. */
+        const unavailablePin = new Map<string, string>();
 
         void vscode.window.withProgress(
             { location: vscode.ProgressLocation.Notification, title: skill.name, cancellable: true },
@@ -199,13 +209,21 @@ class NativeSurface implements RunSurface {
         );
 
         return {
-            onStepStart: (stepId, stepIndex, totalSteps) => {
+            onStepStart: (stepId, stepIndex, totalSteps, modelInfo) => {
                 report?.(`${stepTitle(skill, stepId)} (${stepIndex + 1} of ${totalSteps})`);
+                if (modelInfo) {
+                    const pin = unavailablePin.get(stepId);
+                    const why = pin === undefined
+                        ? MODEL_SOURCE_LABEL[modelInfo.source]
+                        : `${MODEL_SOURCE_LABEL.auto}; '${pin}' isn't available`;
+                    this.deps.output.appendLine(`${skill.name} › ${stepId}: model ${modelInfo.displayName} (${why})`);
+                }
             },
             onConfirmationRequired: () => {
                 report?.('Waiting for you');
             },
             onModelFallback: (stepId, requestedModel, actualModel) => {
+                unavailablePin.set(stepId, requestedModel);
                 void vscode.window.showWarningMessage(
                     `${skill.name}: model '${requestedModel}' isn't available for step '${stepId}'; using '${actualModel}'.`
                 );

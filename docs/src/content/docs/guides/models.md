@@ -103,6 +103,11 @@ Skiller does not fail outright:
 The model picker shows each model's `vendor/family/id`; the last part is the exact id to put in
 `models.default`, `models.aliases`, or `skiller.model.default`.
 
+To see which model a step actually ran on, and why, open the **Skiller** output channel
+(**View → Output**, then pick *Skiller*). Each AI step logs a line such as
+`Greeter › greet: model gpt-5.6-luna (your model for Skiller runs)`. If a model request fails,
+the error names the model and the step.
+
 ## Related
 
 - **Reference:** [`skill.yaml` manifest](../../reference/skill-yaml/#models) — the `models`

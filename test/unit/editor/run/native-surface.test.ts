@@ -486,6 +486,32 @@ describe('NativeSurface', () => {
             await flush();
             expect(settled).toBe(true);
         });
+
+        it('logs which model each AI step runs on and why, without opening the output', () => {
+            const hooks = startRun();
+            hooks.onStepStart?.('draft', 0, 2, { displayName: 'gpt-4o', source: 'skill-default' });
+            hooks.onStepStart?.('polish', 1, 2, { displayName: 'gpt-5.6-luna', source: 'auto' });
+            hooks.onStepStart?.('gate', 1, 2); // not an AI step: nothing to log
+
+            expect(output.appendLine.mock.calls.map(c => c[0])).toEqual([
+                "Writer › draft: model gpt-4o (the skill's models.default)",
+                'Writer › polish: model gpt-5.6-luna (your model for Skiller runs)',
+            ]);
+            expect(output.show).not.toHaveBeenCalled();
+            hooks.dispose();
+        });
+
+        it('logs a fallback as the run model, naming the pin that was unavailable', () => {
+            const hooks = startRun();
+            // The executor reports the fallback first, then starts the step with the pin's source.
+            hooks.onModelFallback?.('draft', 'gpt-x', 'gpt-y');
+            hooks.onStepStart?.('draft', 0, 1, { displayName: 'gpt-y', source: 'skill-default' });
+
+            expect(output.appendLine).toHaveBeenCalledWith(
+                "Writer › draft: model gpt-y (your model for Skiller runs; 'gpt-x' isn't available)"
+            );
+            hooks.dispose();
+        });
     });
 
     // -----------------------------------------------------------------------

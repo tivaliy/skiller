@@ -22,6 +22,7 @@ Skills now run natively in VS Code, and Copilot can run them for you. The `@skil
 - The `from: tools` input binding, which fills an input with the installed language-model tools.
 - The `skiller_writeSkill` language-model tool, which writes a validated skill folder atomically. It asks for confirmation unless it is called from Skiller's own `skill-creator` run. Among skills, only built-in skills may use it: a workspace or user skill that references it fails its readiness check, and a step that offers or calls it anyway (for example through step-file frontmatter) fails when it runs.
 - A one-time notice for users upgrading from 0.4, pointing at `Skiller: Run Skill…` and Copilot.
+- The **Skiller** output channel logs which model each AI step runs on and why: the step's model, the skill's `models.default`, or your model for Skiller runs.
 
 ### Changed
 
